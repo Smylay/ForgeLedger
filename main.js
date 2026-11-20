@@ -157,6 +157,7 @@
         function go(k) {
           section = k;
           editId = null;
+          document.querySelector("#search").value = "";
           renderNav();
           document.querySelectorAll(".view").forEach((x) => x.classList.remove("active"));
           let title = "Dashboard",
@@ -222,7 +223,7 @@
                 )
                 .join("")
             : '<div class="empty">Queue is empty.</div>';
-          let low = db.paints.filter((p) => Number(p.remaining) < 20);
+          let low = db.paints.filter((p) => p.remaining !== "" && p.remaining != null && Number(p.remaining) < 20);
           document.querySelector("#stockSummary").innerHTML = low.length
             ? low
                 .map(
@@ -424,6 +425,7 @@
               notes: "",
             });
             save();
+            renderNav();
             toast("Added to queue");
           }
           if (b.dataset.editq)
@@ -434,6 +436,7 @@
           if (b.dataset.delq) {
             db.queue = db.queue.filter((x) => x.id !== b.dataset.delq);
             save();
+            renderNav();
             renderQueue();
           }
           if (b.dataset.edits)
@@ -444,6 +447,7 @@
           if (b.dataset.dels) {
             db.skills = db.skills.filter((x) => x.id !== b.dataset.dels);
             save();
+            renderNav();
             renderSkills();
           }
           if (b.dataset.up !== undefined) {
@@ -473,10 +477,9 @@
           if (e.target.dataset.skill) {
             let s = db.skills.find((x) => x.id === e.target.dataset.skill);
             s.level = +e.target.value;
+            e.target.closest(".skill").querySelector(".skilltop strong").textContent = s.level + "/9";
             save();
-            renderSkills();
           }
         };
-        renderNav();
-        renderDashboard();
+        go("dashboard");
       })();
