@@ -217,6 +217,30 @@ tr:last-child td {
   background: #303945;
   font-size: 12px;
 }
+.pill.warn {
+  background: #4a2323;
+  color: #ffaaa7;
+  padding: 1px 6px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  margin: 2px 6px 2px 0;
+}
+.chip .colour {
+  width: 12px;
+  height: 12px;
+  margin-right: 5px;
+}
+.chip .pill {
+  margin-left: 5px;
+}
+.warnline {
+  color: #ffaaa7;
+  font-size: 13px;
+  margin-top: 2px;
+}
 .colour {
   width: 18px;
   height: 18px;

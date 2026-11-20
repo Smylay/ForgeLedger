@@ -55,6 +55,7 @@ All code is inside one IIFE. There are no modules and no exports. Mutable state 
   | `textarea`       | multi-line box              |                                                       |
   | `select`         | dropdown                    | needs `options`                                       |
   | `link`           | dropdown of `db[f.to]`      | stores a record `id`; shown by name, blank if deleted |
+  | `links`          | multi-select of `db[f.to]`  | stores an array of ids; read it with `asList()`       |
   | `date`, `url`    | matching browser input      |                                                       |
   | `color`          | colour picker + "No colour" | a picker can't be empty, so "No colour" saves `""`    |
   | `count`          | whole number ≥ 0            |                                                       |
@@ -92,7 +93,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 **Undo.** `commitWithUndo(change, message)` commits a change and shows `message()` with an Undo button, which restores a copy of `db` from just before the change.
 
 - **Deletes** go through `remove(section, id)`, which uses `commitWithUndo`. There is no confirmation dialog.
-- **Unlinking on delete.** Deleting a record clears every `link` field in any collection that points at it, e.g. miniatures in a deleted project, or queue items for a deleted miniature.
+- **Unlinking on delete.** Deleting a record clears every `link` field and removes the id from every `links` array that points at it. For example: miniatures in a deleted project, queue items for a deleted miniature, or recipes that used a deleted paint.
 - **Undo never reverts later work.** Every `commit()` clears the copy, and so does a change from another tab.
 
 **Completing queue items.** When `submit()` saves a queue item whose stage has just become "Complete" and that links to a miniature, `askComplete()` opens `#completeDialog`. It offers two choices:
@@ -114,8 +115,15 @@ Functions that `load()` calls must be function declarations, not `const` arrows:
 
   - `miniatures.project` and `queue.project` point at projects.
   - `queue.miniature` points at a miniature. It's set when a miniature is queued from its row; items queued before this field existed have none.
+  - `miniatures.paints` is a `links` array of the paints in its recipe. The older free-text `recipe` field is still there, labelled "Recipe steps".
 
-  Older data can still hold links to deleted records; these display blank, and saving the record clears them.
+  Older data can still hold links to deleted records; these display blank, and saving the record clears them. Imported `links` values may not be arrays; `asList()` treats anything else as empty.
+
+- A paint is low (`isLow()`) when its Remaining % is set and under 20. Low recipe paints are flagged in three places:
+
+  - the miniatures table;
+  - queue items that aren't complete;
+  - the dashboard's stock warnings, which say how many queued miniatures need each low paint.
 
 - `projectStats(p)` calculates a project's `models`, `painted`, and `spent` from the miniatures linked to it. Only `target` and `budget` are entered by hand. If `target` is blank, progress is measured against models owned. Older records may still contain hand-entered `complete` and `spent` fields; these are ignored.
 - The dashboard's "Recorded spend" adds up `price` across paints, tools, and miniatures. Each `price` is added as entered; it is not multiplied by `quantity`.

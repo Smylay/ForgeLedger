@@ -51,8 +51,8 @@
   //   filter:   key of the field the filter dropdown filters on.
   //   computed: read-only columns calculated from other data.
   // Field types: text (default), textarea, select (needs `options`), link
-  // (stores the id of a record in collection `to`), date, url, color, count,
-  // money, percent, level.
+  // (stores the id of a record in collection `to`), links (an array of ids),
+  // date, url, color, count, money, percent, level.
   const defs = {
     paints: {
       title: "Paints",
@@ -143,10 +143,19 @@
           options: ["Unbuilt", "Built", "Primed", "In progress", "Complete"],
         },
         { key: "price", label: "Cost (£)", type: "money" },
-        { key: "recipe", label: "Paint recipe", type: "textarea" },
+        { key: "paints", label: "Recipe paints", type: "links", to: "paints" },
+        { key: "recipe", label: "Recipe steps", type: "textarea" },
         { key: "notes", label: "Notes", type: "textarea" },
       ],
-      columns: ["name", "faction", "project", "quantity", "painted", "status"],
+      columns: [
+        "name",
+        "faction",
+        "project",
+        "quantity",
+        "painted",
+        "status",
+        "paints",
+      ],
       filter: "status",
     },
     projects: {
@@ -415,6 +424,34 @@
   function linked(f, value) {
     return value ? db[f.to].find((r) => r.id === value) : undefined;
   }
+  // The ids in a `links` field. Tolerates missing or malformed values.
+  function asList(value) {
+    return Array.isArray(value)
+      ? value.filter((x) => typeof x === "string")
+      : [];
+  }
+  // Every record a `links` field points at that still exists.
+  function linkedAll(f, value) {
+    return asList(value)
+      .map((v) => linked(f, v))
+      .filter(Boolean);
+  }
+  // A paint is low when its Remaining % is set and under 20.
+  function isLow(p) {
+    return (
+      p.remaining !== "" && p.remaining != null && Number(p.remaining) < 20
+    );
+  }
+  // The low paints a miniature's recipe uses.
+  function lowRecipePaints(m) {
+    return m
+      ? linkedAll(column(defs.miniatures, "paints"), m.paints).filter(isLow)
+      : [];
+  }
+  // How a record is named in a picker; paints include their brand.
+  function optionLabel(r) {
+    return r.brand ? `${r.name} (${r.brand})` : String(r.name ?? "");
+  }
 
   // Delete a record and offer Undo. Links to it from other records, such as
   // miniatures in a deleted project, are cleared.
@@ -431,6 +468,9 @@
               for (let r of db[k])
                 if (r[f.key] === recordId) {
                   r[f.key] = "";
+                  unlinked++;
+                } else if (asList(r[f.key]).includes(recordId)) {
+                  r[f.key] = asList(r[f.key]).filter((x) => x !== recordId);
                   unlinked++;
                 }
       },
@@ -657,16 +697,20 @@
           )
           .join("")
       : '<div class="empty">Queue is empty.</div>';
-    let low = db.paints.filter(
-      (p) =>
-        p.remaining !== "" && p.remaining != null && Number(p.remaining) < 20,
-    );
+    let low = db.paints.filter(isLow),
+      // Miniatures waiting in the queue, for "needed for N queued".
+      waiting = db.queue
+        .filter((q) => q.stage !== "Complete")
+        .map((q) => linked(column(defs.queue, "miniature"), q.miniature))
+        .filter(Boolean);
     document.querySelector("#stockSummary").innerHTML = low.length
       ? low
-          .map(
-            (p) =>
-              `<div><span class="colour" style="background:${safeColour(p.colour) || "#777"}"></span>${esc(p.brand)} ${esc(p.name)} · <b>${Number(p.remaining || 0)}%</b></div>`,
-          )
+          .map((p) => {
+            let needed = waiting.filter((m) =>
+              asList(m.paints).includes(p.id),
+            ).length;
+            return `<div><span class="colour" style="background:${safeColour(p.colour) || "#777"}"></span>${esc(p.brand)} ${esc(p.name)} · <b>${Number(p.remaining || 0)}%</b>${needed ? ` <span class="muted">· needed for ${needed} queued</span>` : ""}</div>`;
+          })
           .join("")
       : '<div class="empty">No paints below 20%.</div>';
     let age = backupAgeDays();
@@ -723,6 +767,10 @@
     if (f.type === "money") return money(v);
     if (f.type === "percent") return v + "%";
     if (f.type === "link") return linked(f, v)?.name || "";
+    if (f.type === "links")
+      return linkedAll(f, v)
+        .map((r) => r.name)
+        .join(", ");
     return String(v);
   }
   function cellHtml(f, x) {
@@ -733,6 +781,13 @@
         : esc(v);
     if (f.type === "color")
       return `<span class="colour" style="background:${safeColour(v) || "#777"}"></span>${esc(v)}`;
+    if (f.type === "links")
+      return linkedAll(f, v)
+        .map(
+          (r) =>
+            `<span class="chip">${safeColour(r.colour) ? `<span class="colour" style="background:${safeColour(r.colour)}"></span>` : ""}${esc(r.name)}${isLow(r) ? ` <span class="pill warn">${Number(r.remaining)}%</span>` : ""}</span>`,
+        )
+        .join(" ");
     return esc(cellText(f, x));
   }
   function renderTable() {
@@ -758,6 +813,11 @@
       return `<label>${f.label}<select ${name} ${req}><option value="">Select...</option>${f.options.map((o) => `<option ${v === o ? "selected" : ""}>${o}</option>`).join("")}</select></label>`;
     if (f.type === "link")
       return `<label>${f.label}<select ${name}><option value="">None</option>${db[f.to].map((r) => `<option value="${esc(r.id)}" ${v === r.id ? "selected" : ""}>${esc(r.name)}</option>`).join("")}</select></label>`;
+    if (f.type === "links") {
+      let chosen = asList(v),
+        all = db[f.to];
+      return `<label class="full">${f.label}<select ${name} multiple size="${Math.min(6, Math.max(3, all.length))}">${all.map((r) => `<option value="${esc(r.id)}" ${chosen.includes(r.id) ? "selected" : ""}>${esc(optionLabel(r))}</option>`).join("")}</select><small class="muted">${all.length ? "Ctrl-click (⌘-click on a Mac) to pick several." : `No ${defs[f.to].title.toLowerCase()} yet.`}</small></label>`;
+    }
     if (f.type === "textarea")
       return `<label class="full">${f.label}<textarea ${name}>${esc(v)}</textarea></label>`;
     if (f.type === "color") {
@@ -783,7 +843,8 @@
     e.preventDefault();
     let form = e.target,
       d = defs[section],
-      o = Object.fromEntries(new FormData(form));
+      fd = new FormData(form),
+      o = Object.fromEntries(fd);
     // Rules the browser can't check on its own, e.g. painted <= model count.
     for (let f of d.fields)
       if (f.atMost) {
@@ -806,6 +867,7 @@
         form.querySelector(`[data-nocolour="${f.key}"]`).checked
       )
         o[f.key] = "";
+      if (f.type === "links") o[f.key] = fd.getAll(f.key);
     }
     o.id = editId || id();
     let prev = db[section].find((x) => x.id === o.id);
@@ -830,10 +892,15 @@
   function renderQueue() {
     document.querySelector("#queueContent").innerHTML = db.queue.length
       ? db.queue
-          .map(
-            (q, i) =>
-              `<div class="qitem"><div class="qnum">${i + 1}</div><div><b>${esc(q.name)}</b><div class="muted">${esc(q.stage || "Not started")} · ${esc(q.models || 1)} model(s)${q.due ? " · due " + esc(q.due) : ""}</div></div><div class="rowacts"><button data-up="${i}">↑</button><button data-down="${i}">↓</button><button data-edit="${esc(q.id)}">Edit</button><button class="del" data-del="${esc(q.id)}">Delete</button></div></div>`,
-          )
+          .map((q, i) => {
+            let low =
+              q.stage === "Complete"
+                ? []
+                : lowRecipePaints(
+                    linked(column(defs.queue, "miniature"), q.miniature),
+                  );
+            return `<div class="qitem"><div class="qnum">${i + 1}</div><div><b>${esc(q.name)}</b><div class="muted">${esc(q.stage || "Not started")} · ${esc(q.models || 1)} model(s)${q.due ? " · due " + esc(q.due) : ""}</div>${low.length ? `<div class="warnline">Low paint: ${low.map((p) => `${esc(p.name)} (${Number(p.remaining)}%)`).join(", ")}</div>` : ""}</div><div class="rowacts"><button data-up="${i}">↑</button><button data-down="${i}">↓</button><button data-edit="${esc(q.id)}">Edit</button><button class="del" data-del="${esc(q.id)}">Delete</button></div></div>`;
+          })
           .join("")
       : '<div class="card empty">Painting queue is empty.</div>';
   }

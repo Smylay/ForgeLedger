@@ -30,9 +30,15 @@ test("values from an imported backup can't run script", async ({
           colour: attack("colour"),
         },
       ],
-      miniatures: [{ id: attack("miniId"), name: "Mini" }],
+      // The recipe and queue link point at the paint and miniature above,
+      // so recipe chips and low-paint warnings render the hostile name.
+      miniatures: [
+        { id: attack("miniId"), name: "Mini", paints: [attack("paintId")] },
+      ],
       projects: [{ id: attack("projectId"), name: "Project" }],
-      queue: [{ id: attack("queueId"), name: "Queued" }],
+      queue: [
+        { id: attack("queueId"), name: "Queued", miniature: attack("miniId") },
+      ],
       skills: [
         { id: attack("skillId"), name: "Skill", level: attack("level") },
       ],
