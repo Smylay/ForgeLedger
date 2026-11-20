@@ -41,20 +41,31 @@ All code is inside one IIFE. There are no modules and no exports. Mutable state 
 
 **Backward compatibility.** Users keep and move their data with Export backup and Import, which write and read JSON files. ForgeLedger is open source and runs from a local file, so old backups and existing `localStorage` data must keep loading after any change. Don't rename or repurpose stored fields. Add new fields as optional. A field that is no longer used can stay in old records, as long as nothing reads it.
 
-**Schema-driven CRUD.** `defs` maps the collections `paints`, `tools`, `miniatures`, `projects`, and `wishlist` to a title, a subtitle, and a `fields` array. Each field is a tuple: `[key, label, inputType, extra]`.
+**Config-driven sections.** `defs` has one entry per collection, in nav order. It drives the nav, page titles, the add/edit form, table columns, the filter dropdown and search. Each entry has:
 
-- `extra === 1` marks a text, number, or date field as required.
-- For `select`, `extra` is the array of options, so a select can't currently be marked required.
-- The `project` input type renders a `<select>` of `db.projects`, stores the project's `id`, and is shown by name in tables.
+- `title` and `sub` for the page heading, `nav` if the nav label differs from the title, and `noun` for the form title ("Add paint").
+- `fields`: `{ key, label, type, required, options }` objects. Each type maps to an input (`inputAttrs` for plain `<input>`s) and a display format (`cellText()` / `cellHtml()`):
 
-All five `defs` collections share the single `#listView` section and the generic `renderList()` and `renderTable()` renderers.
+  | Type                   | Input                     | Notes                                  |
+  | ---------------------- | ------------------------- | -------------------------------------- |
+  | `text` (default)       | text box                  |                                        |
+  | `textarea`             | multi-line box            |                                        |
+  | `select`               | dropdown                  | needs `options`                        |
+  | `project`              | dropdown of `db.projects` | stores the project `id`; shown by name |
+  | `date`, `url`, `color` | matching browser input    |                                        |
+  | `count`                | whole number              |                                        |
+  | `money`                | number                    | shown with `money()`                   |
+  | `percent`              | number                    |                                        |
+  | `level`                | 0–9                       |                                        |
 
-**Not everything is driven by `defs`.** Some per-collection configuration is hardcoded:
+- `columns`: the field keys the table shows.
+- `computed`: read-only columns calculated from other data, such as `projectStats()` for projects. A computed column is `{ label, type, value(record) }`, and `column(d, key)` resolves keys from both `fields` and `computed`.
+- `filter`: the key of the field the filter dropdown filters on. It must be a `select` field.
+- `view`: the section element to show. Collections without one use the shared `#listView` with `renderList()` and `renderTable()`. `queue` and `skills` have their own views and renderers.
 
-- `queue` and `skills` are not in `defs`. Their form fields are defined inline in `openForm()`, and they have their own views and renderers (`renderQueue()` and `renderSkills()`).
-- Table columns per collection are hardcoded in `renderTable()`, so adding a field to `defs` does not add a column.
-- Filter dropdown options per collection are hardcoded in `renderList()`.
-- The nav order and labels live in `navItems`. View titles for the dashboard, queue, and skills are hardcoded in `go()`.
+To add a field, add it to `fields`, and to `columns` if it should appear in the table.
+
+`COLLECTIONS` (used by loading and validation) repeats the collection keys because `load()` runs before `defs` exists. Keep the two in step.
 
 **Rendering.** Every renderer rebuilds its container with template-literal `innerHTML`. Imported backups can contain arbitrary strings, so:
 
@@ -66,7 +77,7 @@ All five `defs` collections share the single `#listView` section and the generic
 
 `tests/security.spec.js` tries each known injection route. Add a case there when you render a new field.
 
-**Events.** A single delegated `click` listener on `document` dispatches on `data-*` attributes of the clicked `<button>`: `sec`, `edit`, `del`, `queue`, `editq`, `delq`, `edits`, `dels`, `up`, and `down`. To add a new row action, render a button with a new `data-*` attribute and add a branch to this listener. Other controls are wired directly at the bottom of the IIFE.
+**Events.** A single delegated `click` listener on `document` dispatches on `data-*` attributes of the clicked `<button>`: `sec`, `edit`, `del`, `queue`, `delq`, `dels`, `up`, `down`, and `recovery`. `edit` works in every section because it opens the current section's form. To add a new row action, render a button with a new `data-*` attribute and add a branch to this listener. Other controls are wired directly at the bottom of the IIFE.
 
 **Mutation pattern.** Never change `db` and call `save()` directly. Use `commit(() => { /* change db */ })`: it snapshots `db`, applies the change, and saves. If saving fails, it restores the snapshot, shows an error, and returns `false`. Afterwards, call `renderNav()` (nav badges show item counts) and the renderer for the affected view.
 
@@ -76,7 +87,7 @@ Functions that `load()` calls must be function declarations, not `const` arrows:
 
 **Data semantics:**
 
-- `FormData` returns strings, so numbers are stored as strings. Consumers wrap them in `Number(...)`. Only `skills.level` is converted (and clamped to 0–9) on save.
+- `FormData` returns strings, so numbers are stored as strings. Consumers wrap them in `Number(...)`. Only `level` fields are converted (and clamped to 0–9) on save.
 - Editing a record replaces the whole object with the form's contents.
 - `miniatures.project` and `queue.project` hold a project `id`. Deleting a project doesn't cascade to them; tables fall back to showing the raw id.
 - `projectStats(p)` calculates a project's `models`, `painted`, and `spent` from the miniatures linked to it. Only `target` and `budget` are entered by hand. If `target` is blank, progress is measured against models owned. Older records may still contain hand-entered `complete` and `spent` fields; these are ignored.

@@ -135,7 +135,7 @@ test.describe("painting queue", () => {
     await page.click(".qitem:nth-child(2) button[data-down]");
     expect(await names()).toEqual(["B", "A"]);
 
-    await page.click(".qitem:nth-child(1) button[data-editq]");
+    await page.click(".qitem:nth-child(1) button[data-edit]");
     await fillForm(page, { stage: "Basing" });
     await submitForm(page);
     expect((await stored(page)).queue[0].stage).toBe("Basing");

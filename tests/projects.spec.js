@@ -76,14 +76,14 @@ test("recorded spend counts each purchase once", async ({ page }) => {
 test("projects table shows calculated columns", async ({ page }) => {
   await nav(page, "projects");
   await expect(page.locator("#content thead th")).toHaveText([
-    "name",
-    "faction",
-    "system",
-    "painted",
-    "models",
-    "target",
-    "spent",
-    "deadline",
+    "Project name",
+    "Faction",
+    "Game system",
+    "Painted",
+    "Models owned",
+    "Target model count",
+    "Spent",
+    "Target date",
     "Actions",
   ]);
   await expect(tableRows(page).first().locator("td")).toHaveText([
