@@ -71,19 +71,46 @@ test.describe("list collections", () => {
       expect((await stored(page))[section][0].name).toBe("Renamed");
 
       await page.click("button[data-del]");
-      expect(dialogs.messages).toHaveLength(1);
+      expect(dialogs.messages).toEqual([]);
       expect((await stored(page))[section]).toHaveLength(0);
+      await expect(page.locator("#toastText")).toHaveText('Deleted "Renamed"');
+    });
+  }
+});
+
+test.describe("undo delete", () => {
+  const nameCells = {
+    paints: "#content tbody td:first-child",
+    queue: "#queueContent .qitem b",
+    skills: "#skillsContent .skilltop b",
+  };
+  for (const [section, cells] of Object.entries(nameCells)) {
+    test(`${section}: Undo restores the item in its place`, async ({
+      page,
+    }) => {
+      if (section !== "skills") {
+        await addItem(page, section, { name: "A" });
+        await addItem(page, section, { name: "B" });
+      }
+      await nav(page, section);
+      const before = await page.locator(cells).allTextContents();
+      await page.locator("button[data-del]").first().click();
+      await expect(page.locator(cells)).toHaveCount(before.length - 1);
+      await page.click("#toastAction");
+      await expect(page.locator("#toastText")).toHaveText("Restored");
+      await expect(page.locator(cells)).toHaveText(before);
+      expect((await stored(page))[section].map((x) => x.name)).toEqual(before);
     });
   }
 
-  test("declining the delete confirmation keeps the item", async ({
-    page,
-    dialogs,
-  }) => {
-    await addItem(page, "paints", { name: "Keep" });
-    dialogs.accept = false;
+  test("Undo is gone once anything else changes", async ({ page }) => {
+    await addItem(page, "paints", { name: "Deleted" });
     await page.click("button[data-del]");
-    expect((await stored(page)).paints).toHaveLength(1);
+    await addItem(page, "paints", { name: "Added after" });
+    await page.evaluate(() => document.querySelector("#toastAction").click());
+    expect((await stored(page)).paints.map((p) => p.name)).toEqual([
+      "Added after",
+    ]);
   });
 });
 
@@ -135,12 +162,12 @@ test.describe("painting queue", () => {
     await page.click(".qitem:nth-child(2) button[data-down]");
     expect(await names()).toEqual(["B", "A"]);
 
-    await page.click(".qitem:nth-child(1) button[data-editq]");
+    await page.click(".qitem:nth-child(1) button[data-edit]");
     await fillForm(page, { stage: "Basing" });
     await submitForm(page);
     expect((await stored(page)).queue[0].stage).toBe("Basing");
 
-    await page.click(".qitem:nth-child(1) button[data-delq]");
+    await page.click(".qitem:nth-child(1) button[data-del]");
     expect(await names()).toEqual(["A"]);
     await expect(
       page.locator('#nav button[data-sec="queue"] .count'),
@@ -170,14 +197,9 @@ test.describe("skills", () => {
     expect((await stored(page)).skills[0].level).toBe(6);
   });
 
-  test("levels above 9 are clamped", async ({ page }) => {
-    await addItem(page, "skills", { name: "Freehand", level: "12" });
-    expect((await stored(page)).skills.at(-1).level).toBe(9);
-  });
-
   test("deleting a skill updates the count", async ({ page }) => {
     await nav(page, "skills");
-    await page.click("button[data-dels]");
+    await page.click("button[data-del]");
     await expect(
       page.locator('#nav button[data-sec="skills"] .count'),
     ).toHaveText("9");

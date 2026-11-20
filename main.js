@@ -38,24 +38,34 @@
   };
   let memoryOnly = false, // storage is blocked: changes live in memory only
     recovered = null, // { raw, problem } when saved data needed repair
+    undo = null, // copy of db from just before the last delete
     toastTimer;
   let db = load(),
     section = "dashboard",
     editId = null;
+  // Every collection, in nav order. This drives the nav, page titles, forms,
+  // table columns, the filter dropdown and search.
+  //   view:     section element to show; list collections use #listView.
+  //   columns:  field keys (or `computed` keys) shown in the table.
+  //   filter:   key of the field the filter dropdown filters on.
+  //   computed: read-only columns calculated from other data.
+  // Field types: text (default), textarea, select (needs `options`), project
+  // (stores a project id), date, url, color, count, money, percent, level.
   const defs = {
     paints: {
       title: "Paints",
+      noun: "paint",
       sub: "Brands, ranges, stock and replacement warnings",
       fields: [
-        ["name", "Paint name", "text", 1],
-        ["brand", "Brand", "text"],
-        ["range", "Range", "text"],
-        ["colour", "Colour / hex", "color"],
-        [
-          "type",
-          "Type",
-          "select",
-          [
+        { key: "name", label: "Paint name", required: true },
+        { key: "brand", label: "Brand" },
+        { key: "range", label: "Range" },
+        { key: "colour", label: "Colour / hex", type: "color" },
+        {
+          key: "type",
+          label: "Type",
+          type: "select",
+          options: [
             "Base",
             "Layer",
             "Shade",
@@ -66,23 +76,26 @@
             "Medium",
             "Other",
           ],
-        ],
-        ["quantity", "Quantity", "number"],
-        ["remaining", "Remaining %", "number"],
-        ["price", "Cost (£)", "number"],
-        ["notes", "Notes", "textarea"],
+        },
+        { key: "quantity", label: "Quantity", type: "count" },
+        { key: "remaining", label: "Remaining %", type: "percent" },
+        { key: "price", label: "Cost (£)", type: "money" },
+        { key: "notes", label: "Notes", type: "textarea" },
       ],
+      columns: ["name", "brand", "range", "type", "quantity", "remaining"],
+      filter: "type",
     },
     tools: {
       title: "Tools",
+      noun: "tool",
       sub: "Brushes, airbrush equipment and hobby supplies",
       fields: [
-        ["name", "Tool", "text", 1],
-        [
-          "category",
-          "Category",
-          "select",
-          [
+        { key: "name", label: "Tool", required: true },
+        {
+          key: "category",
+          label: "Category",
+          type: "select",
+          options: [
             "Brush",
             "Airbrush",
             "Cutting",
@@ -92,79 +105,170 @@
             "Storage",
             "Other",
           ],
-        ],
-        [
-          "condition",
-          "Condition",
-          "select",
-          ["New", "Good", "Worn", "Replace soon"],
-        ],
-        ["quantity", "Quantity", "number"],
-        ["price", "Cost (£)", "number"],
-        ["notes", "Notes", "textarea"],
+        },
+        {
+          key: "condition",
+          label: "Condition",
+          type: "select",
+          options: ["New", "Good", "Worn", "Replace soon"],
+        },
+        { key: "quantity", label: "Quantity", type: "count" },
+        { key: "price", label: "Cost (£)", type: "money" },
+        { key: "notes", label: "Notes", type: "textarea" },
       ],
+      columns: ["name", "category", "condition", "quantity", "price"],
+      filter: "category",
     },
     miniatures: {
       title: "Miniatures",
+      noun: "miniature",
       sub: "Models, units and their painting state",
       fields: [
-        ["name", "Miniature / unit", "text", 1],
-        ["faction", "Faction", "text"],
-        ["project", "Army project", "project"],
-        ["quantity", "Model count", "number"],
-        ["painted", "Painted count", "number"],
-        [
-          "status",
-          "Status",
-          "select",
-          ["Unbuilt", "Built", "Primed", "In progress", "Complete"],
-        ],
-        ["price", "Cost (£)", "number"],
-        ["recipe", "Paint recipe", "textarea"],
-        ["notes", "Notes", "textarea"],
+        { key: "name", label: "Miniature / unit", required: true },
+        { key: "faction", label: "Faction" },
+        { key: "project", label: "Army project", type: "project" },
+        { key: "quantity", label: "Model count", type: "count" },
+        {
+          key: "painted",
+          label: "Painted count",
+          type: "count",
+          atMost: "quantity",
+        },
+        {
+          key: "status",
+          label: "Status",
+          type: "select",
+          options: ["Unbuilt", "Built", "Primed", "In progress", "Complete"],
+        },
+        { key: "price", label: "Cost (£)", type: "money" },
+        { key: "recipe", label: "Paint recipe", type: "textarea" },
+        { key: "notes", label: "Notes", type: "textarea" },
       ],
+      columns: ["name", "faction", "project", "quantity", "painted", "status"],
+      filter: "status",
     },
     projects: {
       title: "Army projects",
+      noun: "army project",
       sub: "Track complete forces, goals, budgets and progress",
       fields: [
-        ["name", "Project name", "text", 1],
-        ["faction", "Faction", "text"],
-        ["system", "Game system", "text"],
-        ["target", "Target model count", "number"],
-        ["budget", "Budget (£)", "number"],
-        ["deadline", "Target date", "date"],
-        ["notes", "Notes", "textarea"],
+        { key: "name", label: "Project name", required: true },
+        { key: "faction", label: "Faction" },
+        { key: "system", label: "Game system" },
+        { key: "target", label: "Target model count", type: "count" },
+        { key: "budget", label: "Budget (£)", type: "money" },
+        { key: "deadline", label: "Target date", type: "date" },
+        { key: "notes", label: "Notes", type: "textarea" },
+      ],
+      computed: {
+        painted: {
+          label: "Painted",
+          type: "count",
+          value: (p) => projectStats(p).painted,
+        },
+        models: {
+          label: "Models owned",
+          type: "count",
+          value: (p) => projectStats(p).models,
+        },
+        spent: {
+          label: "Spent",
+          type: "money",
+          value: (p) => projectStats(p).spent,
+        },
+      },
+      columns: [
+        "name",
+        "faction",
+        "system",
+        "painted",
+        "models",
+        "target",
+        "spent",
+        "deadline",
+      ],
+      filter: "system",
+    },
+    queue: {
+      title: "Painting queue",
+      noun: "queue item",
+      sub: "Prioritised models awaiting paint",
+      view: "queueView",
+      fields: [
+        { key: "name", label: "Queue item", required: true },
+        { key: "project", label: "Army project", type: "project" },
+        {
+          key: "stage",
+          label: "Stage",
+          type: "select",
+          options: [
+            "Not started",
+            "Building",
+            "Priming",
+            "Basecoating",
+            "Detailing",
+            "Basing",
+            "Complete",
+          ],
+        },
+        { key: "models", label: "Model count", type: "count" },
+        { key: "due", label: "Target date", type: "date" },
+        { key: "notes", label: "Notes", type: "textarea" },
+      ],
+    },
+    skills: {
+      title: "Skill proficiency",
+      nav: "Skills",
+      noun: "skill",
+      sub: "Track development from 0 to 9",
+      view: "skillsView",
+      fields: [
+        { key: "name", label: "Skill", required: true },
+        { key: "level", label: "Proficiency 0-9", type: "level" },
+        { key: "goal", label: "Next practice goal" },
+        { key: "notes", label: "Notes", type: "textarea" },
       ],
     },
     wishlist: {
       title: "Wishlist",
+      noun: "wishlist item",
       sub: "Future paints, tools and miniatures",
       fields: [
-        ["name", "Wanted item", "text", 1],
-        [
-          "category",
-          "Category",
-          "select",
-          ["Paint", "Tool", "Miniature", "Terrain", "Book", "Other"],
-        ],
-        ["priority", "Priority", "select", ["Low", "Medium", "High"]],
-        ["price", "Expected cost (£)", "number"],
-        ["url", "Product URL", "url"],
-        ["notes", "Notes", "textarea"],
+        { key: "name", label: "Wanted item", required: true },
+        {
+          key: "category",
+          label: "Category",
+          type: "select",
+          options: ["Paint", "Tool", "Miniature", "Terrain", "Book", "Other"],
+        },
+        {
+          key: "priority",
+          label: "Priority",
+          type: "select",
+          options: ["Low", "Medium", "High"],
+        },
+        { key: "price", label: "Expected cost (£)", type: "money" },
+        { key: "url", label: "Product URL", type: "url" },
+        { key: "notes", label: "Notes", type: "textarea" },
       ],
+      columns: ["name", "category", "priority", "price", "url"],
+      filter: "priority",
     },
   };
-  const navItems = [
-    ["dashboard", "Dashboard"],
-    ["paints", "Paints"],
-    ["tools", "Tools"],
-    ["miniatures", "Miniatures"],
-    ["projects", "Army projects"],
-    ["queue", "Painting queue"],
-    ["skills", "Skills"],
-    ["wishlist", "Wishlist"],
-  ];
+  // A field or computed column of collection `d`, by key.
+  function column(d, key) {
+    return d.computed?.[key] || d.fields.find((f) => f.key === key);
+  }
+  // HTML attributes for each input type that uses a plain <input>.
+  const inputAttrs = {
+    text: 'type="text"',
+    date: 'type="date"',
+    url: 'type="url" pattern="https?://.+" title="Starts with http:// or https://"',
+    count: 'type="number" min="0" step="1"',
+    money: 'type="number" min="0" step="0.01"',
+    percent: 'type="number" min="0" max="100" step="1"',
+    level: 'type="number" min="0" max="9" step="1"',
+  };
   function id() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   }
@@ -276,13 +380,44 @@
   }
 
   // Apply a change to db and save it. If saving fails, undo the change so
-  // what's on screen always matches what's stored.
+  // what's on screen always matches what's stored. Any change ends the
+  // chance to undo the last delete, so Undo can never revert later work.
   function commit(change) {
     let before = structuredClone(db);
+    undo = null;
     change();
     if (save()) return true;
     db = before;
     return false;
+  }
+
+  // Delete a record and offer Undo. Deleting a project also unlinks the
+  // miniatures and queue items that pointed at it.
+  function remove(sec, recordId) {
+    let before = structuredClone(db),
+      item = db[sec].find((x) => x.id === recordId),
+      unlinked = 0;
+    if (!item) return;
+    let removed = commit(() => {
+      db[sec] = db[sec].filter((x) => x.id !== recordId);
+      if (sec === "projects")
+        for (let k of ["miniatures", "queue"])
+          for (let r of db[k])
+            if (r.project === recordId) {
+              r.project = "";
+              unlinked++;
+            }
+    });
+    if (!removed) return;
+    undo = before;
+    renderNav();
+    render();
+    toast(
+      `Deleted "${item.name}"` +
+        (unlinked ? ` and unlinked ${unlinked} item(s) from it` : ""),
+      8000,
+      "Undo",
+    );
   }
 
   // True once anything differs from a fresh install, ignoring ids.
@@ -353,7 +488,7 @@
     return /^https?:\/\//i.test(s) ? s : "";
   }
   function money(n) {
-    return "£" + Number(n || 0).toFixed(2);
+    return "£" + (Number(n) || 0).toFixed(2);
   }
   function projectStats(p) {
     let minis = db.miniatures.filter((m) => m.project === p.id);
@@ -363,50 +498,50 @@
       spent: minis.reduce((a, m) => a + Number(m.price || 0), 0),
     };
   }
-  function toast(s, ms = 1800) {
-    let e = document.querySelector("#toast");
-    e.textContent = s;
+  // Show a short message, optionally with an action button (e.g. "Undo").
+  function toast(s, ms = 1800, action = "") {
+    let e = document.querySelector("#toast"),
+      btn = document.querySelector("#toastAction");
+    document.querySelector("#toastText").textContent = s;
+    btn.textContent = action;
+    btn.hidden = !action;
     e.style.display = "block";
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => (e.style.display = "none"), ms);
   }
   function renderNav() {
-    document.querySelector("#nav").innerHTML = navItems
+    let items = [
+      ["dashboard", "Dashboard"],
+      ...Object.entries(defs).map(([k, d]) => [k, d.nav || d.title]),
+    ];
+    document.querySelector("#nav").innerHTML = items
       .map(
         ([k, n]) =>
-          `<button data-sec="${k}" class="${section === k ? "active" : ""}">${n}<span class="count">${k === "dashboard" ? "" : k === "queue" ? db.queue.length : k === "skills" ? db.skills.length : (db[k] || []).length}</span></button>`,
+          `<button data-sec="${k}" class="${section === k ? "active" : ""}">${n}${k === "dashboard" ? "" : `<span class="count">${db[k].length}</span>`}</button>`,
       )
       .join("");
   }
+  // Show a section: "dashboard" or a key of `defs`.
   function go(k) {
+    let d = defs[k];
     section = k;
     editId = null;
     document.querySelector("#search").value = "";
+    document.querySelector("#filter").innerHTML = ""; // resets the filter
     renderNav();
     document
       .querySelectorAll(".view")
       .forEach((x) => x.classList.remove("active"));
-    let title = "Dashboard",
-      sub = "Your hobby at a glance",
-      view = "dashboard";
-    if (k === "queue") {
-      title = "Painting queue";
-      sub = "Prioritised models awaiting paint";
-      view = "queueView";
-    } else if (k === "skills") {
-      title = "Skill proficiency";
-      sub = "Track development from 0 to 9";
-      view = "skillsView";
-    } else if (k !== "dashboard") {
-      title = defs[k].title;
-      sub = defs[k].sub;
-      view = "listView";
-    }
-    document.querySelector("#title").textContent = title;
-    document.querySelector("#subtitle").textContent = sub;
-    document.querySelector("#" + view).classList.add("active");
-    document.querySelector("#addBtn").style.display =
-      k === "dashboard" ? "none" : "inline-block";
+    document.querySelector("#title").textContent = d ? d.title : "Dashboard";
+    document.querySelector("#subtitle").textContent = d
+      ? d.sub
+      : "Your hobby at a glance";
+    document
+      .querySelector("#" + (d ? d.view || "listView" : "dashboard"))
+      .classList.add("active");
+    document.querySelector("#addBtn").style.display = d
+      ? "inline-block"
+      : "none";
     render();
   }
   function render() {
@@ -478,80 +613,73 @@
     document.querySelector("#spendSummary").innerHTML =
       `<div class="metric"><div class="v">${money(spend)}</div><div class="muted">Owned collection spend</div><br><div class="v">${money(wish)}</div><div class="muted">Wishlist exposure</div></div>`;
   }
+  // What a record can be found by: each field and computed value as shown.
+  // Field names and hidden ids never match, and projects match by name.
+  function searchText(d, x) {
+    return [...d.fields, ...Object.values(d.computed || {})]
+      .map((f) => cellText(f, x))
+      .join(" ")
+      .toLowerCase();
+  }
   function visible() {
-    let q = document.querySelector("#search").value.toLowerCase(),
+    let d = defs[section],
+      q = document.querySelector("#search").value.trim().toLowerCase(),
       f = document.querySelector("#filter").value;
     return db[section].filter(
-      (x) =>
-        (!q || JSON.stringify(x).toLowerCase().includes(q)) &&
-        (!f || Object.values(x).includes(f)),
+      (x) => (!q || searchText(d, x).includes(q)) && (!f || x[d.filter] === f),
     );
   }
+  // Rebuild the filter dropdown, keeping the current choice if it still
+  // exists. A field without fixed options offers the values in use.
   function renderList() {
     let d = defs[section],
-      filter = document.querySelector("#filter");
-    let options = [];
-    if (section === "paints")
-      options = d.fields.find((x) => x[0] === "type")[3];
-    if (section === "wishlist") options = ["Low", "Medium", "High"];
-    if (section === "miniatures")
-      options = ["Unbuilt", "Built", "Primed", "In progress", "Complete"];
-    filter.innerHTML =
-      '<option value="">All</option>' +
-      options.map((x) => `<option>${x}</option>`).join("");
+      f = d.filter && column(d, d.filter),
+      filter = document.querySelector("#filter"),
+      current = filter.value,
+      options = !f
+        ? []
+        : f.options ||
+          [...new Set(db[section].map((x) => x[f.key]).filter(Boolean))]
+            .map(String)
+            .sort();
+    filter.hidden = !f;
+    filter.innerHTML = f
+      ? `<option value="">${esc(f.label)}: all</option>` +
+        options.map((o) => `<option>${esc(o)}</option>`).join("")
+      : "";
+    filter.value = options.includes(current) ? current : "";
     renderTable();
   }
+  // A field's value as text, or "" if blank. `f` is a field or a computed
+  // column. Links to deleted projects show as blank.
+  function cellText(f, x) {
+    let v = f.value ? f.value(x) : x[f.key];
+    if (v == null || v === "") return "";
+    if (f.type === "money") return money(v);
+    if (f.type === "percent") return v + "%";
+    if (f.type === "project")
+      return db.projects.find((p) => p.id === v)?.name || "";
+    return String(v);
+  }
+  function cellHtml(f, x) {
+    let v = x[f.key];
+    if (f.type === "url")
+      return safeUrl(v)
+        ? `<a href="${esc(safeUrl(v))}" target="_blank" rel="noopener noreferrer" style="color:var(--blue)">Open</a>`
+        : esc(v);
+    if (f.type === "color")
+      return `<span class="colour" style="background:${safeColour(v) || "#777"}"></span>${esc(v)}`;
+    return esc(cellText(f, x));
+  }
   function renderTable() {
-    let rows = visible(),
-      columns = {
-        paints: ["name", "brand", "range", "type", "quantity", "remaining"],
-        tools: ["name", "category", "condition", "quantity", "price"],
-        miniatures: [
-          "name",
-          "faction",
-          "project",
-          "quantity",
-          "painted",
-          "status",
-        ],
-        projects: [
-          "name",
-          "faction",
-          "system",
-          "painted",
-          "models",
-          "target",
-          "spent",
-          "deadline",
-        ],
-        wishlist: ["name", "category", "priority", "price", "url"],
-      }[section],
-      stats =
-        section === "projects"
-          ? Object.fromEntries(rows.map((x) => [x.id, projectStats(x)]))
-          : {};
-    let head = columns.map((c) => `<th>${c}</th>`).join("");
+    let d = defs[section],
+      cols = d.columns.map((k) => column(d, k)),
+      rows = visible();
+    let head = cols.map((c) => `<th>${esc(c.label)}</th>`).join("");
     let body = rows
       .map(
         (x) =>
-          `<tr>${columns
-            .map((c) => {
-              let v = stats[x.id]?.[c] ?? x[c] ?? "";
-              if (c === "colour")
-                v = `<span class="colour" style="background:${safeColour(v) || "#777"}"></span>${esc(v)}`;
-              else if (c === "price" || c === "budget" || c === "spent")
-                v = money(v);
-              else if (c === "remaining") v = esc(v) + "%";
-              else if (c === "project")
-                v = esc(db.projects.find((p) => p.id === v)?.name || v);
-              else if (c === "url" && safeUrl(v))
-                v = `<a href="${esc(safeUrl(v))}" target="_blank" rel="noopener noreferrer" style="color:var(--blue)">Open</a>`;
-              else v = esc(v);
-              return `<td>${v}</td>`;
-            })
-            .join(
-              "",
-            )}<td class="rowacts"><button data-edit="${esc(x.id)}">Edit</button><button class="del" data-del="${esc(x.id)}">Delete</button>${section === "miniatures" ? `<button data-queue="${esc(x.id)}">Queue</button>` : ""}</td></tr>`,
+          `<tr>${cols.map((c) => `<td>${cellHtml(c, x)}</td>`).join("")}<td class="rowacts"><button data-edit="${esc(x.id)}">Edit</button><button class="del" data-del="${esc(x.id)}">Delete</button>${section === "miniatures" ? `<button data-queue="${esc(x.id)}">Queue</button>` : ""}</td></tr>`,
       )
       .join("");
     document.querySelector("#content").innerHTML = rows.length
@@ -559,74 +687,62 @@
       : '<div class="card empty">No matching items.</div>';
   }
   function fieldHtml(f, obj) {
-    let [k, l, t, req] = f,
-      v = obj[k] ?? "",
-      r = req === 1 ? "required" : "";
-    if (t === "select")
-      return `<label>${l}<select name="${k}" ${r}><option value="">Select...</option>${req.map ? req.map((o) => `<option ${v === o ? "selected" : ""}>${o}</option>`).join("") : ""}</select></label>`;
-    if (t === "project")
-      return `<label>${l}<select name="${k}"><option value="">None</option>${db.projects.map((p) => `<option value="${esc(p.id)}" ${v === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>`;
-    if (t === "textarea")
-      return `<label class="full">${l}<textarea name="${k}">${esc(v)}</textarea></label>`;
-    let attrs =
-      t === "number"
-        ? 'min="0" step="0.01"'
-        : t === "url"
-          ? 'pattern="https?://.+" title="Starts with http:// or https://"'
-          : "";
-    return `<label>${l}<input name="${k}" type="${t}" value="${esc(v)}" ${attrs} ${r}></label>`;
+    let v = obj[f.key] ?? "",
+      name = `name="${f.key}"`,
+      req = f.required ? "required" : "";
+    if (f.type === "select")
+      return `<label>${f.label}<select ${name} ${req}><option value="">Select...</option>${f.options.map((o) => `<option ${v === o ? "selected" : ""}>${o}</option>`).join("")}</select></label>`;
+    if (f.type === "project")
+      return `<label>${f.label}<select ${name}><option value="">None</option>${db.projects.map((p) => `<option value="${esc(p.id)}" ${v === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>`;
+    if (f.type === "textarea")
+      return `<label class="full">${f.label}<textarea ${name}>${esc(v)}</textarea></label>`;
+    if (f.type === "color") {
+      // A colour picker can't be empty, so "No colour" is a separate choice.
+      let c = safeColour(v);
+      if (c.length === 4) c = "#" + [...c.slice(1)].map((h) => h + h).join("");
+      return `<div class="colourfield"><label>${f.label}<input ${name} type="color" value="${c || "#808080"}"></label><label class="check"><input type="checkbox" data-nocolour="${f.key}" ${c ? "" : "checked"}> No colour</label></div>`;
+    }
+    return `<label>${f.label}<input ${name} ${inputAttrs[f.type || "text"]} value="${esc(v)}" ${req}></label>`;
   }
   function openForm(sec = section, obj = {}) {
+    let d = defs[sec];
     section = sec;
     editId = obj.id || null;
-    let fields =
-      sec === "queue"
-        ? [
-            ["name", "Queue item", "text", 1],
-            ["project", "Army project", "project"],
-            [
-              "stage",
-              "Stage",
-              "select",
-              [
-                "Not started",
-                "Building",
-                "Priming",
-                "Basecoating",
-                "Detailing",
-                "Basing",
-                "Complete",
-              ],
-            ],
-            ["models", "Model count", "number"],
-            ["due", "Target date", "date"],
-            ["notes", "Notes", "textarea"],
-          ]
-        : sec === "skills"
-          ? [
-              ["name", "Skill", "text", 1],
-              ["level", "Proficiency 0-9", "number"],
-              ["goal", "Next practice goal", "text"],
-              ["notes", "Notes", "textarea"],
-            ]
-          : defs[sec].fields;
     document.querySelector("#modalTitle").textContent =
-      (editId ? "Edit " : "Add ") +
-      (sec === "queue"
-        ? "queue item"
-        : sec === "skills"
-          ? "skill"
-          : defs[sec].title.toLowerCase());
-    document.querySelector("#formFields").innerHTML = fields
+      (editId ? "Edit " : "Add ") + d.noun;
+    document.querySelector("#formFields").innerHTML = d.fields
       .map((f) => fieldHtml(f, obj))
       .join("");
     document.querySelector("#modal").showModal();
   }
   function submit(e) {
     e.preventDefault();
-    let o = Object.fromEntries(new FormData(e.target));
-    if (section === "skills")
-      o.level = Math.max(0, Math.min(9, Number(o.level || 0)));
+    let form = e.target,
+      d = defs[section],
+      o = Object.fromEntries(new FormData(form));
+    // Rules the browser can't check on its own, e.g. painted <= model count.
+    for (let f of d.fields)
+      if (f.atMost) {
+        let over =
+          o[f.key] !== "" &&
+          o[f.atMost] !== "" &&
+          Number(o[f.key]) > Number(o[f.atMost]);
+        form.elements[f.key].setCustomValidity(
+          over
+            ? `Can't be more than the ${column(d, f.atMost).label.toLowerCase()}.`
+            : "",
+        );
+      }
+    if (!form.reportValidity()) return;
+    for (let f of d.fields) {
+      if (f.type === "level")
+        o[f.key] = Math.max(0, Math.min(9, Math.round(Number(o[f.key]) || 0)));
+      if (
+        f.type === "color" &&
+        form.querySelector(`[data-nocolour="${f.key}"]`).checked
+      )
+        o[f.key] = "";
+    }
     o.id = editId || id();
     let saved = commit(() => {
       let arr = db[section],
@@ -645,7 +761,7 @@
       ? db.queue
           .map(
             (q, i) =>
-              `<div class="qitem"><div class="qnum">${i + 1}</div><div><b>${esc(q.name)}</b><div class="muted">${esc(q.stage || "Not started")} · ${esc(q.models || 1)} model(s)${q.due ? " · due " + esc(q.due) : ""}</div></div><div class="rowacts"><button data-up="${i}">↑</button><button data-down="${i}">↓</button><button data-editq="${esc(q.id)}">Edit</button><button class="del" data-delq="${esc(q.id)}">Delete</button></div></div>`,
+              `<div class="qitem"><div class="qnum">${i + 1}</div><div><b>${esc(q.name)}</b><div class="muted">${esc(q.stage || "Not started")} · ${esc(q.models || 1)} model(s)${q.due ? " · due " + esc(q.due) : ""}</div></div><div class="rowacts"><button data-up="${i}">↑</button><button data-down="${i}">↓</button><button data-edit="${esc(q.id)}">Edit</button><button class="del" data-del="${esc(q.id)}">Delete</button></div></div>`,
           )
           .join("")
       : '<div class="card empty">Painting queue is empty.</div>';
@@ -655,7 +771,7 @@
       .map((s) => {
         let level = Math.max(0, Math.min(9, Number(s.level) || 0)),
           sid = esc(s.id);
-        return `<div class="skill"><div class="skilltop"><b>${esc(s.name)}</b><strong>${level}/9</strong></div><input type="range" min="0" max="9" value="${level}" data-skill="${sid}"><div class="muted">${esc(s.goal || "No practice goal")}</div><div class="rowacts"><button data-edits="${sid}">Edit notes</button><button class="del" data-dels="${sid}">Delete</button></div></div>`;
+        return `<div class="skill"><div class="skilltop"><b>${esc(s.name)}</b><strong>${level}/9</strong></div><input type="range" min="0" max="9" value="${level}" data-skill="${sid}" aria-label="${esc(s.name)} proficiency"><div class="muted">${esc(s.goal || "No practice goal")}</div><div class="rowacts"><button data-edit="${sid}">Edit notes</button><button class="del" data-del="${sid}">Delete</button></div></div>`;
       })
       .join("");
   }
@@ -736,13 +852,7 @@
       recovered = null;
       renderAlerts();
     }
-    if (b.dataset.del && confirm("Delete this item?")) {
-      commit(
-        () => (db[section] = db[section].filter((x) => x.id !== b.dataset.del)),
-      );
-      renderNav();
-      renderTable();
-    }
+    if (b.dataset.del) remove(section, b.dataset.del);
     if (b.dataset.queue) {
       let m = db.miniatures.find((x) => x.id === b.dataset.queue);
       let queued = commit(() =>
@@ -759,30 +869,6 @@
       renderNav();
       if (queued) toast("Added to queue");
     }
-    if (b.dataset.editq)
-      openForm(
-        "queue",
-        db.queue.find((x) => x.id === b.dataset.editq),
-      );
-    if (b.dataset.delq) {
-      commit(
-        () => (db.queue = db.queue.filter((x) => x.id !== b.dataset.delq)),
-      );
-      renderNav();
-      renderQueue();
-    }
-    if (b.dataset.edits)
-      openForm(
-        "skills",
-        db.skills.find((x) => x.id === b.dataset.edits),
-      );
-    if (b.dataset.dels) {
-      commit(
-        () => (db.skills = db.skills.filter((x) => x.id !== b.dataset.dels)),
-      );
-      renderNav();
-      renderSkills();
-    }
     if (b.dataset.up !== undefined || b.dataset.down !== undefined) {
       let i = +(b.dataset.up ?? b.dataset.down),
         j = b.dataset.up !== undefined ? i - 1 : i + 1;
@@ -793,6 +879,19 @@
   });
   document.querySelector("#addBtn").onclick = () => openForm(section);
   document.querySelector("#itemForm").onsubmit = submit;
+  document.querySelector("#itemForm").oninput = (e) => {
+    let form = e.currentTarget;
+    for (let el of form.elements) el.setCustomValidity?.(""); // re-check on save
+    if (e.target.type === "color")
+      form.querySelector(`[data-nocolour="${e.target.name}"]`).checked = false;
+  };
+  document.querySelector("#toastAction").onclick = () => {
+    let snapshot = undo;
+    if (!snapshot || !commit(() => (db = snapshot))) return;
+    renderNav();
+    render();
+    toast("Restored");
+  };
   document.querySelector("#closeModal").onclick = document.querySelector(
     "#cancelModal",
   ).onclick = () => document.querySelector("#modal").close();
@@ -825,6 +924,7 @@
     if (e.key === BACKUP_KEY) renderBackupState();
     if (e.key !== KEY || e.newValue === null) return;
     db = load();
+    undo = null; // undoing now would revert the other tab's change
     renderNav();
     render();
     renderAlerts();
