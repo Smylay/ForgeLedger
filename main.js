@@ -264,6 +264,7 @@
           type: "select",
           options: ["Low", "Medium", "High"],
         },
+        { key: "paint", label: "Restocks paint", type: "link", to: "paints" },
         { key: "price", label: "Expected cost (£)", type: "money" },
         { key: "url", label: "Product URL", type: "url" },
         { key: "notes", label: "Notes", type: "textarea" },
@@ -477,6 +478,30 @@
       () =>
         `Deleted "${item.name}"` +
         (unlinked ? ` and unlinked ${unlinked} item(s) from it` : ""),
+    );
+  }
+
+  // Add restock entries for paints to the wishlist, linked to each paint.
+  function addToWishlist(paints) {
+    if (!paints.length) return;
+    commitWithUndo(
+      () => {
+        for (let p of paints)
+          db.wishlist.push({
+            id: id(),
+            name: optionLabel(p),
+            category: "Paint",
+            priority: "High",
+            paint: p.id,
+            price: p.price || "",
+            url: "",
+            notes: "Restock",
+          });
+      },
+      () =>
+        paints.length === 1
+          ? `Added "${optionLabel(paints[0])}" to the wishlist`
+          : `Added ${paints.length} paints to the wishlist`,
     );
   }
 
@@ -703,15 +728,20 @@
         .filter((q) => q.stage !== "Complete")
         .map((q) => linked(column(defs.queue, "miniature"), q.miniature))
         .filter(Boolean);
+    let wanted = new Set(db.wishlist.map((w) => w.paint).filter(Boolean)),
+      toBuy = low.filter((p) => !wanted.has(p.id));
     document.querySelector("#stockSummary").innerHTML = low.length
       ? low
           .map((p) => {
             let needed = waiting.filter((m) =>
               asList(m.paints).includes(p.id),
             ).length;
-            return `<div><span class="colour" style="background:${safeColour(p.colour) || "#777"}"></span>${esc(p.brand)} ${esc(p.name)} · <b>${Number(p.remaining || 0)}%</b>${needed ? ` <span class="muted">· needed for ${needed} queued</span>` : ""}</div>`;
+            return `<div class="stockrow"><span><span class="colour" style="background:${safeColour(p.colour) || "#777"}"></span>${esc(p.brand)} ${esc(p.name)} · <b>${Number(p.remaining || 0)}%</b>${needed ? ` <span class="muted">· needed for ${needed} queued</span>` : ""}</span>${wanted.has(p.id) ? '<span class="muted">On wishlist</span>' : `<span class="rowacts"><button data-wish="${esc(p.id)}">Add to wishlist</button></span>`}</div>`;
           })
-          .join("")
+          .join("") +
+        (toBuy.length > 1
+          ? `<div class="rowacts stockall"><button data-wishall>Add all ${toBuy.length} to wishlist</button></div>`
+          : "")
       : '<div class="empty">No paints below 20%.</div>';
     let age = backupAgeDays();
     document.querySelector("#backupNotice").innerHTML =
@@ -991,6 +1021,12 @@
       renderAlerts();
     }
     if (b.dataset.del) remove(section, b.dataset.del);
+    if (b.dataset.wish)
+      addToWishlist(db.paints.filter((p) => p.id === b.dataset.wish));
+    if (b.dataset.wishall !== undefined) {
+      let wanted = new Set(db.wishlist.map((w) => w.paint));
+      addToWishlist(db.paints.filter((p) => isLow(p) && !wanted.has(p.id)));
+    }
     if (b.dataset.queue) {
       let m = db.miniatures.find((x) => x.id === b.dataset.queue);
       let queued = commit(() =>

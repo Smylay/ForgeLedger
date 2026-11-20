@@ -236,6 +236,17 @@ tr:last-child td {
 .chip .pill {
   margin-left: 5px;
 }
+.stockrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 0;
+}
+.stockall {
+  margin-top: 8px;
+  text-align: right;
+}
 .warnline {
   color: #ffaaa7;
   font-size: 13px;
