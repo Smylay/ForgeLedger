@@ -1,0 +1,407 @@
+:root {
+        --bg: #0f1216;
+        --panel: #181d23;
+        --panel2: #202730;
+        --text: #edf2f7;
+        --muted: #9ba8b7;
+        --line: #303945;
+        --accent: #db3a34;
+        --gold: #ffc857;
+        --green: #629460;
+        --blue: #5da9e9;
+        --danger: #ef5350;
+        --shadow: 0 10px 30px #0004;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          14px/1.45 system-ui,
+          -apple-system,
+          Segoe UI,
+          sans-serif;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+      }
+      .shell {
+        display: grid;
+        grid-template-columns: 245px 1fr;
+        min-height: 100vh;
+      }
+      .side {
+        background: #11151a;
+        border-right: 1px solid var(--line);
+        padding: 20px 14px;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+      }
+      .brand {
+        font-weight: 900;
+        font-size: 20px;
+        letter-spacing: 0.6px;
+        margin: 4px 8px 22px;
+      }
+      .brand b {
+        color: var(--accent);
+      }
+      .nav {
+        display: grid;
+        gap: 6px;
+      }
+      .nav button {
+        border: 0;
+        color: var(--muted);
+        background: transparent;
+        text-align: left;
+        padding: 10px 12px;
+        border-radius: 7px;
+      }
+      .nav button:hover,
+      .nav button.active {
+        background: var(--panel2);
+        color: white;
+      }
+      .nav .count {
+        float: right;
+        background: #303945;
+        padding: 1px 7px;
+        border-radius: 20px;
+        font-size: 11px;
+      }
+      .sidefoot {
+        position: absolute;
+        bottom: 18px;
+        left: 14px;
+        right: 14px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .main {
+        padding: 24px;
+        min-width: 0;
+      }
+      .top {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+      }
+      .top h1 {
+        margin: 0;
+        font-size: 26px;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .btn {
+        border: 1px solid var(--line);
+        background: var(--panel2);
+        color: var(--text);
+        border-radius: 7px;
+        padding: 8px 11px;
+      }
+      .btn:hover {
+        filter: brightness(1.15);
+      }
+      .primary {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+      .good {
+        background: var(--green);
+        border-color: var(--green);
+      }
+      .danger {
+        color: #ffaaa7;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(150px, 1fr));
+        gap: 12px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 16px;
+        box-shadow: var(--shadow);
+      }
+      .metric .v {
+        font-size: 28px;
+        font-weight: 800;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .wide {
+        grid-column: span 2;
+      }
+      .chart {
+        height: 12px;
+        background: #0c0f12;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-top: 8px;
+      }
+      .bar {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent), var(--gold));
+      }
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+      }
+      .toolbar input,
+      .toolbar select,
+      .form input,
+      .form select,
+      .form textarea {
+        background: #101419;
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 9px;
+      }
+      .toolbar input {
+        flex: 1;
+        min-width: 190px;
+      }
+      .tablewrap {
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 760px;
+        background: var(--panel);
+      }
+      th,
+      td {
+        padding: 10px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: middle;
+      }
+      th {
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      .pill {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 20px;
+        background: #303945;
+        font-size: 12px;
+      }
+      .colour {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: inline-block;
+        vertical-align: middle;
+        border: 1px solid #fff4;
+        margin-right: 7px;
+      }
+      .rowacts {
+        white-space: nowrap;
+      }
+      .rowacts button {
+        border: 0;
+        background: transparent;
+        color: var(--blue);
+        padding: 4px;
+      }
+      .rowacts .del {
+        color: #ff7773;
+      }
+      .empty {
+        text-align: center;
+        padding: 34px;
+        color: var(--muted);
+      }
+      .view {
+        display: none;
+      }
+      .view.active {
+        display: block;
+      }
+      .form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .form label {
+        display: grid;
+        gap: 5px;
+        color: var(--muted);
+      }
+      .form .full {
+        grid-column: 1/-1;
+      }
+      .form textarea {
+        min-height: 80px;
+        resize: vertical;
+      }
+      dialog {
+        width: min(650px, 94vw);
+        background: var(--panel);
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 0;
+        box-shadow: var(--shadow);
+      }
+      dialog::backdrop {
+        background: #000a;
+      }
+      .modalhead,
+      .modalfoot {
+        padding: 15px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+      }
+      .modalfoot {
+        border-top: 1px solid var(--line);
+        border-bottom: 0;
+      }
+      .modalbody {
+        padding: 18px;
+      }
+      .queue {
+        display: grid;
+        gap: 10px;
+      }
+      .qitem {
+        display: grid;
+        grid-template-columns: 38px 1fr auto;
+        gap: 10px;
+        align-items: center;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 11px;
+      }
+      .qnum {
+        font-weight: 900;
+        color: var(--gold);
+        font-size: 18px;
+      }
+      .skillgrid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(240px, 1fr));
+        gap: 10px;
+      }
+      .skill {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 12px;
+      }
+      .skilltop {
+        display: flex;
+        justify-content: space-between;
+      }
+      .skill input {
+        width: 100%;
+        accent-color: var(--accent);
+      }
+      .notice {
+        padding: 10px 12px;
+        background: #202730;
+        border-left: 3px solid var(--gold);
+        border-radius: 5px;
+        margin-bottom: 14px;
+      }
+      .project {
+        display: grid;
+        gap: 8px;
+      }
+      .projectfoot {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .toast {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        background: #202730;
+        border: 1px solid var(--line);
+        padding: 11px 14px;
+        border-radius: 7px;
+        display: none;
+        z-index: 20;
+      }
+      @media (max-width: 850px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+        .side {
+          position: relative;
+          height: auto;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+        .nav {
+          grid-template-columns: repeat(4, 1fr);
+        }
+        .sidefoot {
+          display: none;
+        }
+        .main {
+          padding: 15px;
+        }
+        .grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .skillgrid {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 520px) {
+        .nav {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .wide {
+          grid-column: auto;
+        }
+        .form {
+          grid-template-columns: 1fr;
+        }
+        .form .full {
+          grid-column: auto;
+        }
+        .top {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+      }
