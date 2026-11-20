@@ -4,14 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-ForgeLedger is an offline-first, single-page tracker for miniature wargaming: paints, tools, miniatures, army projects, a painting queue, painting-skill levels, and a wishlist. It is plain HTML/CSS/JS with no framework, no dependencies, no build step, and no backend. All data lives in the browser's `localStorage`.
+ForgeLedger is an offline-first, single-page tracker for miniature wargaming: paints, tools, miniatures, army projects, a painting queue, painting-skill levels, and a wishlist. The app is plain HTML/CSS/JS with no framework, no runtime dependencies, no build step, and no backend. All data lives in the browser's `localStorage`. `package.json` holds development tools only.
+
+Keep it runnable from `file://`. Browsers refuse to load ES module scripts from `file://`, and service workers don't work there, so don't introduce modules, a bundler, or a service worker unless the project moves to hosting.
 
 ## Running and verifying
 
 - **Run:** open `forgeledger_v2.html` in a browser. It works over `file://`. You can also serve it with `python3 -m http.server` and open `/forgeledger_v2.html`.
 - **localStorage is scoped to the origin.** Data saved under `file://` does not appear under `http://localhost:8000`, and data saved under one port does not appear under another. If saved data seems to be missing, check the origin first.
-- **No package.json, linter, or test suite exists.** To verify a change, drive the page with Playwright against the `file://` URL and listen for `pageerror`. Clear `localStorage` between runs, or use a fresh browser context.
-- **Formatting:** Prettier, configured in `.prettierrc`: 2-space indent, 80-column lines, and 120 columns for HTML. With no `package.json`, run it through npx: `npx prettier --write .` to format, or `npx prettier --check .` to check. Format before committing.
+- **Setup:** `npm install`, then `npx playwright install chromium` once. Only the tests and formatter need this; the app doesn't.
+- **Tests:** `npm test` runs the Playwright suite in `tests/` against the `file://` page.
+  - One file: `npx playwright test tests/app.spec.js`. One test by name: `npx playwright test -g "low-stock"`.
+  - Each test gets a fresh browser context, so `localStorage` starts empty.
+  - The auto `pageErrors` fixture in `tests/helpers.js` fails any test where the page throws an uncaught error.
+  - Import `test` and `expect` from `./helpers`, not from `@playwright/test`, so the fixtures apply. `helpers.js` also has helpers for seeding data, filling forms, downloads, and imports.
+- **Formatting:** Prettier, configured in `.prettierrc`: 2-space indent, 80-column lines, and 120 columns for HTML. Run `npm run format` to format or `npm run format:check` to check. Format before committing.
 
 ## Architecture (`main.js`)
 
