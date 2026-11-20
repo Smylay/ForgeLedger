@@ -35,7 +35,9 @@ test("invalid JSON is rejected and data is untouched", async ({
 }, testInfo) => {
   await addItem(page, "paints", { name: "Keep" });
   await importBackup(page, "{not json", testInfo);
-  await expect(page.locator("#toast")).toHaveText(/invalid/i);
+  await expect(page.locator("#toast")).toHaveText(
+    "Can't import this file: it isn't valid JSON.",
+  );
   expect((await stored(page)).paints[0].name).toBe("Keep");
 });
 

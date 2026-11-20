@@ -1,7 +1,22 @@
 (() => {
   "use strict";
   const KEY = "forgeledger_v2_data";
+  // Bump when stored data changes shape, and add a step to migrate().
+  const SCHEMA_VERSION = 1;
+  const BACKUP_KEY = "forgeledger_v2_last_backup";
+  const RECOVERY_PREFIX = "forgeledger_v2_recovered_";
+  const BACKUP_REMINDER_DAYS = 14;
+  const COLLECTIONS = [
+    "paints",
+    "tools",
+    "miniatures",
+    "projects",
+    "queue",
+    "wishlist",
+    "skills",
+  ];
   const defaults = {
+    schemaVersion: SCHEMA_VERSION,
     paints: [],
     tools: [],
     miniatures: [],
@@ -21,6 +36,9 @@
       ["Non-metallic metal", 0],
     ].map((x) => ({ id: id(), name: x[0], level: x[1], notes: "", goal: "" })),
   };
+  let memoryOnly = false, // storage is blocked: changes live in memory only
+    recovered = null, // { raw, problem } when saved data needed repair
+    toastTimer;
   let db = load(),
     section = "dashboard",
     editId = null;
@@ -150,21 +168,167 @@
   function id() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   }
+  // A function declaration, not a const: load() runs before this line.
+  function isRecord(x) {
+    return x !== null && typeof x === "object" && !Array.isArray(x);
+  }
+
+  // Say why `data` can't be used as ForgeLedger data, or return "" if it can.
+  // Imports with a problem are rejected; saved data with one is repaired.
+  function problemWith(data) {
+    if (!isRecord(data)) return "it isn't a ForgeLedger backup";
+    if (!COLLECTIONS.some((k) => k in data))
+      return "it has no ForgeLedger data in it";
+    if (Number(data.schemaVersion) > SCHEMA_VERSION)
+      return "it was made by a newer version of ForgeLedger";
+    let bad = COLLECTIONS.find(
+      (k) => k in data && !(Array.isArray(data[k]) && data[k].every(isRecord)),
+    );
+    return bad ? `the "${bad}" section is damaged` : "";
+  }
+
+  // Keep every usable collection and record; drop what can't be used.
+  function repair(data) {
+    for (let k of COLLECTIONS) {
+      if (Array.isArray(data[k])) data[k] = data[k].filter(isRecord);
+      else delete data[k];
+    }
+    return data;
+  }
+
+  // Give every record a unique string id; hand-made backups may lack one.
+  function fillIds(data) {
+    for (let k of COLLECTIONS) {
+      let seen = new Set();
+      for (let r of data[k] || []) {
+        if (typeof r.id === "number") r.id = String(r.id);
+        if (typeof r.id !== "string" || !r.id || seen.has(r.id)) r.id = id();
+        seen.add(r.id);
+      }
+    }
+    return data;
+  }
+
+  // Bring data from an older schema up to SCHEMA_VERSION. When stored data
+  // changes shape, add a step here rather than renaming fields in place.
+  function migrate(data) {
+    // 0 (no schemaVersion) -> 1: the version field was added, nothing else.
+    data.schemaVersion = SCHEMA_VERSION;
+    return data;
+  }
+
+  function fromBackup(data) {
+    return Object.assign(structuredClone(defaults), migrate(fillIds(data)));
+  }
+
+  // Read saved data. If it needs repair, the original is kept under a
+  // recovery key first, so nothing is ever silently overwritten.
   function load() {
+    let raw, data;
     try {
-      let x = JSON.parse(localStorage.getItem(KEY));
-      return x
-        ? Object.assign(structuredClone(defaults), x)
-        : structuredClone(defaults);
+      raw = localStorage.getItem(KEY);
     } catch {
+      memoryOnly = true;
       return structuredClone(defaults);
     }
+    if (raw === null) return structuredClone(defaults);
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      data = undefined;
+    }
+    let problem =
+      data === undefined ? "it isn't valid JSON" : problemWith(data);
+    if (problem) {
+      recovered = { raw, problem };
+      try {
+        localStorage.setItem(RECOVERY_PREFIX + new Date().toISOString(), raw);
+      } catch {}
+      data = isRecord(data) ? repair(data) : {};
+    }
+    return fromBackup(data);
   }
+
+  function setSaveState(text) {
+    document.querySelector("#saveState").textContent = text;
+  }
+
   function save() {
-    localStorage.setItem(KEY, JSON.stringify(db));
-    document.querySelector("#saveState").textContent =
+    if (memoryOnly) {
+      setSaveState("Not saved: storage is blocked");
+      return true;
+    }
+    try {
+      localStorage.setItem(KEY, JSON.stringify(db));
+    } catch {
+      setSaveState("Not saved");
+      toast("Couldn't save: browser storage is full or blocked.", 6000);
+      return false;
+    }
+    setSaveState(
       "Saved " +
-      new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+    );
+    return true;
+  }
+
+  // Apply a change to db and save it. If saving fails, undo the change so
+  // what's on screen always matches what's stored.
+  function commit(change) {
+    let before = structuredClone(db);
+    change();
+    if (save()) return true;
+    db = before;
+    return false;
+  }
+
+  // True once anything differs from a fresh install, ignoring ids.
+  function hasUserData() {
+    let plain = (d) =>
+      JSON.stringify(
+        COLLECTIONS.map((k) =>
+          k === "skills" ? d.skills.map(({ id: _, ...s }) => s) : d[k],
+        ),
+      );
+    return plain(db) !== plain(defaults);
+  }
+
+  function backupAgeDays() {
+    let t = 0;
+    try {
+      t = Number(localStorage.getItem(BACKUP_KEY)) || 0;
+    } catch {}
+    return t ? Math.floor((Date.now() - t) / 864e5) : null;
+  }
+
+  function backupText(days) {
+    if (days === null) return "never";
+    if (days === 0) return "today";
+    if (days === 1) return "yesterday";
+    return `${days} days ago`;
+  }
+
+  function renderBackupState() {
+    document.querySelector("#backupState").textContent =
+      "Last backup: " + backupText(backupAgeDays());
+  }
+
+  function renderAlerts() {
+    let notes = [];
+    if (memoryOnly)
+      notes.push(
+        "This browser is blocking storage, so changes are lost when you close the page. Use Export backup to keep your data.",
+      );
+    if (recovered)
+      notes.push(
+        `Some saved data couldn't be read (${esc(recovered.problem)}). The original was kept, and the app is showing what it could recover. <button class="btn" data-recovery="download">Download original</button><button class="btn" data-recovery="dismiss">Dismiss</button>`,
+      );
+    document.querySelector("#alerts").innerHTML = notes
+      .map((n) => `<div class="notice warn">${n}</div>`)
+      .join("");
   }
   function esc(s) {
     return String(s ?? "").replace(
@@ -190,11 +354,12 @@
       spent: minis.reduce((a, m) => a + Number(m.price || 0), 0),
     };
   }
-  function toast(s) {
+  function toast(s, ms = 1800) {
     let e = document.querySelector("#toast");
     e.textContent = s;
     e.style.display = "block";
-    setTimeout(() => (e.style.display = "none"), 1800);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => (e.style.display = "none"), ms);
   }
   function renderNav() {
     document.querySelector("#nav").innerHTML = navItems
@@ -295,6 +460,11 @@
           )
           .join("")
       : '<div class="empty">No paints below 20%.</div>';
+    let age = backupAgeDays();
+    document.querySelector("#backupNotice").innerHTML =
+      hasUserData() && (age === null || age >= BACKUP_REMINDER_DAYS)
+        ? `<div class="notice warn">Your data is only stored in this browser. Last backup: ${backupText(age)}. Use <b>Export backup</b> to save a copy.</div>`
+        : "";
     let wish = db.wishlist.reduce((a, x) => a + Number(x.price || 0), 0);
     document.querySelector("#spendSummary").innerHTML =
       `<div class="metric"><div class="v">${money(spend)}</div><div class="muted">Owned collection spend</div><br><div class="v">${money(wish)}</div><div class="muted">Wishlist exposure</div></div>`;
@@ -444,11 +614,13 @@
     if (section === "skills")
       o.level = Math.max(0, Math.min(9, Number(o.level || 0)));
     o.id = editId || id();
-    let arr = db[section],
-      i = arr.findIndex((x) => x.id === o.id);
-    if (i >= 0) arr[i] = o;
-    else arr.push(o);
-    save();
+    let saved = commit(() => {
+      let arr = db[section],
+        i = arr.findIndex((x) => x.id === o.id);
+      if (i >= 0) arr[i] = o;
+      else arr.push(o);
+    });
+    if (!saved) return; // keep the form open so nothing typed is lost
     document.querySelector("#modal").close();
     toast("Saved");
     renderNav();
@@ -472,15 +644,21 @@
       )
       .join("");
   }
-  function exportJSON() {
+  function download(text, name, type = "application/json") {
     let a = document.createElement("a");
-    a.href = URL.createObjectURL(
-      new Blob([JSON.stringify(db, null, 2)], { type: "application/json" }),
-    );
-    a.download =
-      "forgeledger-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+    a.href = URL.createObjectURL(new Blob([text], { type }));
+    a.download = name;
     a.click();
-    URL.revokeObjectURL(a.href);
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  const today = () => new Date().toISOString().slice(0, 10);
+  function exportJSON() {
+    download(JSON.stringify(db, null, 2), `forgeledger-backup-${today()}.json`);
+    try {
+      localStorage.setItem(BACKUP_KEY, String(Date.now()));
+    } catch {}
+    renderBackupState();
+    if (section === "dashboard") renderDashboard();
   }
   function csv() {
     let arr = db[section];
@@ -491,24 +669,35 @@
         keys.map(cell).join(","),
         ...arr.map((o) => keys.map((k) => cell(o[k])).join(",")),
       ].join("\n");
-    let a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([text], { type: "text/csv" }));
-    a.download = section + ".csv";
-    a.click();
+    download(text, section + ".csv", "text/csv");
   }
   function importJSON(file) {
     let r = new FileReader();
     r.onload = () => {
+      let data, problem;
       try {
-        let x = JSON.parse(r.result);
-        if (!x || typeof x !== "object") throw Error();
-        db = Object.assign(structuredClone(defaults), x);
-        save();
-        go("dashboard");
-        toast("Backup imported");
+        data = JSON.parse(r.result);
+        problem = problemWith(data);
       } catch {
-        toast("Invalid backup file");
+        problem = "it isn't valid JSON";
       }
+      if (problem) return toast(`Can't import this file: ${problem}.`, 5000);
+      if (hasUserData()) {
+        if (
+          !confirm(
+            "Replace all current data with this backup?\n\nA copy of your current data will be downloaded first.",
+          )
+        )
+          return;
+        download(
+          JSON.stringify(db, null, 2),
+          `forgeledger-before-import-${today()}.json`,
+        );
+      }
+      let next = fromBackup(data);
+      if (!commit(() => (db = next))) return;
+      go("dashboard");
+      toast("Backup imported");
     };
     r.readAsText(file);
   }
@@ -521,26 +710,34 @@
         section,
         db[section].find((x) => x.id === b.dataset.edit),
       );
+    if (b.dataset.recovery === "download")
+      download(recovered.raw, `forgeledger-unreadable-data-${today()}.json`);
+    if (b.dataset.recovery === "dismiss") {
+      recovered = null;
+      renderAlerts();
+    }
     if (b.dataset.del && confirm("Delete this item?")) {
-      db[section] = db[section].filter((x) => x.id !== b.dataset.del);
-      save();
+      commit(
+        () => (db[section] = db[section].filter((x) => x.id !== b.dataset.del)),
+      );
       renderNav();
       renderTable();
     }
     if (b.dataset.queue) {
       let m = db.miniatures.find((x) => x.id === b.dataset.queue);
-      db.queue.push({
-        id: id(),
-        name: m.name,
-        project: m.project || "",
-        stage: "Not started",
-        models: m.quantity || 1,
-        due: "",
-        notes: "",
-      });
-      save();
+      let queued = commit(() =>
+        db.queue.push({
+          id: id(),
+          name: m.name,
+          project: m.project || "",
+          stage: "Not started",
+          models: m.quantity || 1,
+          due: "",
+          notes: "",
+        }),
+      );
       renderNav();
-      toast("Added to queue");
+      if (queued) toast("Added to queue");
     }
     if (b.dataset.editq)
       openForm(
@@ -548,8 +745,9 @@
         db.queue.find((x) => x.id === b.dataset.editq),
       );
     if (b.dataset.delq) {
-      db.queue = db.queue.filter((x) => x.id !== b.dataset.delq);
-      save();
+      commit(
+        () => (db.queue = db.queue.filter((x) => x.id !== b.dataset.delq)),
+      );
       renderNav();
       renderQueue();
     }
@@ -559,23 +757,17 @@
         db.skills.find((x) => x.id === b.dataset.edits),
       );
     if (b.dataset.dels) {
-      db.skills = db.skills.filter((x) => x.id !== b.dataset.dels);
-      save();
+      commit(
+        () => (db.skills = db.skills.filter((x) => x.id !== b.dataset.dels)),
+      );
       renderNav();
       renderSkills();
     }
-    if (b.dataset.up !== undefined) {
-      let i = +b.dataset.up;
-      if (i > 0)
-        [db.queue[i - 1], db.queue[i]] = [db.queue[i], db.queue[i - 1]];
-      save();
-      renderQueue();
-    }
-    if (b.dataset.down !== undefined) {
-      let i = +b.dataset.down;
-      if (i < db.queue.length - 1)
-        [db.queue[i + 1], db.queue[i]] = [db.queue[i], db.queue[i + 1]];
-      save();
+    if (b.dataset.up !== undefined || b.dataset.down !== undefined) {
+      let i = +(b.dataset.up ?? b.dataset.down),
+        j = b.dataset.up !== undefined ? i - 1 : i + 1;
+      if (j >= 0 && j < db.queue.length)
+        commit(() => ([db.queue[i], db.queue[j]] = [db.queue[j], db.queue[i]]));
       renderQueue();
     }
   });
@@ -587,19 +779,38 @@
   document.querySelector("#backupBtn").onclick = exportJSON;
   document.querySelector("#importBtn").onclick = () =>
     document.querySelector("#importFile").click();
-  document.querySelector("#importFile").onchange = (e) =>
-    e.target.files[0] && importJSON(e.target.files[0]);
+  document.querySelector("#importFile").onchange = (e) => {
+    let file = e.target.files[0];
+    e.target.value = ""; // so choosing the same file again still triggers
+    if (file) importJSON(file);
+  };
   document.querySelector("#csvBtn").onclick = csv;
   document.querySelector("#search").oninput = renderTable;
   document.querySelector("#filter").onchange = renderTable;
   document.querySelector("#skillsContent").oninput = (e) => {
     if (e.target.dataset.skill) {
-      let s = db.skills.find((x) => x.id === e.target.dataset.skill);
-      s.level = +e.target.value;
+      let level = +e.target.value;
+      let saved = commit(
+        () =>
+          (db.skills.find((x) => x.id === e.target.dataset.skill).level =
+            level),
+      );
+      if (!saved) return renderSkills();
       e.target.closest(".skill").querySelector(".skilltop strong").textContent =
-        s.level + "/9";
-      save();
+        level + "/9";
     }
   };
+  // Another tab saved: adopt its data so this tab doesn't overwrite it later.
+  window.addEventListener("storage", (e) => {
+    if (e.key === BACKUP_KEY) renderBackupState();
+    if (e.key !== KEY || e.newValue === null) return;
+    db = load();
+    renderNav();
+    render();
+    renderAlerts();
+    toast("Updated with changes from another tab");
+  });
   go("dashboard");
+  renderBackupState();
+  renderAlerts();
 })();

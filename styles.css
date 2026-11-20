@@ -338,6 +338,12 @@ dialog::backdrop {
   border-radius: 5px;
   margin-bottom: 14px;
 }
+.notice.warn {
+  border-left-color: var(--danger);
+}
+.notice .btn {
+  margin-left: 8px;
+}
 .project {
   display: grid;
   gap: 8px;
