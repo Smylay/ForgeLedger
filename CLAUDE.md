@@ -44,23 +44,32 @@ All code is inside one IIFE. There are no modules and no exports. Mutable state 
 **Config-driven sections.** `defs` has one entry per collection, in nav order. It drives the nav, page titles, the add/edit form, table columns, the filter dropdown and search. Each entry has:
 
 - `title` and `sub` for the page heading, `nav` if the nav label differs from the title, and `noun` for the form title ("Add paint").
-- `fields`: `{ key, label, type, required, options }` objects. Each type maps to an input (`inputAttrs` for plain `<input>`s) and a display format (`cellText()` / `cellHtml()`):
+- `fields`: `{ key, label, type, required, options, atMost }` objects.
 
-  | Type                   | Input                     | Notes                                  |
-  | ---------------------- | ------------------------- | -------------------------------------- |
-  | `text` (default)       | text box                  |                                        |
-  | `textarea`             | multi-line box            |                                        |
-  | `select`               | dropdown                  | needs `options`                        |
-  | `project`              | dropdown of `db.projects` | stores the project `id`; shown by name |
-  | `date`, `url`, `color` | matching browser input    |                                        |
-  | `count`                | whole number              |                                        |
-  | `money`                | number                    | shown with `money()`                   |
-  | `percent`              | number                    |                                        |
-  | `level`                | 0–9                       |                                        |
+  - `atMost` names another field this one can't exceed; for example, painted count can't exceed model count. `submit()` checks it with `setCustomValidity`.
+  - Each type maps to an input (`inputAttrs` for plain `<input>`s) and a display format (`cellText()` / `cellHtml()`). Blank values display as blank.
+
+  | Type             | Input                       | Notes                                                    |
+  | ---------------- | --------------------------- | -------------------------------------------------------- |
+  | `text` (default) | text box                    |                                                          |
+  | `textarea`       | multi-line box              |                                                          |
+  | `select`         | dropdown                    | needs `options`                                          |
+  | `project`        | dropdown of `db.projects`   | stores the project `id`; shown by name, blank if deleted |
+  | `date`, `url`    | matching browser input      |                                                          |
+  | `color`          | colour picker + "No colour" | a picker can't be empty, so "No colour" saves `""`       |
+  | `count`          | whole number ≥ 0            |                                                          |
+  | `money`          | number ≥ 0, 2 decimals      | shown with `money()`                                     |
+  | `percent`        | whole number 0–100          |                                                          |
+  | `level`          | whole number 0–9            | stored as a number                                       |
 
 - `columns`: the field keys the table shows.
 - `computed`: read-only columns calculated from other data, such as `projectStats()` for projects. A computed column is `{ label, type, value(record) }`, and `column(d, key)` resolves keys from both `fields` and `computed`.
-- `filter`: the key of the field the filter dropdown filters on. It must be a `select` field.
+- `filter`: the key of the field the filter dropdown filters on.
+  - The dropdown lists the field's `options`. A field without options gets the values currently in use, e.g. project game systems.
+  - The choice survives saves and resets when you change section.
+
+Search (`searchText()`) matches each field and computed value as displayed, so field names and ids never match, and projects match by name.
+
 - `view`: the section element to show. Collections without one use the shared `#listView` with `renderList()` and `renderTable()`. `queue` and `skills` have their own views and renderers.
 
 To add a field, add it to `fields`, and to `columns` if it should appear in the table.
@@ -77,9 +86,14 @@ To add a field, add it to `fields`, and to `columns` if it should appear in the 
 
 `tests/security.spec.js` tries each known injection route. Add a case there when you render a new field.
 
-**Events.** A single delegated `click` listener on `document` dispatches on `data-*` attributes of the clicked `<button>`: `sec`, `edit`, `del`, `queue`, `delq`, `dels`, `up`, `down`, and `recovery`. `edit` works in every section because it opens the current section's form. To add a new row action, render a button with a new `data-*` attribute and add a branch to this listener. Other controls are wired directly at the bottom of the IIFE.
+**Events.** A single delegated `click` listener on `document` dispatches on `data-*` attributes of the clicked `<button>`: `sec`, `edit`, `del`, `queue`, `up`, `down`, and `recovery`. `edit` and `del` work in every section because they act on the current section. To add a new row action, render a button with a new `data-*` attribute and add a branch to this listener. Other controls are wired directly at the bottom of the IIFE.
 
 **Mutation pattern.** Never change `db` and call `save()` directly. Use `commit(() => { /* change db */ })`: it snapshots `db`, applies the change, and saves. If saving fails, it restores the snapshot, shows an error, and returns `false`. Afterwards, call `renderNav()` (nav badges show item counts) and the renderer for the affected view.
+
+**Deletes and undo.** Deletes go through `remove(section, id)`. There is no confirmation dialog. Instead, a message with an Undo button restores a copy of `db` from just before the delete.
+
+- Every `commit()` clears that copy, and so does a change from another tab, so Undo can never revert later work.
+- Deleting a project also unlinks the miniatures and queue items that pointed at it.
 
 The form handler `submit()` writes to `db[section]`, so `openForm(sec, obj)` sets `section` before the modal opens. If saving fails, the form stays open so nothing typed is lost.
 
@@ -89,7 +103,7 @@ Functions that `load()` calls must be function declarations, not `const` arrows:
 
 - `FormData` returns strings, so numbers are stored as strings. Consumers wrap them in `Number(...)`. Only `level` fields are converted (and clamped to 0–9) on save.
 - Editing a record replaces the whole object with the form's contents.
-- `miniatures.project` and `queue.project` hold a project `id`. Deleting a project doesn't cascade to them; tables fall back to showing the raw id.
+- `miniatures.project` and `queue.project` hold a project `id`. Older data can still hold links to deleted projects; these display blank, and saving the record clears them.
 - `projectStats(p)` calculates a project's `models`, `painted`, and `spent` from the miniatures linked to it. Only `target` and `budget` are entered by hand. If `target` is blank, progress is measured against models owned. Older records may still contain hand-entered `complete` and `spent` fields; these are ignored.
 - The dashboard's "Recorded spend" adds up `price` across paints, tools, and miniatures. Each `price` is added as entered; it is not multiplied by `quantity`.
 - Currency is hardcoded to GBP (`money()` and the "(£)" field labels).

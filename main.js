@@ -38,6 +38,7 @@
   };
   let memoryOnly = false, // storage is blocked: changes live in memory only
     recovered = null, // { raw, problem } when saved data needed repair
+    undo = null, // copy of db from just before the last delete
     toastTimer;
   let db = load(),
     section = "dashboard",
@@ -116,6 +117,7 @@
         { key: "notes", label: "Notes", type: "textarea" },
       ],
       columns: ["name", "category", "condition", "quantity", "price"],
+      filter: "category",
     },
     miniatures: {
       title: "Miniatures",
@@ -126,7 +128,12 @@
         { key: "faction", label: "Faction" },
         { key: "project", label: "Army project", type: "project" },
         { key: "quantity", label: "Model count", type: "count" },
-        { key: "painted", label: "Painted count", type: "count" },
+        {
+          key: "painted",
+          label: "Painted count",
+          type: "count",
+          atMost: "quantity",
+        },
         {
           key: "status",
           label: "Status",
@@ -180,6 +187,7 @@
         "spent",
         "deadline",
       ],
+      filter: "system",
     },
     queue: {
       title: "Painting queue",
@@ -256,10 +264,10 @@
     text: 'type="text"',
     date: 'type="date"',
     url: 'type="url" pattern="https?://.+" title="Starts with http:// or https://"',
-    count: 'type="number" min="0" step="0.01"',
+    count: 'type="number" min="0" step="1"',
     money: 'type="number" min="0" step="0.01"',
-    percent: 'type="number" min="0" step="0.01"',
-    level: 'type="number" min="0" step="0.01"',
+    percent: 'type="number" min="0" max="100" step="1"',
+    level: 'type="number" min="0" max="9" step="1"',
   };
   function id() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -372,13 +380,44 @@
   }
 
   // Apply a change to db and save it. If saving fails, undo the change so
-  // what's on screen always matches what's stored.
+  // what's on screen always matches what's stored. Any change ends the
+  // chance to undo the last delete, so Undo can never revert later work.
   function commit(change) {
     let before = structuredClone(db);
+    undo = null;
     change();
     if (save()) return true;
     db = before;
     return false;
+  }
+
+  // Delete a record and offer Undo. Deleting a project also unlinks the
+  // miniatures and queue items that pointed at it.
+  function remove(sec, recordId) {
+    let before = structuredClone(db),
+      item = db[sec].find((x) => x.id === recordId),
+      unlinked = 0;
+    if (!item) return;
+    let removed = commit(() => {
+      db[sec] = db[sec].filter((x) => x.id !== recordId);
+      if (sec === "projects")
+        for (let k of ["miniatures", "queue"])
+          for (let r of db[k])
+            if (r.project === recordId) {
+              r.project = "";
+              unlinked++;
+            }
+    });
+    if (!removed) return;
+    undo = before;
+    renderNav();
+    render();
+    toast(
+      `Deleted "${item.name}"` +
+        (unlinked ? ` and unlinked ${unlinked} item(s) from it` : ""),
+      8000,
+      "Undo",
+    );
   }
 
   // True once anything differs from a fresh install, ignoring ids.
@@ -449,7 +488,7 @@
     return /^https?:\/\//i.test(s) ? s : "";
   }
   function money(n) {
-    return "£" + Number(n || 0).toFixed(2);
+    return "£" + (Number(n) || 0).toFixed(2);
   }
   function projectStats(p) {
     let minis = db.miniatures.filter((m) => m.project === p.id);
@@ -459,9 +498,13 @@
       spent: minis.reduce((a, m) => a + Number(m.price || 0), 0),
     };
   }
-  function toast(s, ms = 1800) {
-    let e = document.querySelector("#toast");
-    e.textContent = s;
+  // Show a short message, optionally with an action button (e.g. "Undo").
+  function toast(s, ms = 1800, action = "") {
+    let e = document.querySelector("#toast"),
+      btn = document.querySelector("#toastAction");
+    document.querySelector("#toastText").textContent = s;
+    btn.textContent = action;
+    btn.hidden = !action;
     e.style.display = "block";
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => (e.style.display = "none"), ms);
@@ -474,7 +517,7 @@
     document.querySelector("#nav").innerHTML = items
       .map(
         ([k, n]) =>
-          `<button data-sec="${k}" class="${section === k ? "active" : ""}">${n}<span class="count">${k === "dashboard" ? "" : db[k].length}</span></button>`,
+          `<button data-sec="${k}" class="${section === k ? "active" : ""}">${n}${k === "dashboard" ? "" : `<span class="count">${db[k].length}</span>`}</button>`,
       )
       .join("");
   }
@@ -484,6 +527,7 @@
     section = k;
     editId = null;
     document.querySelector("#search").value = "";
+    document.querySelector("#filter").innerHTML = ""; // resets the filter
     renderNav();
     document
       .querySelectorAll(".view")
@@ -569,32 +613,53 @@
     document.querySelector("#spendSummary").innerHTML =
       `<div class="metric"><div class="v">${money(spend)}</div><div class="muted">Owned collection spend</div><br><div class="v">${money(wish)}</div><div class="muted">Wishlist exposure</div></div>`;
   }
+  // What a record can be found by: each field and computed value as shown.
+  // Field names and hidden ids never match, and projects match by name.
+  function searchText(d, x) {
+    return [...d.fields, ...Object.values(d.computed || {})]
+      .map((f) => cellText(f, x))
+      .join(" ")
+      .toLowerCase();
+  }
   function visible() {
     let d = defs[section],
-      q = document.querySelector("#search").value.toLowerCase(),
+      q = document.querySelector("#search").value.trim().toLowerCase(),
       f = document.querySelector("#filter").value;
     return db[section].filter(
-      (x) =>
-        (!q || JSON.stringify(x).toLowerCase().includes(q)) &&
-        (!f || x[d.filter] === f),
+      (x) => (!q || searchText(d, x).includes(q)) && (!f || x[d.filter] === f),
     );
   }
+  // Rebuild the filter dropdown, keeping the current choice if it still
+  // exists. A field without fixed options offers the values in use.
   function renderList() {
     let d = defs[section],
-      f = d.filter && column(d, d.filter);
-    document.querySelector("#filter").innerHTML =
-      '<option value="">All</option>' +
-      (f ? f.options.map((o) => `<option>${esc(o)}</option>`).join("") : "");
+      f = d.filter && column(d, d.filter),
+      filter = document.querySelector("#filter"),
+      current = filter.value,
+      options = !f
+        ? []
+        : f.options ||
+          [...new Set(db[section].map((x) => x[f.key]).filter(Boolean))]
+            .map(String)
+            .sort();
+    filter.hidden = !f;
+    filter.innerHTML = f
+      ? `<option value="">${esc(f.label)}: all</option>` +
+        options.map((o) => `<option>${esc(o)}</option>`).join("")
+      : "";
+    filter.value = options.includes(current) ? current : "";
     renderTable();
   }
-  // A field's value as text. `f` is a field or a computed column.
+  // A field's value as text, or "" if blank. `f` is a field or a computed
+  // column. Links to deleted projects show as blank.
   function cellText(f, x) {
     let v = f.value ? f.value(x) : x[f.key];
+    if (v == null || v === "") return "";
     if (f.type === "money") return money(v);
-    if (f.type === "percent") return (v ?? "") + "%";
+    if (f.type === "percent") return v + "%";
     if (f.type === "project")
-      return db.projects.find((p) => p.id === v)?.name || v || "";
-    return String(v ?? "");
+      return db.projects.find((p) => p.id === v)?.name || "";
+    return String(v);
   }
   function cellHtml(f, x) {
     let v = x[f.key];
@@ -631,8 +696,12 @@
       return `<label>${f.label}<select ${name}><option value="">None</option>${db.projects.map((p) => `<option value="${esc(p.id)}" ${v === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>`;
     if (f.type === "textarea")
       return `<label class="full">${f.label}<textarea ${name}>${esc(v)}</textarea></label>`;
-    if (f.type === "color")
-      return `<label>${f.label}<input ${name} type="color" value="${esc(v)}"></label>`;
+    if (f.type === "color") {
+      // A colour picker can't be empty, so "No colour" is a separate choice.
+      let c = safeColour(v);
+      if (c.length === 4) c = "#" + [...c.slice(1)].map((h) => h + h).join("");
+      return `<div class="colourfield"><label>${f.label}<input ${name} type="color" value="${c || "#808080"}"></label><label class="check"><input type="checkbox" data-nocolour="${f.key}" ${c ? "" : "checked"}> No colour</label></div>`;
+    }
     return `<label>${f.label}<input ${name} ${inputAttrs[f.type || "text"]} value="${esc(v)}" ${req}></label>`;
   }
   function openForm(sec = section, obj = {}) {
@@ -648,10 +717,32 @@
   }
   function submit(e) {
     e.preventDefault();
-    let o = Object.fromEntries(new FormData(e.target));
-    for (let f of defs[section].fields)
+    let form = e.target,
+      d = defs[section],
+      o = Object.fromEntries(new FormData(form));
+    // Rules the browser can't check on its own, e.g. painted <= model count.
+    for (let f of d.fields)
+      if (f.atMost) {
+        let over =
+          o[f.key] !== "" &&
+          o[f.atMost] !== "" &&
+          Number(o[f.key]) > Number(o[f.atMost]);
+        form.elements[f.key].setCustomValidity(
+          over
+            ? `Can't be more than the ${column(d, f.atMost).label.toLowerCase()}.`
+            : "",
+        );
+      }
+    if (!form.reportValidity()) return;
+    for (let f of d.fields) {
       if (f.type === "level")
-        o[f.key] = Math.max(0, Math.min(9, Number(o[f.key] || 0)));
+        o[f.key] = Math.max(0, Math.min(9, Math.round(Number(o[f.key]) || 0)));
+      if (
+        f.type === "color" &&
+        form.querySelector(`[data-nocolour="${f.key}"]`).checked
+      )
+        o[f.key] = "";
+    }
     o.id = editId || id();
     let saved = commit(() => {
       let arr = db[section],
@@ -670,7 +761,7 @@
       ? db.queue
           .map(
             (q, i) =>
-              `<div class="qitem"><div class="qnum">${i + 1}</div><div><b>${esc(q.name)}</b><div class="muted">${esc(q.stage || "Not started")} · ${esc(q.models || 1)} model(s)${q.due ? " · due " + esc(q.due) : ""}</div></div><div class="rowacts"><button data-up="${i}">↑</button><button data-down="${i}">↓</button><button data-edit="${esc(q.id)}">Edit</button><button class="del" data-delq="${esc(q.id)}">Delete</button></div></div>`,
+              `<div class="qitem"><div class="qnum">${i + 1}</div><div><b>${esc(q.name)}</b><div class="muted">${esc(q.stage || "Not started")} · ${esc(q.models || 1)} model(s)${q.due ? " · due " + esc(q.due) : ""}</div></div><div class="rowacts"><button data-up="${i}">↑</button><button data-down="${i}">↓</button><button data-edit="${esc(q.id)}">Edit</button><button class="del" data-del="${esc(q.id)}">Delete</button></div></div>`,
           )
           .join("")
       : '<div class="card empty">Painting queue is empty.</div>';
@@ -680,7 +771,7 @@
       .map((s) => {
         let level = Math.max(0, Math.min(9, Number(s.level) || 0)),
           sid = esc(s.id);
-        return `<div class="skill"><div class="skilltop"><b>${esc(s.name)}</b><strong>${level}/9</strong></div><input type="range" min="0" max="9" value="${level}" data-skill="${sid}"><div class="muted">${esc(s.goal || "No practice goal")}</div><div class="rowacts"><button data-edit="${sid}">Edit notes</button><button class="del" data-dels="${sid}">Delete</button></div></div>`;
+        return `<div class="skill"><div class="skilltop"><b>${esc(s.name)}</b><strong>${level}/9</strong></div><input type="range" min="0" max="9" value="${level}" data-skill="${sid}" aria-label="${esc(s.name)} proficiency"><div class="muted">${esc(s.goal || "No practice goal")}</div><div class="rowacts"><button data-edit="${sid}">Edit notes</button><button class="del" data-del="${sid}">Delete</button></div></div>`;
       })
       .join("");
   }
@@ -761,13 +852,7 @@
       recovered = null;
       renderAlerts();
     }
-    if (b.dataset.del && confirm("Delete this item?")) {
-      commit(
-        () => (db[section] = db[section].filter((x) => x.id !== b.dataset.del)),
-      );
-      renderNav();
-      renderTable();
-    }
+    if (b.dataset.del) remove(section, b.dataset.del);
     if (b.dataset.queue) {
       let m = db.miniatures.find((x) => x.id === b.dataset.queue);
       let queued = commit(() =>
@@ -784,20 +869,6 @@
       renderNav();
       if (queued) toast("Added to queue");
     }
-    if (b.dataset.delq) {
-      commit(
-        () => (db.queue = db.queue.filter((x) => x.id !== b.dataset.delq)),
-      );
-      renderNav();
-      renderQueue();
-    }
-    if (b.dataset.dels) {
-      commit(
-        () => (db.skills = db.skills.filter((x) => x.id !== b.dataset.dels)),
-      );
-      renderNav();
-      renderSkills();
-    }
     if (b.dataset.up !== undefined || b.dataset.down !== undefined) {
       let i = +(b.dataset.up ?? b.dataset.down),
         j = b.dataset.up !== undefined ? i - 1 : i + 1;
@@ -808,6 +879,19 @@
   });
   document.querySelector("#addBtn").onclick = () => openForm(section);
   document.querySelector("#itemForm").onsubmit = submit;
+  document.querySelector("#itemForm").oninput = (e) => {
+    let form = e.currentTarget;
+    for (let el of form.elements) el.setCustomValidity?.(""); // re-check on save
+    if (e.target.type === "color")
+      form.querySelector(`[data-nocolour="${e.target.name}"]`).checked = false;
+  };
+  document.querySelector("#toastAction").onclick = () => {
+    let snapshot = undo;
+    if (!snapshot || !commit(() => (db = snapshot))) return;
+    renderNav();
+    render();
+    toast("Restored");
+  };
   document.querySelector("#closeModal").onclick = document.querySelector(
     "#cancelModal",
   ).onclick = () => document.querySelector("#modal").close();
@@ -840,6 +924,7 @@
     if (e.key === BACKUP_KEY) renderBackupState();
     if (e.key !== KEY || e.newValue === null) return;
     db = load();
+    undo = null; // undoing now would revert the other tab's change
     renderNav();
     render();
     renderAlerts();

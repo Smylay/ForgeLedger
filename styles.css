@@ -252,12 +252,24 @@ tr:last-child td {
 .form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 12px;
 }
-.form label {
+.form label,
+.form .colourfield {
   display: grid;
   gap: 5px;
   color: var(--muted);
+}
+.form label.check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.form input[type="color"] {
+  width: 72px;
+  height: 38px;
+  padding: 3px;
 }
 .form .full {
   grid-column: 1/-1;
@@ -363,6 +375,10 @@ dialog::backdrop {
   border-radius: 7px;
   display: none;
   z-index: 20;
+}
+.toast .btn {
+  margin-left: 12px;
+  padding: 4px 10px;
 }
 @media (max-width: 850px) {
   .shell {

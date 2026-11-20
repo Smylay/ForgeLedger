@@ -58,7 +58,10 @@
         </section>
         <section class="view" id="listView">
           <div class="toolbar">
-            <input id="search" placeholder="Search..." /><select id="filter"></select
+            <input id="search" placeholder="Search..." aria-label="Search" /><select
+              id="filter"
+              aria-label="Filter"
+            ></select
             ><button class="btn" id="csvBtn">Export CSV</button>
           </div>
           <div id="content"></div>
@@ -91,7 +94,9 @@
         </div>
       </form>
     </dialog>
-    <div class="toast" id="toast" aria-live="polite"></div>
+    <div class="toast" id="toast" aria-live="polite">
+      <span id="toastText"></span><button class="btn" id="toastAction" type="button" hidden></button>
+    </div>
     <script src="main.js"></script>
   </body>
 </html>
