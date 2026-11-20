@@ -343,6 +343,15 @@
         })[c],
     );
   }
+  // Values from imported backups are untrusted. Only a hex colour may reach a
+  // style attribute, and only an http(s) address may become a link.
+  function safeColour(c) {
+    return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(c ?? "") ? c : "";
+  }
+  function safeUrl(u) {
+    let s = String(u ?? "").trim();
+    return /^https?:\/\//i.test(s) ? s : "";
+  }
   function money(n) {
     return "£" + Number(n || 0).toFixed(2);
   }
@@ -456,7 +465,7 @@
       ? low
           .map(
             (p) =>
-              `<div><span class="colour" style="background:${p.colour || "#777"}"></span>${esc(p.brand)} ${esc(p.name)} · <b>${Number(p.remaining || 0)}%</b></div>`,
+              `<div><span class="colour" style="background:${safeColour(p.colour) || "#777"}"></span>${esc(p.brand)} ${esc(p.name)} · <b>${Number(p.remaining || 0)}%</b></div>`,
           )
           .join("")
       : '<div class="empty">No paints below 20%.</div>';
@@ -529,20 +538,20 @@
             .map((c) => {
               let v = stats[x.id]?.[c] ?? x[c] ?? "";
               if (c === "colour")
-                v = `<span class="colour" style="background:${v}"></span>${esc(v)}`;
+                v = `<span class="colour" style="background:${safeColour(v) || "#777"}"></span>${esc(v)}`;
               else if (c === "price" || c === "budget" || c === "spent")
                 v = money(v);
               else if (c === "remaining") v = esc(v) + "%";
               else if (c === "project")
                 v = esc(db.projects.find((p) => p.id === v)?.name || v);
-              else if (c === "url" && v)
-                v = `<a href="${esc(v)}" target="_blank" style="color:var(--blue)">Open</a>`;
+              else if (c === "url" && safeUrl(v))
+                v = `<a href="${esc(safeUrl(v))}" target="_blank" rel="noopener noreferrer" style="color:var(--blue)">Open</a>`;
               else v = esc(v);
               return `<td>${v}</td>`;
             })
             .join(
               "",
-            )}<td class="rowacts"><button data-edit="${x.id}">Edit</button><button class="del" data-del="${x.id}">Delete</button>${section === "miniatures" ? `<button data-queue="${x.id}">Queue</button>` : ""}</td></tr>`,
+            )}<td class="rowacts"><button data-edit="${esc(x.id)}">Edit</button><button class="del" data-del="${esc(x.id)}">Delete</button>${section === "miniatures" ? `<button data-queue="${esc(x.id)}">Queue</button>` : ""}</td></tr>`,
       )
       .join("");
     document.querySelector("#content").innerHTML = rows.length
@@ -556,11 +565,16 @@
     if (t === "select")
       return `<label>${l}<select name="${k}" ${r}><option value="">Select...</option>${req.map ? req.map((o) => `<option ${v === o ? "selected" : ""}>${o}</option>`).join("") : ""}</select></label>`;
     if (t === "project")
-      return `<label>${l}<select name="${k}"><option value="">None</option>${db.projects.map((p) => `<option value="${p.id}" ${v === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>`;
+      return `<label>${l}<select name="${k}"><option value="">None</option>${db.projects.map((p) => `<option value="${esc(p.id)}" ${v === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>`;
     if (t === "textarea")
       return `<label class="full">${l}<textarea name="${k}">${esc(v)}</textarea></label>`;
-    let min = t === "number" ? 'min="0" step="0.01"' : "";
-    return `<label>${l}<input name="${k}" type="${t}" value="${esc(v)}" ${min} ${r}></label>`;
+    let attrs =
+      t === "number"
+        ? 'min="0" step="0.01"'
+        : t === "url"
+          ? 'pattern="https?://.+" title="Starts with http:// or https://"'
+          : "";
+    return `<label>${l}<input name="${k}" type="${t}" value="${esc(v)}" ${attrs} ${r}></label>`;
   }
   function openForm(sec = section, obj = {}) {
     section = sec;
@@ -631,17 +645,18 @@
       ? db.queue
           .map(
             (q, i) =>
-              `<div class="qitem"><div class="qnum">${i + 1}</div><div><b>${esc(q.name)}</b><div class="muted">${esc(q.stage || "Not started")} · ${esc(q.models || 1)} model(s)${q.due ? " · due " + esc(q.due) : ""}</div></div><div class="rowacts"><button data-up="${i}">↑</button><button data-down="${i}">↓</button><button data-editq="${q.id}">Edit</button><button class="del" data-delq="${q.id}">Delete</button></div></div>`,
+              `<div class="qitem"><div class="qnum">${i + 1}</div><div><b>${esc(q.name)}</b><div class="muted">${esc(q.stage || "Not started")} · ${esc(q.models || 1)} model(s)${q.due ? " · due " + esc(q.due) : ""}</div></div><div class="rowacts"><button data-up="${i}">↑</button><button data-down="${i}">↓</button><button data-editq="${esc(q.id)}">Edit</button><button class="del" data-delq="${esc(q.id)}">Delete</button></div></div>`,
           )
           .join("")
       : '<div class="card empty">Painting queue is empty.</div>';
   }
   function renderSkills() {
     document.querySelector("#skillsContent").innerHTML = db.skills
-      .map(
-        (s) =>
-          `<div class="skill"><div class="skilltop"><b>${esc(s.name)}</b><strong>${s.level}/9</strong></div><input type="range" min="0" max="9" value="${s.level}" data-skill="${s.id}"><div class="muted">${esc(s.goal || "No practice goal")}</div><div class="rowacts"><button data-edits="${s.id}">Edit notes</button><button class="del" data-dels="${s.id}">Delete</button></div></div>`,
-      )
+      .map((s) => {
+        let level = Math.max(0, Math.min(9, Number(s.level) || 0)),
+          sid = esc(s.id);
+        return `<div class="skill"><div class="skilltop"><b>${esc(s.name)}</b><strong>${level}/9</strong></div><input type="range" min="0" max="9" value="${level}" data-skill="${sid}"><div class="muted">${esc(s.goal || "No practice goal")}</div><div class="rowacts"><button data-edits="${sid}">Edit notes</button><button class="del" data-dels="${sid}">Delete</button></div></div>`;
+      })
       .join("");
   }
   function download(text, name, type = "application/json") {
@@ -664,7 +679,12 @@
     let arr = db[section];
     if (!arr.length) return toast("Nothing to export");
     let keys = [...new Set(arr.flatMap(Object.keys))],
-      cell = (v) => '"' + String(v ?? "").replaceAll('"', '""') + '"',
+      cell = (v) => {
+        let s = String(v ?? "");
+        // Stop spreadsheets running a cell as a formula; plain numbers are kept.
+        if (/^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s)) s = "'" + s;
+        return '"' + s.replaceAll('"', '""') + '"';
+      },
       text = [
         keys.map(cell).join(","),
         ...arr.map((o) => keys.map((k) => cell(o[k])).join(",")),

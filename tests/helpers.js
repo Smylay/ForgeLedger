@@ -12,15 +12,19 @@ const KEY = "forgeledger_v2_data";
 
 const test = base.test.extend({
   // Messages of every alert/confirm shown. Dialogs are accepted unless a test
-  // sets dialogs.accept = false.
-  dialogs: async ({ page }, use) => {
-    const dialogs = { messages: [], accept: true };
-    page.on("dialog", (d) => {
-      dialogs.messages.push(d.message());
-      dialogs.accept ? d.accept() : d.dismiss();
-    });
-    await use(dialogs);
-  },
+  // sets dialogs.accept = false. Auto, so every test handles dialogs the same
+  // way whether or not it asks for this fixture.
+  dialogs: [
+    async ({ page }, use) => {
+      const dialogs = { messages: [], accept: true };
+      page.on("dialog", (d) => {
+        dialogs.messages.push(d.message());
+        dialogs.accept ? d.accept() : d.dismiss();
+      });
+      await use(dialogs);
+    },
+    { auto: true },
+  ],
   pageErrors: [
     async ({ page }, use) => {
       const errors = [];

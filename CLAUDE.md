@@ -56,7 +56,15 @@ All five `defs` collections share the single `#listView` section and the generic
 - Filter dropdown options per collection are hardcoded in `renderList()`.
 - The nav order and labels live in `navItems`. View titles for the dashboard, queue, and skills are hardcoded in `go()`.
 
-**Rendering.** Every renderer rebuilds its container with template-literal `innerHTML`. Escape every user-supplied value with `esc()`, including values placed in attributes and `style`. Imported backups can contain arbitrary strings.
+**Rendering.** Every renderer rebuilds its container with template-literal `innerHTML`. Imported backups can contain arbitrary strings, so:
+
+- Escape every stored value with `esc()`, including ids in `data-*` attributes and `<option value>`.
+- Put a colour into `style` only through `safeColour()`, which accepts hex codes only.
+- Render a link only from `safeUrl()`, which accepts http(s) only.
+- Turn numbers into numbers before printing them, e.g. skill levels are clamped with `Number()`.
+- CSV export puts `'` in front of any cell that starts with `=`, `+`, `-` or `@` (plain numbers excepted), so spreadsheets don't run it as a formula.
+
+`tests/security.spec.js` tries each known injection route. Add a case there when you render a new field.
 
 **Events.** A single delegated `click` listener on `document` dispatches on `data-*` attributes of the clicked `<button>`: `sec`, `edit`, `del`, `queue`, `editq`, `delq`, `edits`, `dels`, `up`, and `down`. To add a new row action, render a button with a new `data-*` attribute and add a branch to this listener. Other controls are wired directly at the bottom of the IIFE.
 
