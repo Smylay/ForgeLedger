@@ -44,9 +44,10 @@ All code is inside one IIFE. There are no modules and no exports. Mutable state 
 **Config-driven sections.** `defs` has one entry per collection, in nav order. It drives the nav, page titles, the add/edit form, table columns, the filter dropdown and search. Each entry has:
 
 - `title` and `sub` for the page heading, `nav` if the nav label differs from the title, and `noun` for the form title ("Add paint").
-- `fields`: `{ key, label, type, required, options, atMost }` objects.
+- `fields`: `{ key, label, type, required, options, atMost, doneWhen }` objects.
 
   - `atMost` names another field this one can't exceed; for example, painted count can't exceed model count. `submit()` checks it with `setCustomValidity`.
+  - `doneWhen(record)` on a `date` field turns on deadline markers for that date (see below). Markers stop once `doneWhen` returns true.
   - Each type maps to an input (`inputAttrs` for plain `<input>`s) and a display format (`cellText()` / `cellHtml()`). Blank values display as blank.
 
   | Type             | Input                       | Notes                                                 |
@@ -74,6 +75,19 @@ To add a field, add it to `fields`, and to `columns` if it should appear in the 
 
 Search (`searchText()`) matches each field and computed value as displayed, so field names and ids never match, and linked records match by name.
 
+**Sorting.** Column headers are buttons (`data-sort`). Clicking one sorts the visible rows by that column, and clicking it again reverses the order. The sort resets when you change section.
+
+- `sortValue()` compares numeric types (`count`, `money`, `percent`, `level`, and computed numbers) as numbers, and everything else by its displayed text, ignoring case.
+- Blanks always sort last.
+- Sorting only changes the display; `db` keeps its order.
+
+**Deadline markers.** `dueBadge(date, done)` shows "Overdue", "Due today" or "Due in N days" (up to `DUE_SOON_DAYS`, 14) for a date that isn't done yet. It's used for:
+
+- project target dates (done when `projectDone()`), in the projects table and on the dashboard;
+- queue due dates (done when the stage is Complete).
+
+`daysUntil()` reads `YYYY-MM-DD` as a local date, and ignores anything else.
+
 `COLLECTIONS` (used by loading and validation) repeats the collection keys because `load()` runs before `defs` exists. Keep the two in step.
 
 **Rendering.** Every renderer rebuilds its container with template-literal `innerHTML`. Imported backups can contain arbitrary strings, so:
@@ -86,7 +100,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 `tests/security.spec.js` tries each known injection route. Add a case there when you render a new field.
 
-**Events.** A single delegated `click` listener on `document` dispatches on `data-*` attributes of the clicked `<button>`: `sec`, `edit`, `del`, `queue`, `up`, `down`, `recovery`, `wish` and `wishall`. `edit` and `del` work in every section because they act on the current section. To add a new row action, render a button with a new `data-*` attribute and add a branch to this listener. Other controls are wired directly at the bottom of the IIFE.
+**Events.** A single delegated `click` listener on `document` dispatches on `data-*` attributes of the clicked `<button>`: `sec`, `edit`, `del`, `queue`, `up`, `down`, `recovery`, `wish`, `wishall` and `sort`. `edit` and `del` work in every section because they act on the current section. To add a new row action, render a button with a new `data-*` attribute and add a branch to this listener. Other controls are wired directly at the bottom of the IIFE.
 
 **Mutation pattern.** Never change `db` and call `save()` directly. Use `commit(() => { /* change db */ })`: it snapshots `db`, applies the change, and saves. If saving fails, it restores the snapshot, shows an error, and returns `false`. Afterwards, call `renderNav()` (nav badges show item counts) and the renderer for the affected view.
 

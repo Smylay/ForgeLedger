@@ -217,6 +217,29 @@ tr:last-child td {
   background: #303945;
   font-size: 12px;
 }
+.pill.overdue {
+  background: #4a2323;
+  color: #ffaaa7;
+  padding: 1px 6px;
+}
+.pill.soon {
+  background: #4a3d1c;
+  color: var(--gold);
+  padding: 1px 6px;
+}
+.sortbtn {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+}
+.sortbtn:hover {
+  color: var(--text);
+}
 .pill.warn {
   background: #4a2323;
   color: #ffaaa7;

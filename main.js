@@ -6,6 +6,7 @@
   const BACKUP_KEY = "forgeledger_v2_last_backup";
   const RECOVERY_PREFIX = "forgeledger_v2_recovered_";
   const BACKUP_REMINDER_DAYS = 14;
+  const DUE_SOON_DAYS = 14; // dates this close get a "Due in N days" marker
   const COLLECTIONS = [
     "paints",
     "tools",
@@ -40,6 +41,7 @@
     recovered = null, // { raw, problem } when saved data needed repair
     undo = null, // copy of db from just before the last undoable change
     completing = null, // id of the queue item the completion prompt is about
+    sort = { key: "", dir: 1 }, // table sort for the current section
     toastTimer;
   let db = load(),
     section = "dashboard",
@@ -168,7 +170,12 @@
         { key: "system", label: "Game system" },
         { key: "target", label: "Target model count", type: "count" },
         { key: "budget", label: "Budget (£)", type: "money" },
-        { key: "deadline", label: "Target date", type: "date" },
+        {
+          key: "deadline",
+          label: "Target date",
+          type: "date",
+          doneWhen: (p) => projectDone(p),
+        },
         { key: "notes", label: "Notes", type: "textarea" },
       ],
       computed: {
@@ -229,7 +236,12 @@
           ],
         },
         { key: "models", label: "Model count", type: "count" },
-        { key: "due", label: "Target date", type: "date" },
+        {
+          key: "due",
+          label: "Target date",
+          type: "date",
+          doneWhen: (q) => q.stage === "Complete",
+        },
         { key: "notes", label: "Notes", type: "textarea" },
       ],
     },
@@ -620,6 +632,53 @@
   function money(n) {
     return "£" + (Number(n) || 0).toFixed(2);
   }
+  // A project is done once its painted count reaches its target (or, with
+  // no target, every model it owns).
+  function projectDone(p) {
+    let st = projectStats(p),
+      goal = Number(p.target) || st.models;
+    return goal > 0 && st.painted >= goal;
+  }
+  // Whole days from today to a YYYY-MM-DD date, or NaN if it isn't one.
+  function daysUntil(date) {
+    let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date ?? "");
+    if (!m) return NaN;
+    let now = new Date(),
+      today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return Math.round((new Date(m[1], m[2] - 1, m[3]) - today) / 864e5);
+  }
+  // A marker for a date that hasn't been met: overdue, or due within
+  // DUE_SOON_DAYS. Empty when the date is blank, far off, or `done`.
+  function dueBadge(date, done) {
+    let days = daysUntil(date);
+    if (done || Number.isNaN(days) || days > DUE_SOON_DAYS) return "";
+    if (days < 0) return '<span class="pill overdue">Overdue</span>';
+    let text =
+      days === 0 ? "Due today" : `Due in ${days} day${days === 1 ? "" : "s"}`;
+    return `<span class="pill soon">${text}</span>`;
+  }
+  // What a column sorts by: a number for numeric types, otherwise the
+  // displayed text. Blank is null and always sorts last.
+  function sortValue(f, x) {
+    let numeric = ["count", "money", "percent", "level"].includes(f.type),
+      v = f.value ? f.value(x) : x[f.key];
+    if (v == null || v === "" || (Array.isArray(v) && !v.length)) return null;
+    if (numeric) return Number.isNaN(Number(v)) ? null : Number(v);
+    return cellText(f, x).toLowerCase();
+  }
+  function sortRows(rows, f, dir) {
+    return rows
+      .map((x) => [sortValue(f, x), x])
+      .sort(([a], [b]) => {
+        if (a === null || b === null) return (a === null) - (b === null);
+        let c =
+          typeof a === "number" && typeof b === "number"
+            ? a - b
+            : String(a).localeCompare(String(b), undefined, { numeric: true });
+        return c * dir;
+      })
+      .map(([, x]) => x);
+  }
   function projectStats(p) {
     let minis = db.miniatures.filter((m) => m.project === p.id);
     return {
@@ -658,6 +717,7 @@
     editId = null;
     document.querySelector("#search").value = "";
     document.querySelector("#filter").innerHTML = ""; // resets the filter
+    sort = { key: "", dir: 1 };
     renderNav();
     document
       .querySelectorAll(".view")
@@ -705,11 +765,12 @@
       ? db.projects
           .map((p) => {
             let st = projectStats(p),
+              due = dueBadge(p.deadline, projectDone(p)),
               goal = Number(p.target) || st.models,
               pc = goal
                 ? Math.min(100, Math.round((100 * st.painted) / goal))
                 : 0;
-            return `<div class="project"><div class="projectfoot"><b>${esc(p.name)}</b><span>${pc}%</span></div><div class="chart"><div class="bar" style="width:${pc}%"></div></div><small class="muted">${st.painted} of ${goal} models painted · ${st.models} owned · ${money(st.spent)} / ${money(p.budget)}</small></div><br>`;
+            return `<div class="project"><div class="projectfoot"><b>${esc(p.name)}${due ? " " + due : ""}</b><span>${pc}%</span></div><div class="chart"><div class="bar" style="width:${pc}%"></div></div><small class="muted">${st.painted} of ${goal} models painted · ${st.models} owned · ${money(st.spent)} / ${money(p.budget)}</small></div><br>`;
           })
           .join("")
       : '<div class="empty">No army projects yet.</div>';
@@ -811,6 +872,10 @@
         : esc(v);
     if (f.type === "color")
       return `<span class="colour" style="background:${safeColour(v) || "#777"}"></span>${esc(v)}`;
+    if (f.type === "date" && f.doneWhen) {
+      let badge = dueBadge(v, f.doneWhen(x));
+      return esc(cellText(f, x)) + (badge ? " " + badge : "");
+    }
     if (f.type === "links")
       return linkedAll(f, v)
         .map(
@@ -824,7 +889,14 @@
     let d = defs[section],
       cols = d.columns.map((k) => column(d, k)),
       rows = visible();
-    let head = cols.map((c) => `<th>${esc(c.label)}</th>`).join("");
+    if (sort.key) rows = sortRows(rows, column(d, sort.key), sort.dir);
+    let head = d.columns
+      .map((k, i) => {
+        let on = sort.key === k,
+          aria = on ? (sort.dir > 0 ? "ascending" : "descending") : "none";
+        return `<th aria-sort="${aria}"><button class="sortbtn" data-sort="${k}">${esc(cols[i].label)}${on ? (sort.dir > 0 ? " ▲" : " ▼") : ""}</button></th>`;
+      })
+      .join("");
     let body = rows
       .map(
         (x) =>
@@ -929,7 +1001,7 @@
                 : lowRecipePaints(
                     linked(column(defs.queue, "miniature"), q.miniature),
                   );
-            return `<div class="qitem"><div class="qnum">${i + 1}</div><div><b>${esc(q.name)}</b><div class="muted">${esc(q.stage || "Not started")} · ${esc(q.models || 1)} model(s)${q.due ? " · due " + esc(q.due) : ""}</div>${low.length ? `<div class="warnline">Low paint: ${low.map((p) => `${esc(p.name)} (${Number(p.remaining)}%)`).join(", ")}</div>` : ""}</div><div class="rowacts"><button data-up="${i}">↑</button><button data-down="${i}">↓</button><button data-edit="${esc(q.id)}">Edit</button><button class="del" data-del="${esc(q.id)}">Delete</button></div></div>`;
+            return `<div class="qitem"><div class="qnum">${i + 1}</div><div><b>${esc(q.name)}</b><div class="muted">${esc(q.stage || "Not started")} · ${esc(q.models || 1)} model(s)${q.due ? " · due " + esc(q.due) + " " + dueBadge(q.due, q.stage === "Complete") : ""}</div>${low.length ? `<div class="warnline">Low paint: ${low.map((p) => `${esc(p.name)} (${Number(p.remaining)}%)`).join(", ")}</div>` : ""}</div><div class="rowacts"><button data-up="${i}">↑</button><button data-down="${i}">↓</button><button data-edit="${esc(q.id)}">Edit</button><button class="del" data-del="${esc(q.id)}">Delete</button></div></div>`;
           })
           .join("")
       : '<div class="card empty">Painting queue is empty.</div>';
@@ -1021,6 +1093,13 @@
       renderAlerts();
     }
     if (b.dataset.del) remove(section, b.dataset.del);
+    if (b.dataset.sort) {
+      sort =
+        sort.key === b.dataset.sort
+          ? { key: sort.key, dir: -sort.dir }
+          : { key: b.dataset.sort, dir: 1 };
+      renderTable();
+    }
     if (b.dataset.wish)
       addToWishlist(db.paints.filter((p) => p.id === b.dataset.wish));
     if (b.dataset.wishall !== undefined) {
