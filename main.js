@@ -6,6 +6,7 @@
   const BACKUP_KEY = "forgeledger_v2_last_backup";
   const RECOVERY_PREFIX = "forgeledger_v2_recovered_";
   const BACKUP_REMINDER_DAYS = 14;
+  const DUE_SOON_DAYS = 14; // dates this close get a "Due in N days" marker
   const COLLECTIONS = [
     "paints",
     "tools",
@@ -38,7 +39,9 @@
   };
   let memoryOnly = false, // storage is blocked: changes live in memory only
     recovered = null, // { raw, problem } when saved data needed repair
-    undo = null, // copy of db from just before the last delete
+    undo = null, // copy of db from just before the last undoable change
+    completing = null, // id of the queue item the completion prompt is about
+    sort = { key: "", dir: 1 }, // table sort for the current section
     toastTimer;
   let db = load(),
     section = "dashboard",
@@ -49,8 +52,9 @@
   //   columns:  field keys (or `computed` keys) shown in the table.
   //   filter:   key of the field the filter dropdown filters on.
   //   computed: read-only columns calculated from other data.
-  // Field types: text (default), textarea, select (needs `options`), project
-  // (stores a project id), date, url, color, count, money, percent, level.
+  // Field types: text (default), textarea, select (needs `options`), link
+  // (stores the id of a record in collection `to`), links (an array of ids),
+  // date, url, color, count, money, percent, level.
   const defs = {
     paints: {
       title: "Paints",
@@ -126,7 +130,7 @@
       fields: [
         { key: "name", label: "Miniature / unit", required: true },
         { key: "faction", label: "Faction" },
-        { key: "project", label: "Army project", type: "project" },
+        { key: "project", label: "Army project", type: "link", to: "projects" },
         { key: "quantity", label: "Model count", type: "count" },
         {
           key: "painted",
@@ -141,10 +145,19 @@
           options: ["Unbuilt", "Built", "Primed", "In progress", "Complete"],
         },
         { key: "price", label: "Cost (£)", type: "money" },
-        { key: "recipe", label: "Paint recipe", type: "textarea" },
+        { key: "paints", label: "Recipe paints", type: "links", to: "paints" },
+        { key: "recipe", label: "Recipe steps", type: "textarea" },
         { key: "notes", label: "Notes", type: "textarea" },
       ],
-      columns: ["name", "faction", "project", "quantity", "painted", "status"],
+      columns: [
+        "name",
+        "faction",
+        "project",
+        "quantity",
+        "painted",
+        "status",
+        "paints",
+      ],
       filter: "status",
     },
     projects: {
@@ -157,7 +170,12 @@
         { key: "system", label: "Game system" },
         { key: "target", label: "Target model count", type: "count" },
         { key: "budget", label: "Budget (£)", type: "money" },
-        { key: "deadline", label: "Target date", type: "date" },
+        {
+          key: "deadline",
+          label: "Target date",
+          type: "date",
+          doneWhen: (p) => projectDone(p),
+        },
         { key: "notes", label: "Notes", type: "textarea" },
       ],
       computed: {
@@ -196,7 +214,13 @@
       view: "queueView",
       fields: [
         { key: "name", label: "Queue item", required: true },
-        { key: "project", label: "Army project", type: "project" },
+        {
+          key: "miniature",
+          label: "Miniature",
+          type: "link",
+          to: "miniatures",
+        },
+        { key: "project", label: "Army project", type: "link", to: "projects" },
         {
           key: "stage",
           label: "Stage",
@@ -212,7 +236,12 @@
           ],
         },
         { key: "models", label: "Model count", type: "count" },
-        { key: "due", label: "Target date", type: "date" },
+        {
+          key: "due",
+          label: "Target date",
+          type: "date",
+          doneWhen: (q) => q.stage === "Complete",
+        },
         { key: "notes", label: "Notes", type: "textarea" },
       ],
     },
@@ -247,6 +276,7 @@
           type: "select",
           options: ["Low", "Medium", "High"],
         },
+        { key: "paint", label: "Restocks paint", type: "link", to: "paints" },
         { key: "price", label: "Expected cost (£)", type: "money" },
         { key: "url", label: "Product URL", type: "url" },
         { key: "notes", label: "Notes", type: "textarea" },
@@ -391,32 +421,144 @@
     return false;
   }
 
-  // Delete a record and offer Undo. Deleting a project also unlinks the
-  // miniatures and queue items that pointed at it.
-  function remove(sec, recordId) {
-    let before = structuredClone(db),
-      item = db[sec].find((x) => x.id === recordId),
-      unlinked = 0;
-    if (!item) return;
-    let removed = commit(() => {
-      db[sec] = db[sec].filter((x) => x.id !== recordId);
-      if (sec === "projects")
-        for (let k of ["miniatures", "queue"])
-          for (let r of db[k])
-            if (r.project === recordId) {
-              r.project = "";
-              unlinked++;
-            }
-    });
-    if (!removed) return;
+  // Make a change that the message it shows can undo. `message` is a
+  // function so it can describe what the change did.
+  function commitWithUndo(change, message) {
+    let before = structuredClone(db);
+    if (!commit(change)) return false;
     undo = before;
     renderNav();
     render();
-    toast(
-      `Deleted "${item.name}"` +
+    toast(message(), 8000, "Undo");
+    return true;
+  }
+
+  // The record that link field `f` points at, or undefined if it's gone.
+  function linked(f, value) {
+    return value ? db[f.to].find((r) => r.id === value) : undefined;
+  }
+  // The ids in a `links` field. Tolerates missing or malformed values.
+  function asList(value) {
+    return Array.isArray(value)
+      ? value.filter((x) => typeof x === "string")
+      : [];
+  }
+  // Every record a `links` field points at that still exists.
+  function linkedAll(f, value) {
+    return asList(value)
+      .map((v) => linked(f, v))
+      .filter(Boolean);
+  }
+  // A paint is low when its Remaining % is set and under 20.
+  function isLow(p) {
+    return (
+      p.remaining !== "" && p.remaining != null && Number(p.remaining) < 20
+    );
+  }
+  // The low paints a miniature's recipe uses.
+  function lowRecipePaints(m) {
+    return m
+      ? linkedAll(column(defs.miniatures, "paints"), m.paints).filter(isLow)
+      : [];
+  }
+  // How a record is named in a picker; paints include their brand.
+  function optionLabel(r) {
+    return r.brand ? `${r.name} (${r.brand})` : String(r.name ?? "");
+  }
+
+  // Delete a record and offer Undo. Links to it from other records, such as
+  // miniatures in a deleted project, are cleared.
+  function remove(sec, recordId) {
+    let item = db[sec].find((x) => x.id === recordId),
+      unlinked = 0;
+    if (!item) return;
+    commitWithUndo(
+      () => {
+        db[sec] = db[sec].filter((x) => x.id !== recordId);
+        for (let [k, d] of Object.entries(defs))
+          for (let f of d.fields)
+            if (f.to === sec)
+              for (let r of db[k])
+                if (r[f.key] === recordId) {
+                  r[f.key] = "";
+                  unlinked++;
+                } else if (asList(r[f.key]).includes(recordId)) {
+                  r[f.key] = asList(r[f.key]).filter((x) => x !== recordId);
+                  unlinked++;
+                }
+      },
+      () =>
+        `Deleted "${item.name}"` +
         (unlinked ? ` and unlinked ${unlinked} item(s) from it` : ""),
-      8000,
-      "Undo",
+    );
+  }
+
+  // Add restock entries for paints to the wishlist, linked to each paint.
+  function addToWishlist(paints) {
+    if (!paints.length) return;
+    commitWithUndo(
+      () => {
+        for (let p of paints)
+          db.wishlist.push({
+            id: id(),
+            name: optionLabel(p),
+            category: "Paint",
+            priority: "High",
+            paint: p.id,
+            price: p.price || "",
+            url: "",
+            notes: "Restock",
+          });
+      },
+      () =>
+        paints.length === 1
+          ? `Added "${optionLabel(paints[0])}" to the wishlist`
+          : `Added ${paints.length} paints to the wishlist`,
+    );
+  }
+
+  // A linked queue item was just marked Complete: ask whether to update its
+  // miniature and whether to take it off the queue.
+  function askComplete(q) {
+    let m = linked(column(defs.queue, "miniature"), q.miniature);
+    if (!m) return;
+    let done =
+        m.status === "Complete" && Number(m.painted) >= Number(m.quantity || 1),
+      mini = document.querySelector("#completeMini"),
+      dialog = document.querySelector("#completeDialog");
+    completing = q.id;
+    document.querySelector("#completeText").textContent =
+      `"${q.name}" is complete. What else should change?`;
+    document.querySelector("#completeMiniLabel").textContent = done
+      ? `"${m.name}" is already marked complete`
+      : `Mark "${m.name}" complete, with ${m.quantity || 1} of ${m.quantity || 1} painted`;
+    mini.checked = !done;
+    mini.disabled = done;
+    document.querySelector("#completeRemove").checked = false;
+    dialog.showModal();
+  }
+  function applyComplete() {
+    let q = db.queue.find((x) => x.id === completing),
+      m = q && db.miniatures.find((x) => x.id === q.miniature),
+      mini = document.querySelector("#completeMini"),
+      updateMini = m && mini.checked && !mini.disabled,
+      drop = q && document.querySelector("#completeRemove").checked;
+    if (!updateMini && !drop) return;
+    commitWithUndo(
+      () => {
+        if (updateMini) {
+          m.status = "Complete";
+          m.painted = m.quantity || "1";
+        }
+        if (drop) db.queue = db.queue.filter((x) => x.id !== q.id);
+      },
+      () => {
+        let parts = [];
+        if (updateMini) parts.push(`marked "${m.name}" complete`);
+        if (drop) parts.push(`removed "${q.name}" from the queue`);
+        let text = parts.join(" and ");
+        return text[0].toUpperCase() + text.slice(1);
+      },
     );
   }
 
@@ -490,6 +632,53 @@
   function money(n) {
     return "£" + (Number(n) || 0).toFixed(2);
   }
+  // A project is done once its painted count reaches its target (or, with
+  // no target, every model it owns).
+  function projectDone(p) {
+    let st = projectStats(p),
+      goal = Number(p.target) || st.models;
+    return goal > 0 && st.painted >= goal;
+  }
+  // Whole days from today to a YYYY-MM-DD date, or NaN if it isn't one.
+  function daysUntil(date) {
+    let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date ?? "");
+    if (!m) return NaN;
+    let now = new Date(),
+      today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return Math.round((new Date(m[1], m[2] - 1, m[3]) - today) / 864e5);
+  }
+  // A marker for a date that hasn't been met: overdue, or due within
+  // DUE_SOON_DAYS. Empty when the date is blank, far off, or `done`.
+  function dueBadge(date, done) {
+    let days = daysUntil(date);
+    if (done || Number.isNaN(days) || days > DUE_SOON_DAYS) return "";
+    if (days < 0) return '<span class="pill overdue">Overdue</span>';
+    let text =
+      days === 0 ? "Due today" : `Due in ${days} day${days === 1 ? "" : "s"}`;
+    return `<span class="pill soon">${text}</span>`;
+  }
+  // What a column sorts by: a number for numeric types, otherwise the
+  // displayed text. Blank is null and always sorts last.
+  function sortValue(f, x) {
+    let numeric = ["count", "money", "percent", "level"].includes(f.type),
+      v = f.value ? f.value(x) : x[f.key];
+    if (v == null || v === "" || (Array.isArray(v) && !v.length)) return null;
+    if (numeric) return Number.isNaN(Number(v)) ? null : Number(v);
+    return cellText(f, x).toLowerCase();
+  }
+  function sortRows(rows, f, dir) {
+    return rows
+      .map((x) => [sortValue(f, x), x])
+      .sort(([a], [b]) => {
+        if (a === null || b === null) return (a === null) - (b === null);
+        let c =
+          typeof a === "number" && typeof b === "number"
+            ? a - b
+            : String(a).localeCompare(String(b), undefined, { numeric: true });
+        return c * dir;
+      })
+      .map(([, x]) => x);
+  }
   function projectStats(p) {
     let minis = db.miniatures.filter((m) => m.project === p.id);
     return {
@@ -528,6 +717,7 @@
     editId = null;
     document.querySelector("#search").value = "";
     document.querySelector("#filter").innerHTML = ""; // resets the filter
+    sort = { key: "", dir: 1 };
     renderNav();
     document
       .querySelectorAll(".view")
@@ -575,11 +765,12 @@
       ? db.projects
           .map((p) => {
             let st = projectStats(p),
+              due = dueBadge(p.deadline, projectDone(p)),
               goal = Number(p.target) || st.models,
               pc = goal
                 ? Math.min(100, Math.round((100 * st.painted) / goal))
                 : 0;
-            return `<div class="project"><div class="projectfoot"><b>${esc(p.name)}</b><span>${pc}%</span></div><div class="chart"><div class="bar" style="width:${pc}%"></div></div><small class="muted">${st.painted} of ${goal} models painted · ${st.models} owned · ${money(st.spent)} / ${money(p.budget)}</small></div><br>`;
+            return `<div class="project"><div class="projectfoot"><b>${esc(p.name)}${due ? " " + due : ""}</b><span>${pc}%</span></div><div class="chart"><div class="bar" style="width:${pc}%"></div></div><small class="muted">${st.painted} of ${goal} models painted · ${st.models} owned · ${money(st.spent)} / ${money(p.budget)}</small></div><br>`;
           })
           .join("")
       : '<div class="empty">No army projects yet.</div>';
@@ -592,17 +783,26 @@
           )
           .join("")
       : '<div class="empty">Queue is empty.</div>';
-    let low = db.paints.filter(
-      (p) =>
-        p.remaining !== "" && p.remaining != null && Number(p.remaining) < 20,
-    );
+    let low = db.paints.filter(isLow),
+      // Miniatures waiting in the queue, for "needed for N queued".
+      waiting = db.queue
+        .filter((q) => q.stage !== "Complete")
+        .map((q) => linked(column(defs.queue, "miniature"), q.miniature))
+        .filter(Boolean);
+    let wanted = new Set(db.wishlist.map((w) => w.paint).filter(Boolean)),
+      toBuy = low.filter((p) => !wanted.has(p.id));
     document.querySelector("#stockSummary").innerHTML = low.length
       ? low
-          .map(
-            (p) =>
-              `<div><span class="colour" style="background:${safeColour(p.colour) || "#777"}"></span>${esc(p.brand)} ${esc(p.name)} · <b>${Number(p.remaining || 0)}%</b></div>`,
-          )
-          .join("")
+          .map((p) => {
+            let needed = waiting.filter((m) =>
+              asList(m.paints).includes(p.id),
+            ).length;
+            return `<div class="stockrow"><span><span class="colour" style="background:${safeColour(p.colour) || "#777"}"></span>${esc(p.brand)} ${esc(p.name)} · <b>${Number(p.remaining || 0)}%</b>${needed ? ` <span class="muted">· needed for ${needed} queued</span>` : ""}</span>${wanted.has(p.id) ? '<span class="muted">On wishlist</span>' : `<span class="rowacts"><button data-wish="${esc(p.id)}">Add to wishlist</button></span>`}</div>`;
+          })
+          .join("") +
+        (toBuy.length > 1
+          ? `<div class="rowacts stockall"><button data-wishall>Add all ${toBuy.length} to wishlist</button></div>`
+          : "")
       : '<div class="empty">No paints below 20%.</div>';
     let age = backupAgeDays();
     document.querySelector("#backupNotice").innerHTML =
@@ -651,14 +851,17 @@
     renderTable();
   }
   // A field's value as text, or "" if blank. `f` is a field or a computed
-  // column. Links to deleted projects show as blank.
+  // column. Links to deleted records show as blank.
   function cellText(f, x) {
     let v = f.value ? f.value(x) : x[f.key];
     if (v == null || v === "") return "";
     if (f.type === "money") return money(v);
     if (f.type === "percent") return v + "%";
-    if (f.type === "project")
-      return db.projects.find((p) => p.id === v)?.name || "";
+    if (f.type === "link") return linked(f, v)?.name || "";
+    if (f.type === "links")
+      return linkedAll(f, v)
+        .map((r) => r.name)
+        .join(", ");
     return String(v);
   }
   function cellHtml(f, x) {
@@ -669,13 +872,31 @@
         : esc(v);
     if (f.type === "color")
       return `<span class="colour" style="background:${safeColour(v) || "#777"}"></span>${esc(v)}`;
+    if (f.type === "date" && f.doneWhen) {
+      let badge = dueBadge(v, f.doneWhen(x));
+      return esc(cellText(f, x)) + (badge ? " " + badge : "");
+    }
+    if (f.type === "links")
+      return linkedAll(f, v)
+        .map(
+          (r) =>
+            `<span class="chip">${safeColour(r.colour) ? `<span class="colour" style="background:${safeColour(r.colour)}"></span>` : ""}${esc(r.name)}${isLow(r) ? ` <span class="pill warn">${Number(r.remaining)}%</span>` : ""}</span>`,
+        )
+        .join(" ");
     return esc(cellText(f, x));
   }
   function renderTable() {
     let d = defs[section],
       cols = d.columns.map((k) => column(d, k)),
       rows = visible();
-    let head = cols.map((c) => `<th>${esc(c.label)}</th>`).join("");
+    if (sort.key) rows = sortRows(rows, column(d, sort.key), sort.dir);
+    let head = d.columns
+      .map((k, i) => {
+        let on = sort.key === k,
+          aria = on ? (sort.dir > 0 ? "ascending" : "descending") : "none";
+        return `<th aria-sort="${aria}"><button class="sortbtn" data-sort="${k}">${esc(cols[i].label)}${on ? (sort.dir > 0 ? " ▲" : " ▼") : ""}</button></th>`;
+      })
+      .join("");
     let body = rows
       .map(
         (x) =>
@@ -692,8 +913,13 @@
       req = f.required ? "required" : "";
     if (f.type === "select")
       return `<label>${f.label}<select ${name} ${req}><option value="">Select...</option>${f.options.map((o) => `<option ${v === o ? "selected" : ""}>${o}</option>`).join("")}</select></label>`;
-    if (f.type === "project")
-      return `<label>${f.label}<select ${name}><option value="">None</option>${db.projects.map((p) => `<option value="${esc(p.id)}" ${v === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>`;
+    if (f.type === "link")
+      return `<label>${f.label}<select ${name}><option value="">None</option>${db[f.to].map((r) => `<option value="${esc(r.id)}" ${v === r.id ? "selected" : ""}>${esc(r.name)}</option>`).join("")}</select></label>`;
+    if (f.type === "links") {
+      let chosen = asList(v),
+        all = db[f.to];
+      return `<label class="full">${f.label}<select ${name} multiple size="${Math.min(6, Math.max(3, all.length))}">${all.map((r) => `<option value="${esc(r.id)}" ${chosen.includes(r.id) ? "selected" : ""}>${esc(optionLabel(r))}</option>`).join("")}</select><small class="muted">${all.length ? "Ctrl-click (⌘-click on a Mac) to pick several." : `No ${defs[f.to].title.toLowerCase()} yet.`}</small></label>`;
+    }
     if (f.type === "textarea")
       return `<label class="full">${f.label}<textarea ${name}>${esc(v)}</textarea></label>`;
     if (f.type === "color") {
@@ -719,7 +945,8 @@
     e.preventDefault();
     let form = e.target,
       d = defs[section],
-      o = Object.fromEntries(new FormData(form));
+      fd = new FormData(form),
+      o = Object.fromEntries(fd);
     // Rules the browser can't check on its own, e.g. painted <= model count.
     for (let f of d.fields)
       if (f.atMost) {
@@ -742,8 +969,10 @@
         form.querySelector(`[data-nocolour="${f.key}"]`).checked
       )
         o[f.key] = "";
+      if (f.type === "links") o[f.key] = fd.getAll(f.key);
     }
     o.id = editId || id();
+    let prev = db[section].find((x) => x.id === o.id);
     let saved = commit(() => {
       let arr = db[section],
         i = arr.findIndex((x) => x.id === o.id);
@@ -755,14 +984,25 @@
     toast("Saved");
     renderNav();
     render();
+    if (
+      section === "queue" &&
+      o.stage === "Complete" &&
+      prev?.stage !== "Complete"
+    )
+      askComplete(o);
   }
   function renderQueue() {
     document.querySelector("#queueContent").innerHTML = db.queue.length
       ? db.queue
-          .map(
-            (q, i) =>
-              `<div class="qitem"><div class="qnum">${i + 1}</div><div><b>${esc(q.name)}</b><div class="muted">${esc(q.stage || "Not started")} · ${esc(q.models || 1)} model(s)${q.due ? " · due " + esc(q.due) : ""}</div></div><div class="rowacts"><button data-up="${i}">↑</button><button data-down="${i}">↓</button><button data-edit="${esc(q.id)}">Edit</button><button class="del" data-del="${esc(q.id)}">Delete</button></div></div>`,
-          )
+          .map((q, i) => {
+            let low =
+              q.stage === "Complete"
+                ? []
+                : lowRecipePaints(
+                    linked(column(defs.queue, "miniature"), q.miniature),
+                  );
+            return `<div class="qitem"><div class="qnum">${i + 1}</div><div><b>${esc(q.name)}</b><div class="muted">${esc(q.stage || "Not started")} · ${esc(q.models || 1)} model(s)${q.due ? " · due " + esc(q.due) + " " + dueBadge(q.due, q.stage === "Complete") : ""}</div>${low.length ? `<div class="warnline">Low paint: ${low.map((p) => `${esc(p.name)} (${Number(p.remaining)}%)`).join(", ")}</div>` : ""}</div><div class="rowacts"><button data-up="${i}">↑</button><button data-down="${i}">↓</button><button data-edit="${esc(q.id)}">Edit</button><button class="del" data-del="${esc(q.id)}">Delete</button></div></div>`;
+          })
           .join("")
       : '<div class="card empty">Painting queue is empty.</div>';
   }
@@ -853,12 +1093,26 @@
       renderAlerts();
     }
     if (b.dataset.del) remove(section, b.dataset.del);
+    if (b.dataset.sort) {
+      sort =
+        sort.key === b.dataset.sort
+          ? { key: sort.key, dir: -sort.dir }
+          : { key: b.dataset.sort, dir: 1 };
+      renderTable();
+    }
+    if (b.dataset.wish)
+      addToWishlist(db.paints.filter((p) => p.id === b.dataset.wish));
+    if (b.dataset.wishall !== undefined) {
+      let wanted = new Set(db.wishlist.map((w) => w.paint));
+      addToWishlist(db.paints.filter((p) => isLow(p) && !wanted.has(p.id)));
+    }
     if (b.dataset.queue) {
       let m = db.miniatures.find((x) => x.id === b.dataset.queue);
       let queued = commit(() =>
         db.queue.push({
           id: id(),
           name: m.name,
+          miniature: m.id,
           project: m.project || "",
           stage: "Not started",
           models: m.quantity || 1,
@@ -884,6 +1138,10 @@
     for (let el of form.elements) el.setCustomValidity?.(""); // re-check on save
     if (e.target.type === "color")
       form.querySelector(`[data-nocolour="${e.target.name}"]`).checked = false;
+  };
+  // Runs as the button is clicked; the dialog closes itself afterwards.
+  document.querySelector("#completeForm").onsubmit = (e) => {
+    if (e.submitter?.value === "apply") applyComplete();
   };
   document.querySelector("#toastAction").onclick = () => {
     let snapshot = undo;

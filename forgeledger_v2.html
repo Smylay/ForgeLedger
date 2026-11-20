@@ -94,6 +94,23 @@
         </div>
       </form>
     </dialog>
+    <dialog id="completeDialog">
+      <form method="dialog" id="completeForm">
+        <div class="modalhead"><strong>Queue item complete</strong></div>
+        <div class="modalbody completebody">
+          <p id="completeText"></p>
+          <label class="check"><input type="checkbox" id="completeMini" /><span id="completeMiniLabel"></span></label>
+          <label class="check"><input type="checkbox" id="completeRemove" />Remove it from the queue</label>
+        </div>
+        <div class="modalfoot">
+          <span></span>
+          <div>
+            <button class="btn" value="skip">Skip</button>
+            <button class="btn primary" value="apply">Apply</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
     <div class="toast" id="toast" aria-live="polite">
       <span id="toastText"></span><button class="btn" id="toastAction" type="button" hidden></button>
     </div>
