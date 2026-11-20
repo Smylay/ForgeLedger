@@ -38,7 +38,8 @@
   };
   let memoryOnly = false, // storage is blocked: changes live in memory only
     recovered = null, // { raw, problem } when saved data needed repair
-    undo = null, // copy of db from just before the last delete
+    undo = null, // copy of db from just before the last undoable change
+    completing = null, // id of the queue item the completion prompt is about
     toastTimer;
   let db = load(),
     section = "dashboard",
@@ -49,8 +50,9 @@
   //   columns:  field keys (or `computed` keys) shown in the table.
   //   filter:   key of the field the filter dropdown filters on.
   //   computed: read-only columns calculated from other data.
-  // Field types: text (default), textarea, select (needs `options`), project
-  // (stores a project id), date, url, color, count, money, percent, level.
+  // Field types: text (default), textarea, select (needs `options`), link
+  // (stores the id of a record in collection `to`), date, url, color, count,
+  // money, percent, level.
   const defs = {
     paints: {
       title: "Paints",
@@ -126,7 +128,7 @@
       fields: [
         { key: "name", label: "Miniature / unit", required: true },
         { key: "faction", label: "Faction" },
-        { key: "project", label: "Army project", type: "project" },
+        { key: "project", label: "Army project", type: "link", to: "projects" },
         { key: "quantity", label: "Model count", type: "count" },
         {
           key: "painted",
@@ -196,7 +198,13 @@
       view: "queueView",
       fields: [
         { key: "name", label: "Queue item", required: true },
-        { key: "project", label: "Army project", type: "project" },
+        {
+          key: "miniature",
+          label: "Miniature",
+          type: "link",
+          to: "miniatures",
+        },
+        { key: "project", label: "Army project", type: "link", to: "projects" },
         {
           key: "stage",
           label: "Stage",
@@ -391,32 +399,89 @@
     return false;
   }
 
-  // Delete a record and offer Undo. Deleting a project also unlinks the
-  // miniatures and queue items that pointed at it.
-  function remove(sec, recordId) {
-    let before = structuredClone(db),
-      item = db[sec].find((x) => x.id === recordId),
-      unlinked = 0;
-    if (!item) return;
-    let removed = commit(() => {
-      db[sec] = db[sec].filter((x) => x.id !== recordId);
-      if (sec === "projects")
-        for (let k of ["miniatures", "queue"])
-          for (let r of db[k])
-            if (r.project === recordId) {
-              r.project = "";
-              unlinked++;
-            }
-    });
-    if (!removed) return;
+  // Make a change that the message it shows can undo. `message` is a
+  // function so it can describe what the change did.
+  function commitWithUndo(change, message) {
+    let before = structuredClone(db);
+    if (!commit(change)) return false;
     undo = before;
     renderNav();
     render();
-    toast(
-      `Deleted "${item.name}"` +
+    toast(message(), 8000, "Undo");
+    return true;
+  }
+
+  // The record that link field `f` points at, or undefined if it's gone.
+  function linked(f, value) {
+    return value ? db[f.to].find((r) => r.id === value) : undefined;
+  }
+
+  // Delete a record and offer Undo. Links to it from other records, such as
+  // miniatures in a deleted project, are cleared.
+  function remove(sec, recordId) {
+    let item = db[sec].find((x) => x.id === recordId),
+      unlinked = 0;
+    if (!item) return;
+    commitWithUndo(
+      () => {
+        db[sec] = db[sec].filter((x) => x.id !== recordId);
+        for (let [k, d] of Object.entries(defs))
+          for (let f of d.fields)
+            if (f.to === sec)
+              for (let r of db[k])
+                if (r[f.key] === recordId) {
+                  r[f.key] = "";
+                  unlinked++;
+                }
+      },
+      () =>
+        `Deleted "${item.name}"` +
         (unlinked ? ` and unlinked ${unlinked} item(s) from it` : ""),
-      8000,
-      "Undo",
+    );
+  }
+
+  // A linked queue item was just marked Complete: ask whether to update its
+  // miniature and whether to take it off the queue.
+  function askComplete(q) {
+    let m = linked(column(defs.queue, "miniature"), q.miniature);
+    if (!m) return;
+    let done =
+        m.status === "Complete" && Number(m.painted) >= Number(m.quantity || 1),
+      mini = document.querySelector("#completeMini"),
+      dialog = document.querySelector("#completeDialog");
+    completing = q.id;
+    document.querySelector("#completeText").textContent =
+      `"${q.name}" is complete. What else should change?`;
+    document.querySelector("#completeMiniLabel").textContent = done
+      ? `"${m.name}" is already marked complete`
+      : `Mark "${m.name}" complete, with ${m.quantity || 1} of ${m.quantity || 1} painted`;
+    mini.checked = !done;
+    mini.disabled = done;
+    document.querySelector("#completeRemove").checked = false;
+    dialog.showModal();
+  }
+  function applyComplete() {
+    let q = db.queue.find((x) => x.id === completing),
+      m = q && db.miniatures.find((x) => x.id === q.miniature),
+      mini = document.querySelector("#completeMini"),
+      updateMini = m && mini.checked && !mini.disabled,
+      drop = q && document.querySelector("#completeRemove").checked;
+    if (!updateMini && !drop) return;
+    commitWithUndo(
+      () => {
+        if (updateMini) {
+          m.status = "Complete";
+          m.painted = m.quantity || "1";
+        }
+        if (drop) db.queue = db.queue.filter((x) => x.id !== q.id);
+      },
+      () => {
+        let parts = [];
+        if (updateMini) parts.push(`marked "${m.name}" complete`);
+        if (drop) parts.push(`removed "${q.name}" from the queue`);
+        let text = parts.join(" and ");
+        return text[0].toUpperCase() + text.slice(1);
+      },
     );
   }
 
@@ -651,14 +716,13 @@
     renderTable();
   }
   // A field's value as text, or "" if blank. `f` is a field or a computed
-  // column. Links to deleted projects show as blank.
+  // column. Links to deleted records show as blank.
   function cellText(f, x) {
     let v = f.value ? f.value(x) : x[f.key];
     if (v == null || v === "") return "";
     if (f.type === "money") return money(v);
     if (f.type === "percent") return v + "%";
-    if (f.type === "project")
-      return db.projects.find((p) => p.id === v)?.name || "";
+    if (f.type === "link") return linked(f, v)?.name || "";
     return String(v);
   }
   function cellHtml(f, x) {
@@ -692,8 +756,8 @@
       req = f.required ? "required" : "";
     if (f.type === "select")
       return `<label>${f.label}<select ${name} ${req}><option value="">Select...</option>${f.options.map((o) => `<option ${v === o ? "selected" : ""}>${o}</option>`).join("")}</select></label>`;
-    if (f.type === "project")
-      return `<label>${f.label}<select ${name}><option value="">None</option>${db.projects.map((p) => `<option value="${esc(p.id)}" ${v === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>`;
+    if (f.type === "link")
+      return `<label>${f.label}<select ${name}><option value="">None</option>${db[f.to].map((r) => `<option value="${esc(r.id)}" ${v === r.id ? "selected" : ""}>${esc(r.name)}</option>`).join("")}</select></label>`;
     if (f.type === "textarea")
       return `<label class="full">${f.label}<textarea ${name}>${esc(v)}</textarea></label>`;
     if (f.type === "color") {
@@ -744,6 +808,7 @@
         o[f.key] = "";
     }
     o.id = editId || id();
+    let prev = db[section].find((x) => x.id === o.id);
     let saved = commit(() => {
       let arr = db[section],
         i = arr.findIndex((x) => x.id === o.id);
@@ -755,6 +820,12 @@
     toast("Saved");
     renderNav();
     render();
+    if (
+      section === "queue" &&
+      o.stage === "Complete" &&
+      prev?.stage !== "Complete"
+    )
+      askComplete(o);
   }
   function renderQueue() {
     document.querySelector("#queueContent").innerHTML = db.queue.length
@@ -859,6 +930,7 @@
         db.queue.push({
           id: id(),
           name: m.name,
+          miniature: m.id,
           project: m.project || "",
           stage: "Not started",
           models: m.quantity || 1,
@@ -884,6 +956,10 @@
     for (let el of form.elements) el.setCustomValidity?.(""); // re-check on save
     if (e.target.type === "color")
       form.querySelector(`[data-nocolour="${e.target.name}"]`).checked = false;
+  };
+  // Runs as the button is clicked; the dialog closes itself afterwards.
+  document.querySelector("#completeForm").onsubmit = (e) => {
+    if (e.submitter?.value === "apply") applyComplete();
   };
   document.querySelector("#toastAction").onclick = () => {
     let snapshot = undo;
