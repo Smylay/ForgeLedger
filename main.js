@@ -85,9 +85,7 @@
               ["faction", "Faction", "text"],
               ["system", "Game system", "text"],
               ["target", "Target model count", "number"],
-              ["complete", "Completed models", "number"],
               ["budget", "Budget (£)", "number"],
-              ["spent", "Spent (£)", "number"],
               ["deadline", "Target date", "date"],
               ["notes", "Notes", "textarea"],
             ],
@@ -140,6 +138,14 @@
         function money(n) {
           return "£" + Number(n || 0).toFixed(2);
         }
+        function projectStats(p) {
+          let minis = db.miniatures.filter((m) => m.project === p.id);
+          return {
+            models: minis.reduce((a, m) => a + Number(m.quantity || 1), 0),
+            painted: minis.reduce((a, m) => a + Number(m.painted || 0), 0),
+            spent: minis.reduce((a, m) => a + Number(m.price || 0), 0),
+          };
+        }
         function toast(s) {
           let e = document.querySelector("#toast");
           e.textContent = s;
@@ -191,9 +197,9 @@
         function renderDashboard() {
           let modelCount = db.miniatures.reduce((a, x) => a + Number(x.quantity || 1), 0),
             painted = db.miniatures.reduce((a, x) => a + Number(x.painted || 0), 0),
-            spend =
-              ["paints", "tools", "miniatures"].flatMap((k) => db[k]).reduce((a, x) => a + Number(x.price || 0), 0) +
-              db.projects.reduce((a, x) => a + Number(x.spent || 0), 0);
+            spend = ["paints", "tools", "miniatures"]
+              .flatMap((k) => db[k])
+              .reduce((a, x) => a + Number(x.price || 0), 0);
           let cards = [
             ["Paints", db.paints.length],
             ["Models", modelCount],
@@ -206,11 +212,10 @@
           document.querySelector("#projectSummary").innerHTML = db.projects.length
             ? db.projects
                 .map((p) => {
-                  let pc = Math.min(
-                    100,
-                    Math.round((100 * Number(p.complete || 0)) / Math.max(1, Number(p.target || 0))),
-                  );
-                  return `<div class="project"><div class="projectfoot"><b>${esc(p.name)}</b><span>${pc}%</span></div><div class="chart"><div class="bar" style="width:${pc}%"></div></div><small class="muted">${p.complete || 0} of ${p.target || 0} models · ${money(p.spent)} / ${money(p.budget)}</small></div><br>`;
+                  let st = projectStats(p),
+                    goal = Number(p.target) || st.models,
+                    pc = goal ? Math.min(100, Math.round((100 * st.painted) / goal)) : 0;
+                  return `<div class="project"><div class="projectfoot"><b>${esc(p.name)}</b><span>${pc}%</span></div><div class="chart"><div class="bar" style="width:${pc}%"></div></div><small class="muted">${st.painted} of ${goal} models painted · ${st.models} owned · ${money(st.spent)} / ${money(p.budget)}</small></div><br>`;
                 })
                 .join("")
             : '<div class="empty">No army projects yet.</div>';
@@ -234,7 +239,7 @@
             : '<div class="empty">No paints below 20%.</div>';
           let wish = db.wishlist.reduce((a, x) => a + Number(x.price || 0), 0);
           document.querySelector("#spendSummary").innerHTML =
-            `<div class="metric"><div class="v">${money(spend)}</div><div class="muted">Owned collection / project spend</div><br><div class="v">${money(wish)}</div><div class="muted">Wishlist exposure</div></div>`;
+            `<div class="metric"><div class="v">${money(spend)}</div><div class="muted">Owned collection spend</div><br><div class="v">${money(wish)}</div><div class="muted">Wishlist exposure</div></div>`;
         }
         function visible() {
           let q = document.querySelector("#search").value.toLowerCase(),
@@ -259,16 +264,17 @@
               paints: ["name", "brand", "range", "type", "quantity", "remaining"],
               tools: ["name", "category", "condition", "quantity", "price"],
               miniatures: ["name", "faction", "project", "quantity", "painted", "status"],
-              projects: ["name", "faction", "system", "complete", "target", "deadline"],
+              projects: ["name", "faction", "system", "painted", "models", "target", "spent", "deadline"],
               wishlist: ["name", "category", "priority", "price", "url"],
-            }[section];
+            }[section],
+            stats = section === "projects" ? Object.fromEntries(rows.map((x) => [x.id, projectStats(x)])) : {};
           let head = columns.map((c) => `<th>${c}</th>`).join("");
           let body = rows
             .map(
               (x) =>
                 `<tr>${columns
                   .map((c) => {
-                    let v = x[c] ?? "";
+                    let v = stats[x.id]?.[c] ?? x[c] ?? "";
                     if (c === "colour") v = `<span class="colour" style="background:${v}"></span>${esc(v)}`;
                     else if (c === "price" || c === "budget" || c === "spent") v = money(v);
                     else if (c === "remaining") v = esc(v) + "%";

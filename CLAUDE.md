@@ -10,8 +10,8 @@ ForgeLedger is an offline-first, single-page tracker for miniature wargaming: pa
 
 - **Run:** open `forgeledger_v2.html` in a browser. It works over `file://`. You can also serve it with `python3 -m http.server` and open `/forgeledger_v2.html`.
 - **localStorage is scoped to the origin.** Data saved under `file://` does not appear under `http://localhost:8000`, and data saved under one port does not appear under another. If saved data seems to be missing, check the origin first.
-- **No package.json, linter, formatter config, or test suite exists.** To verify a change, drive the page with Playwright against the `file://` URL and listen for `pageerror`. Clear `localStorage` between runs, or use a fresh browser context.
-- **Formatting:** the code is Prettier-style (double quotes, trailing commas, wide lines). The 8-space base indent in `main.js` and `styles.css` is left over from when both were inline in the HTML. Match the existing style in any file you edit.
+- **No package.json, linter, or test suite exists.** To verify a change, drive the page with Playwright against the `file://` URL and listen for `pageerror`. Clear `localStorage` between runs, or use a fresh browser context.
+- **Formatting:** the project uses Prettier, but the owner's `.prettierrc` is not committed yet. Until it is, match the existing style (double quotes, trailing commas, wide lines) and don't run Prettier with default settings. The 8-space base indent in `main.js` and `styles.css` is left over from when both were inline in the HTML.
 
 ## Architecture (`main.js`)
 
@@ -21,6 +21,8 @@ All code is inside one IIFE. There are no modules and no exports. Mutable state 
 - To add a new top-level collection, add it to `defaults`. Existing users pick it up automatically.
 - Nothing migrates fields on existing records. Every reader must tolerate missing or blank fields.
 - Imported JSON is not validated beyond "is an object". Treat imported data as untrusted.
+
+**Backward compatibility.** Users keep and move their data with Export backup and Import, which write and read JSON files. ForgeLedger is open source and runs from a local file, so old backups and existing `localStorage` data must keep loading after any change. Don't rename or repurpose stored fields. Add new fields as optional. A field that is no longer used can stay in old records, as long as nothing reads it.
 
 **Schema-driven CRUD.** `defs` maps the collections `paints`, `tools`, `miniatures`, `projects`, and `wishlist` to a title, a subtitle, and a `fields` array. Each field is a tuple: `[key, label, inputType, extra]`.
 - `extra === 1` marks a text, number, or date field as required.
@@ -45,6 +47,6 @@ All five `defs` collections share the single `#listView` section and the generic
 - `FormData` returns strings, so numbers are stored as strings. Consumers wrap them in `Number(...)`. Only `skills.level` is converted (and clamped to 0–9) on save.
 - Editing a record replaces the whole object with the form's contents.
 - `miniatures.project` and `queue.project` hold a project `id`. Deleting a project doesn't cascade to them; tables fall back to showing the raw id.
-- Project progress (`complete` / `target`) and `spent` are entered by hand. They are not derived from linked miniatures.
-- The dashboard's "Recorded spend" adds `price` across paints, tools, and miniatures, then adds `spent` across projects.
+- `projectStats(p)` calculates a project's `models`, `painted`, and `spent` from the miniatures linked to it. Only `target` and `budget` are entered by hand. If `target` is blank, progress is measured against models owned. Older records may still contain hand-entered `complete` and `spent` fields; these are ignored.
+- The dashboard's "Recorded spend" adds up `price` across paints, tools, and miniatures. Each `price` is added as entered; it is not multiplied by `quantity`.
 - Currency is hardcoded to GBP (`money()` and the "(£)" field labels).
