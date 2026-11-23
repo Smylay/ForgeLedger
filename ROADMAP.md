@@ -34,16 +34,9 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - **Fixes (phase 9):** the queue +1 counts models per stage and moves the item on when they're all done, paint colours show as a swatch, editing keeps fields the form doesn't show, and the sidebar footer no longer overlaps the nav in short windows.
 - **Fewer trips to the edit form (phase 10):** one-tap status fields, +/− buttons on counts, a quick-add row, and keyboard shortcuts with an off switch.
 - **Skills and paint types (phase 11):** a level guide, a library of 20 techniques with a next step for each level, a skill profile, practice suggestions, and Primer and Shade/Wash paint types.
+- **Queue models at different stages (phase 12):** split a queue item by stage, with a count and a Move 1 button for each stage. _(From the bug list.)_
 
-## Phase 12: Queue models at different stages (in progress)
-
-_(From the bug list.)_
-
-- **A Split by stage toggle on each queue item.** It shows how many of the item's models are at each stage, such as "Priming 2 · Basecoating 3", with a button to move one model on.
-- **Off by default,** so items work as they do now, with every model at the same stage.
-- **The progress bar shows the mix,** and the item is complete when every model is.
-
-## Phase 13: Wishlist "Bought" button
+## Phase 13: Wishlist "Bought" button (in progress)
 
 - **Paint, Tool and Miniature items** move into that list with their name, price and notes.
 - **Restock items linked to a paint** set that paint back to Full instead of creating a duplicate.
@@ -52,6 +45,7 @@ _(From the bug list.)_
 ## Later
 
 - A currency setting (currently fixed to GBP).
+- Count restock purchases in Recorded spend. Bought on a restock sets the paint to Full but doesn't record what the new pot cost, because a paint holds one price.
 - Optional automatic saving to a JSON file you choose (Chromium-based browsers only).
 - Installing as an app when hosted over HTTPS.
 

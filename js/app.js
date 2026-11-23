@@ -6,6 +6,7 @@ let memoryOnly = false, // storage is blocked: changes live in memory only
   recovered = null, // { raw, problem } when saved data needed repair
   undo = null, // copy of db from just before the last undoable change
   completing = null, // id of the queue item the completion prompt is about
+  buying = null, // { id, row } of the wishlist item the Bought prompt is about
   sort = { key: "", dir: 1 }, // table sort for the current section
   upgraded = false, // load() upgraded saved data from an older schema
   toastTimer;
@@ -49,6 +50,7 @@ document.addEventListener("click", (e) => {
     let wanted = new Set(db.wishlist.map((w) => w.paint));
     addToWishlist(db.paints.filter((p) => isLow(p) && !wanted.has(p.id)));
   }
+  if (b.dataset.bought) bought(b);
   if (b.dataset.queue) {
     let m = db.miniatures.find((x) => x.id === b.dataset.queue);
     let queued = commit(() =>
@@ -105,6 +107,15 @@ document.querySelector("#itemForm").oninput = (e) => {
 // Runs as the button is clicked; the dialog closes itself afterwards.
 document.querySelector("#completeForm").onsubmit = (e) => {
   if (e.submitter?.value === "apply") applyComplete();
+};
+document.querySelector("#boughtForm").onsubmit = (e) => {
+  if (e.submitter?.value === "apply")
+    applyBought(new FormData(e.currentTarget).get("to"));
+};
+// Closing returns focus to the Bought button, which may be gone by now.
+document.querySelector("#boughtDialog").onclose = () => {
+  if (buying) focusBought(buying.row);
+  buying = null;
 };
 document.querySelector("#toastAction").onclick = () => {
   let snapshot = undo;

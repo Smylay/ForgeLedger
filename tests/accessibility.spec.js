@@ -104,6 +104,7 @@ const data = {
       price: "5",
       url: "https://example.com/pot",
     },
+    { id: "w2", name: "Rulebook", category: "Book" },
   ],
   // A library technique with a level and date, and one of your own with a
   // goal, so every kind of skill card and suggestion appears.
@@ -183,6 +184,15 @@ for (const viewport of [
       await page.click(".levelguide summary");
       await page.selectOption("#skillAdd select", "other");
       await expect(page.locator("#skillAdd input")).toBeVisible();
+      expect(await violations(page)).toEqual([]);
+    });
+
+    test("the Bought prompt has no accessibility violations", async ({
+      page,
+    }) => {
+      await nav(page, "wishlist");
+      await page.getByRole("button", { name: "Bought: Rulebook" }).click();
+      await expect(page.locator("#boughtDialog")).toBeVisible();
       expect(await violations(page)).toEqual([]);
     });
 

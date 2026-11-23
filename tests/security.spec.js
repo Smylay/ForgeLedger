@@ -215,3 +215,36 @@ test("CSV export leaves negative numbers alone", async ({ page }, testInfo) => {
   expect(csv).toContain(`"-4.50"`);
   expect(csv).not.toContain(`"'-4.50"`);
 });
+
+test("a bought wishlist item carries nothing that can run", async ({
+  page,
+}, testInfo) => {
+  await importBackup(
+    page,
+    {
+      wishlist: [
+        {
+          id: "w",
+          name: attack("boughtName"),
+          category: "Book",
+          url: attack("boughtUrl"),
+          notes: attack("boughtNotes"),
+        },
+      ],
+    },
+    testInfo,
+  );
+  await nav(page, "wishlist");
+  await page.click("button[data-bought]");
+  await page.getByRole("radio", { name: "Add it to Paints" }).check();
+  await page.click('#boughtDialog button[value="apply"]');
+  await nav(page, "paints");
+  await page.click("button[data-edit]"); // the notes render in the form
+  await page.waitForTimeout(200); // let any injected <img> fail to load
+  const ran = await page.evaluate(() =>
+    ["boughtName", "boughtUrl", "boughtNotes"].filter((f) => window[f]),
+  );
+  expect(ran).toEqual([]);
+  // The hostile "link" isn't http(s), so it isn't copied into the notes.
+  expect((await stored(page)).paints[0].notes).toBe(attack("boughtNotes"));
+});

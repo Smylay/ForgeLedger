@@ -487,6 +487,18 @@ label.check {
   align-items: center;
   gap: 6px;
 }
+/* The Bought prompt's choices. */
+.choices {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.choices legend {
+  padding: 0;
+  margin-bottom: 10px;
+}
 .completebody {
   display: grid;
   gap: 10px;
