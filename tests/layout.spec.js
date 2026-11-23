@@ -21,7 +21,19 @@ test.beforeEach(async ({ page }) => {
     paints: [
       { id: "p", name: "A paint with a rather long name", remaining: "5" },
     ],
-    miniatures: [{ id: "m", name: "Squad", quantity: "10", paints: ["p"] }],
+    miniatures: [
+      { id: "m", name: "Squad", quantity: "10", paints: ["p"], project: "a" },
+    ],
+    projects: [{ id: "a", name: "An army with a long name", target: "20" }],
+    wishlist: [
+      {
+        id: "w",
+        name: "A reward with a rather long name",
+        rewardFor: "a",
+        rewardAt: "0",
+      },
+      { id: "w2", name: "Later", rewardFor: "a", rewardAt: "90" },
+    ],
     queue: [
       { id: "q", name: "Squad", miniature: "m", stage: "Basing" },
       {
@@ -73,6 +85,17 @@ test("the keyboard shortcuts button is still there, beside the brand", async ({
   expect(btn.x + btn.width).toBeLessThanOrEqual(375);
   await page.click("#keysBtn");
   await expect(page.locator("#keysDialog")).toBeVisible();
+});
+
+test("the reward notice fits the screen", async ({ page }) => {
+  await page.evaluate(() => {
+    newRewards = ["w"];
+    renderRewardNotice();
+  });
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
 });
 
 test("the photo viewer fits the screen", async ({ page }) => {

@@ -9,6 +9,7 @@ let memoryOnly = false, // storage is blocked: changes live in memory only
   buying = null, // { id, row } of the wishlist item the Bought prompt is about
   editingStages = null, // { qid } while the stage editor is open (null qid: default)
   viewing = null, // { id, index, url } of the miniature whose photos are open
+  newRewards = [], // wishlist ids of rewards a change unlocked, until dismissed
   photoDbOpen = null, // the photo database, opened once (photos.js)
   photoCheck = null, // whether photos can be saved here, checked once
   photoUrls = new Map(), // object URLs of photo thumbnails, by id
@@ -56,6 +57,10 @@ document.addEventListener("click", (e) => {
     addToWishlist(db.paints.filter((p) => isLow(p) && !wanted.has(p.id)));
   }
   if (b.dataset.bought) bought(b);
+  if (b.dataset.unreward) {
+    newRewards = newRewards.filter((rid) => rid !== b.dataset.unreward);
+    renderRewardNotice();
+  }
   if (b.dataset.photos) openPhotos(b.dataset.photos);
   if (b.dataset.stages) openStages(b.dataset.stages);
   if (b.dataset.queue) {

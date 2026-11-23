@@ -142,7 +142,7 @@ test.describe("deadline markers", () => {
   }) => {
     await nav(page, "projects");
     const markers = await tableRows(page).evaluateAll((rows) =>
-      rows.map((r) => r.cells[7].querySelector(".pill")?.textContent ?? ""),
+      rows.map((r) => r.cells[8].querySelector(".pill")?.textContent ?? ""),
     );
     expect(markers).toEqual(["Overdue", "Due in 5 days", "", "", "", ""]);
   });

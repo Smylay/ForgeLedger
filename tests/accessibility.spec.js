@@ -106,6 +106,9 @@ const data = {
       url: "https://example.com/pot",
     },
     { id: "w2", name: "Rulebook", category: "Book" },
+    // Rewards for project p: one unlocked, one locked.
+    { id: "w3", name: "Paint set", rewardFor: "p", rewardAt: "0" },
+    { id: "w4", name: "Big knight", rewardFor: "p", rewardAt: "100" },
   ],
   // A library technique with a level and date, and one of your own with a
   // goal, so every kind of skill card and suggestion appears.
@@ -200,6 +203,18 @@ for (const viewport of [
           await imageFile(page, "b.png", 300, 400),
         ]);
       await expect(page.locator("#photoStrip button")).toHaveCount(2);
+      expect(await violations(page)).toEqual([]);
+    });
+
+    test("the reward notice has no accessibility violations", async ({
+      page,
+    }) => {
+      // Show it as if a change had just unlocked the reward.
+      await page.evaluate(() => {
+        newRewards = ["w3"];
+        renderRewardNotice();
+      });
+      await expect(page.locator("#rewardNotice .notice")).toBeVisible();
       expect(await violations(page)).toEqual([]);
     });
 

@@ -276,3 +276,34 @@ test("photo ids and names can't run script", async ({ page }, testInfo) => {
   );
   expect(ran).toEqual([]);
 });
+
+test("rewards can't run script", async ({ page }, testInfo) => {
+  await importBackup(
+    page,
+    {
+      schemaVersion: 5,
+      projects: [{ id: "p", name: attack("rewardProject"), target: "1" }],
+      queue: [{ id: "q", name: "Q", project: "p", stage: "Basing" }],
+      wishlist: [
+        {
+          id: "w",
+          name: attack("rewardName"),
+          rewardFor: "p",
+          rewardAt: attack("rewardAt"),
+        },
+        { id: "w2", name: "Two", rewardFor: "p", rewardAt: "0" },
+      ],
+    },
+    testInfo,
+  );
+  // The dashboard's Rewards card, then the wishlist's Reward column.
+  await nav(page, "wishlist");
+  // Finishing the queue item unlocks the first reward and shows the notice.
+  await nav(page, "queue");
+  await page.click("#queueContent button[data-next]");
+  await page.waitForTimeout(200);
+  const ran = await page.evaluate(() =>
+    ["rewardProject", "rewardName", "rewardAt"].filter((f) => window[f]),
+  );
+  expect(ran).toEqual([]);
+});

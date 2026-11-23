@@ -6,6 +6,29 @@ function renderBackupState() {
     "Last backup: " + backupText(backupAgeDays());
 }
 
+// A wishlist item's reward state, for its table cell and the dashboard.
+function rewardHtml(w) {
+  let r = reward(w);
+  if (!r) return "";
+  return r.unlocked
+    ? `<span class="pill unlocked">Unlocked</span> ${esc(r.project.name)} reached ${r.at}%`
+    : `<span class="pill locked">Locked</span> ${esc(r.project.name)}: ${r.percent}% of ${r.at}%`;
+}
+// Rewards unlocked by a change just now (`newRewards`), until dismissed or
+// bought, on every page.
+function renderRewardNotice() {
+  let shown = newRewards
+    .map((rid) => db.wishlist.find((w) => w.id === rid))
+    .filter((w) => w && reward(w)?.unlocked);
+  document.querySelector("#rewardNotice").innerHTML = shown
+    .map((w) => {
+      let r = reward(w),
+        wid = esc(w.id),
+        name = esc(w.name);
+      return `<div class="notice reward">Reward unlocked: <b>${name}</b>. ${esc(r.project.name)} reached ${r.at}%. <button class="btn" data-bought="${wid}" aria-label="Bought: ${name}">Bought</button> <button class="btn" data-unreward="${wid}" aria-label="Dismiss: ${name}">Dismiss</button></div>`;
+    })
+    .join("");
+}
 function renderAlerts() {
   let notes = [];
   if (memoryOnly)
@@ -161,14 +184,28 @@ function renderDashboard() {
         .map((p) => {
           let st = projectStats(p),
             due = dueBadge(p.deadline, projectDone(p)),
-            goal = Number(p.target) || st.models,
-            pc = goal
-              ? Math.min(100, Math.round((100 * st.painted) / goal))
-              : 0;
-          return `<div class="project"><div class="projectfoot"><b>${esc(p.name)}${due ? " " + due : ""}</b><span>${pc}%</span></div><div class="chart"><div class="bar" style="width:${pc}%"></div></div><small class="muted">${st.painted} of ${goal} models painted · ${st.models} owned · ${money(st.spent)} / ${money(p.budget)}</small></div><br>`;
+            pc = st.percent;
+          return `<div class="project"><div class="projectfoot"><b>${esc(p.name)}${due ? " " + due : ""}</b><span>${pc}%</span></div><div class="chart"><div class="bar" style="width:${pc}%"></div></div><small class="muted">${st.painted} of ${st.goal} models painted · ${st.models} owned · ${money(st.spent)} / ${money(p.budget)}</small></div><br>`;
         })
         .join("")
     : '<div class="empty">No army projects yet.</div>';
+  // Rewards: unlocked first, then the nearest to unlocking.
+  let rewards = db.wishlist
+    .map((w) => ({ w, r: reward(w) }))
+    .filter((x) => x.r)
+    .sort(
+      (a, b) =>
+        b.r.unlocked - a.r.unlocked ||
+        b.r.percent / b.r.at - a.r.percent / a.r.at,
+    );
+  document.querySelector("#rewardSummary").innerHTML = rewards.length
+    ? rewards
+        .map(
+          ({ w, r }) =>
+            `<div class="rewardline"><span><b>${esc(w.name)}</b> ${rewardHtml(w)}</span>${r.unlocked ? `<button class="btn" data-bought="${esc(w.id)}" aria-label="Bought: ${esc(w.name)}">Bought</button>` : ""}</div>`,
+        )
+        .join("")
+    : '<div class="empty">No rewards yet. Give a wishlist item a project and a % to unlock it at.</div>';
   document.querySelector("#queueSummary").innerHTML = db.queue.length
     ? db.queue
         .slice(0, 5)
@@ -261,6 +298,7 @@ function cellText(f, x) {
 }
 function cellHtml(f, x) {
   let v = x[f.key];
+  if (f.html) return f.html(x); // a computed column with its own markup
   if (f.stepper) return stepperHtml(f, x);
   // One button per level; tapping one saves it (setScale in actions.js).
   if (f.type === "scale")

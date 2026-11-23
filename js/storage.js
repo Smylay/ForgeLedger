@@ -131,12 +131,26 @@ function save() {
 // what's on screen always matches what's stored. Any change ends the
 // chance to undo the last delete, so Undo can never revert later work.
 function commit(change) {
-  let before = structuredClone(db);
+  let before = structuredClone(db),
+    was = unlockedRewards();
   undo = null;
   change();
-  if (save()) return true;
+  if (save()) {
+    noteRewards(was);
+    return true;
+  }
   db = before;
   return false;
+}
+// After a change, add rewards it unlocked to `newRewards` (shown until
+// dismissed), and drop any it locked again.
+function noteRewards(was) {
+  let now = unlockedRewards();
+  newRewards = [
+    ...newRewards.filter((rid) => now.includes(rid)),
+    ...now.filter((rid) => !was.includes(rid) && !newRewards.includes(rid)),
+  ];
+  renderRewardNotice();
 }
 
 // Make a change that the message it shows can undo. `message` is a
