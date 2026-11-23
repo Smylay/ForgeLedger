@@ -1,10 +1,10 @@
 ForgeLedger Bugs
 
 Paints:
-- No Primer/Wash type.
+- No Primer/Wash type. (done in PR #11)
 
 Painting queue:
 - Unable to have models at differnt points. Could be a toggle to split out models at different stages with defualt all same step.
 
 Skills:
-- What are skills that we could add as quick adds? Would be good to have 10-20 techniques you can select with skill level comparisons and next step advice and Other lets you input your own.
+- What are skills that we could add as quick adds? Would be good to have 10-20 techniques you can select with skill level comparisons and next step advice and Other lets you input your own. (done in PR #11)
