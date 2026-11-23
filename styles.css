@@ -204,7 +204,8 @@ kbd {
   gap: 8px;
   margin-bottom: 12px;
 }
-.quickadd input {
+.quickadd input,
+.quickadd select {
   flex: 1;
   min-width: 0;
   background: #101419;
@@ -623,6 +624,67 @@ dialog::backdrop {
 .skilltop {
   display: flex;
   justify-content: space-between;
+  gap: 8px;
+}
+.skill .nextstep {
+  margin: 6px 0;
+}
+/* Skill profile and practice suggestions, above the skill cards. */
+.skilloverview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.skilloverview h3 {
+  margin-top: 0;
+}
+/* A meter list: name, bar and level per row, the bars aligned. The track
+   is a darker step of the fill's blue (fill on track: 4.9:1). */
+.meters {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.meters li {
+  display: grid;
+  grid-template-columns: minmax(0, 11em) minmax(60px, 1fr) 8.5em;
+  gap: 10px;
+  align-items: center;
+  padding: 3px 0;
+}
+.meter {
+  height: 8px;
+  border-radius: 4px;
+  background: #23364a;
+  overflow: hidden;
+}
+.meter i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--blue);
+}
+.mname {
+  overflow-wrap: anywhere;
+}
+.practice {
+  margin: 0;
+  padding-left: 20px;
+}
+.practice li + li {
+  margin-top: 8px;
+}
+.levelguide {
+  margin-bottom: 12px;
+}
+.levelguide summary {
+  cursor: pointer;
+  color: var(--blue);
+  width: fit-content;
+}
+.levelguide ol {
+  margin: 8px 0 0;
 }
 .skill input {
   width: 100%;
@@ -704,7 +766,8 @@ dialog::backdrop {
   .grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  .skillgrid {
+  .skillgrid,
+  .skilloverview {
     grid-template-columns: 1fr;
   }
 }
@@ -736,6 +799,14 @@ dialog::backdrop {
   }
   #metrics {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .meters li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 2px;
+  }
+  .meter {
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
   /* Queue buttons get their own line under the item's details. */
   .qitem {

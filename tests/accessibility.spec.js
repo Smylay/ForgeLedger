@@ -98,6 +98,13 @@ const data = {
       url: "https://example.com/pot",
     },
   ],
+  // A library technique with a level and date, and one of your own with a
+  // goal, so every kind of skill card and suggestion appears.
+  skills: [
+    { id: "s1", name: "Layering", level: 4, changed: "2020-01-01" },
+    { id: "s2", name: "Sculpting", level: 2, goal: "Finish a bust" },
+    { id: "s3", name: "Glazing", level: 9 },
+  ],
 };
 
 async function violations(page) {
@@ -159,6 +166,16 @@ for (const viewport of [
       await fillForm(page, { stage: "Complete" });
       await submitForm(page);
       await expect(page.locator("#completeDialog")).toBeVisible();
+      expect(await violations(page)).toEqual([]);
+    });
+
+    test("the skill level guide and own-skill box have no accessibility violations", async ({
+      page,
+    }) => {
+      await nav(page, "skills");
+      await page.click(".levelguide summary");
+      await page.selectOption("#skillAdd select", "other");
+      await expect(page.locator("#skillAdd input")).toBeVisible();
       expect(await violations(page)).toEqual([]);
     });
 

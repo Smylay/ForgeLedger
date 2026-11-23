@@ -51,6 +51,9 @@ test("Q focuses the quick-add box", async ({ page }) => {
   await nav(page, "queue");
   await page.keyboard.press("q");
   await expect(page.locator("#queueView .quickadd input")).toBeFocused();
+  await nav(page, "skills");
+  await page.keyboard.press("q");
+  await expect(page.locator("#skillAdd select")).toBeFocused();
 });
 
 test("? shows the list of shortcuts, and Esc closes it", async ({ page }) => {

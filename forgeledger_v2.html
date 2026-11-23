@@ -84,11 +84,30 @@
         </section>
         <section class="view" id="skillsView">
           <div class="notice">
-            Rate proficiency from 0 to 9. Add notes or a next practice goal when editing a skill.
+            Rate each skill from 0 to 9 with its slider. Edit a skill to add notes or your own practice goal.
           </div>
-          <form class="quickadd" autocomplete="off">
-            <input name="name" required /><button class="btn">Add</button>
+          <form class="quickadd" id="skillAdd" autocomplete="off">
+            <select name="pick" required aria-label="Add a skill from the technique library"></select
+            ><input name="name" aria-label="Name of your own skill" placeholder="Name your skill…" hidden /><button
+              class="btn"
+            >
+              Add
+            </button>
           </form>
+          <div class="skilloverview">
+            <div class="card">
+              <h3>Skill profile</h3>
+              <ul class="meters" id="skillProfile" aria-label="Skill levels, highest first"></ul>
+            </div>
+            <div class="card">
+              <h3>Practice next</h3>
+              <div id="practice"></div>
+            </div>
+          </div>
+          <details class="levelguide">
+            <summary>What the levels mean</summary>
+            <ol start="0" id="levelGuide"></ol>
+          </details>
           <div class="skillgrid" id="skillsContent"></div>
         </section>
       </main>
@@ -160,6 +179,7 @@
     <!-- Plain scripts, in this order; app.js starts the app. -->
     <script src="js/util.js"></script>
     <script src="js/schema.js"></script>
+    <script src="js/skillguide.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/render.js"></script>
     <script src="js/forms.js"></script>

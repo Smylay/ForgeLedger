@@ -82,8 +82,17 @@ document.querySelector("#addBtn").onclick = () => openForm(section);
 for (let form of document.querySelectorAll(".quickadd"))
   form.onsubmit = (e) => {
     e.preventDefault();
-    quickAdd(form);
+    if (form.id === "skillAdd") addSkill(form);
+    else quickAdd(form);
   };
+// Choosing "Other" in the skill picker shows a box for the name.
+document.querySelector("#skillAdd select").onchange = (e) => {
+  let input = e.target.form.elements.name,
+    other = e.target.value === "other";
+  input.hidden = !other;
+  input.required = other;
+  if (other) input.focus();
+};
 document.querySelector("#itemForm").onsubmit = submit;
 document.querySelector("#itemForm").oninput = (e) => {
   let form = e.currentTarget;
@@ -117,16 +126,13 @@ document.querySelector("#csvBtn").onclick = csv;
 document.querySelector("#search").oninput = renderTable;
 document.querySelector("#filter").onchange = renderTable;
 document.querySelector("#skillsContent").oninput = (e) => {
-  if (e.target.dataset.skill) {
-    let level = +e.target.value;
-    let saved = commit(
-      () =>
-        (db.skills.find((x) => x.id === e.target.dataset.skill).level = level),
-    );
-    if (!saved) return renderSkills();
-    e.target.closest(".skill").querySelector(".skilltop strong").textContent =
-      level + "/9";
-  }
+  let s = db.skills.find((x) => x.id === e.target.dataset.skill);
+  if (!s) return;
+  let level = +e.target.value;
+  if (!commit(() => Object.assign(s, { level, changed: today() })))
+    return renderSkills();
+  updateSkillCard(s);
+  renderSkillOverview();
 };
 // Another tab saved: adopt its data so this tab doesn't overwrite it later.
 window.addEventListener("storage", (e) => {
@@ -212,7 +218,10 @@ document.addEventListener("keydown", (e) => {
   if (k === "?") openKeys();
   else if (/^[1-8]$/.test(k)) go(SECTION_KEYS[k - 1]);
   else if (k === "n" && d) openForm(section);
-  else if (k === "q" && d) view.querySelector(".quickadd input")?.focus();
+  else if (k === "q" && d)
+    view
+      .querySelector(".quickadd select, .quickadd input:not([hidden])")
+      ?.focus();
   else if (k === "/" && view.id === "listView")
     document.querySelector("#search").focus();
   else return;
