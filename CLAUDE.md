@@ -77,6 +77,7 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 **Config-driven sections.** `defs` has one entry per collection, in nav order. It drives the nav, page titles, the add/edit form, table columns, the filter dropdown and search. Each entry has:
 
 - `title` and `sub` for the page heading, `nav` if the nav label differs from the title, and `noun` for the form title ("Add paint").
+- `swatch` (optional): the key of a colour field to show as a dot beside each record's name in the table, e.g. paints' `colour`. No colour or an invalid one shows a hollow dot.
 - `fields`: `{ key, label, type, required, options, atMost, doneWhen }` objects.
 
   - `atMost` names another field this one can't exceed; for example, painted count can't exceed model count. `submit()` checks it with `setCustomValidity`.
@@ -166,7 +167,14 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 - **Next stage.** "Next: <stage>" (`data-next`, `nextStage()`) moves the item to the next of `queueStages()`, with Undo. Reaching Complete opens the completion prompt below.
 - **Progress bar.** `role="progressbar"` with one segment per step after "Not started". `stageIndex()` treats blank or unknown stages as Not started.
-- **+1 painted** (`data-plus`, `paintedPlusOne()`) adds one to the linked miniature's `painted`, with Undo. It's disabled at the model count, and has no limit when the miniature has no model count.
+- **+1 done** (`data-plus`, `plusOneDone()`) counts models done in the item's current stage, with Undo.
+  - The count is stored in `stageDone`, and `stageDoneCount()` keeps it between 0 and `queueTotal()`.
+  - `queueTotal()` is the item's own model count, else its miniature's, else 1.
+  - When the count reaches the total, the item moves to the next stage and the count starts again at 0. Reaching Complete opens the completion prompt.
+  - From "Not started", +1 starts the first stage.
+  - Next stage and changing the stage in the form also reset the count.
+  - +1 doesn't change the miniature's own `painted` count. The completion prompt sets that.
+- **Progress bar fill.** Finished stages are full, the current stage is filled as far as its count, and later stages are empty.
 - **Reordering.** Top, ↑ and ↓ (`data-top`, `data-up`, `data-down`) go through `moveQueueItem(from, to)`. Dragging the handle (pointer events, in `app.js`) does too.
   - While dragging, the list doesn't change; a `drop-before` or `drop-after` line shows where the item will land, and the move is saved on release. Moving the dragged element would release its pointer capture.
   - The handle has `touch-action: none`, so a finger can drag it without scrolling the page.
@@ -183,11 +191,12 @@ The form handler `submit()` writes to `db[section]`, so `openForm(sec, obj)` set
 **Data semantics:**
 
 - `FormData` returns strings, so numbers are stored as strings. Consumers wrap them in `Number(...)`. Only `level` fields are converted (and clamped to 0–9) on save.
-- Editing a record replaces the whole object with the form's contents.
+- Editing a record merges the form's fields into it (`{ ...record, ...form }`). Fields the form doesn't show are kept, such as a queue item's `stageDone` or fields from older versions.
 - Link fields hold a record `id`:
 
   - `miniatures.project` and `queue.project` point at projects.
   - `queue.miniature` points at a miniature. It's set when a miniature is queued from its row; items queued before this field existed have none.
+  - `queue.stageDone` is not a link: it's the number of models done in the item's current stage (see Queue controls). It's optional, and missing means 0.
   - `miniatures.paints` is a `links` array of the paints in its recipe. The older free-text `recipe` field is still there, labelled "Recipe steps".
   - `wishlist.paint` points at the paint a wishlist item restocks. `addToWishlist()` sets it when a low paint is added from the dashboard, and the dashboard uses it to show "On wishlist".
 

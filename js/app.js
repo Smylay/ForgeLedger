@@ -66,7 +66,7 @@ document.addEventListener("click", (e) => {
     if (queued) toast("Added to queue");
   }
   if (b.dataset.next) nextStage(b.dataset.next);
-  if (b.dataset.plus) paintedPlusOne(b.dataset.plus);
+  if (b.dataset.plus) plusOneDone(b.dataset.plus);
   // Reordering keeps focus on the same button of the item that moved.
   for (let dir of ["top", "up", "down"]) {
     if (b.dataset[dir] === undefined) continue;

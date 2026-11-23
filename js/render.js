@@ -277,6 +277,11 @@ function cellHtml(f, x) {
       .join(" ");
   return esc(cellText(f, x));
 }
+// A colour dot for a record (e.g. a paint), hollow when it has no colour.
+function swatchHtml(colour) {
+  let c = safeColour(colour);
+  return `<span class="colour${c ? "" : " none"}" style="background:${c || "transparent"}" aria-hidden="true"></span>`;
+}
 function renderTable() {
   let d = defs[section],
     cols = d.columns.map((k) => column(d, k)),
@@ -292,7 +297,7 @@ function renderTable() {
   let body = rows
     .map(
       (x) =>
-        `<tr>${cols.map((c) => `<td>${cellHtml(c, x)}</td>`).join("")}<td class="rowacts"><button data-edit="${esc(x.id)}">Edit</button><button class="del" data-del="${esc(x.id)}">Delete</button>${section === "miniatures" ? `<button data-queue="${esc(x.id)}">Queue</button>` : ""}</td></tr>`,
+        `<tr>${cols.map((c) => `<td>${c.key === "name" && d.swatch ? swatchHtml(x[d.swatch]) : ""}${cellHtml(c, x)}</td>`).join("")}<td class="rowacts"><button data-edit="${esc(x.id)}">Edit</button><button class="del" data-del="${esc(x.id)}">Delete</button>${section === "miniatures" ? `<button data-queue="${esc(x.id)}">Queue</button>` : ""}</td></tr>`,
     )
     .join("");
   document.querySelector("#content").innerHTML = rows.length
@@ -309,20 +314,30 @@ function queueItemHtml(q, i) {
     done = n === last,
     m = linked(column(defs.queue, "miniature"), q.miniature),
     low = done ? [] : lowRecipePaints(m),
-    total = Number(m?.quantity) || 0,
-    painted = Number(m?.painted) || 0,
+    total = queueTotal(q),
+    count = stageDoneCount(q),
+    working = n > 0 && !done, // in a stage that +1 counts towards
     qid = esc(q.id),
     name = esc(q.name);
   let details = `${esc(stages[n])} · ${esc(q.models || 1)} model(s)${q.due ? " · due " + esc(q.due) + " " + dueBadge(q.due, done) : ""}`;
-  // Steps after "Not started"; filled up to the current stage.
-  let progress = `<div class="stages" role="progressbar" aria-label="Progress of ${name}" aria-valuemin="0" aria-valuemax="${last}" aria-valuenow="${n}" aria-valuetext="${esc(stages[n])}, step ${n} of ${last}">${stages
+  // Steps after "Not started": earlier stages full, the current one filled
+  // as far as its count, later ones empty.
+  let fill = (k) =>
+    done || k < n - 1
+      ? 100
+      : k === n - 1
+        ? Math.round((100 * count) / total)
+        : 0;
+  let status = working ? `${stages[n]}: ${count} of ${total} done` : stages[n];
+  let progress = `<div class="stages" role="progressbar" aria-label="Progress of ${name}" aria-valuemin="0" aria-valuemax="${last}" aria-valuenow="${n}" aria-valuetext="${esc(status)}, step ${n} of ${last}">${stages
     .slice(1)
     .map(
-      (s, k) => `<span class="${k < n ? "on" : ""}" title="${esc(s)}"></span>`,
+      (s, k) =>
+        `<span title="${esc(s)}"><i style="width:${fill(k)}%"></i></span>`,
     )
     .join("")}</div>`;
-  let paintedLine = m
-    ? `<div class="muted">Painted: ${painted}${total ? ` of ${total}` : ""}</div>`
+  let countLine = working
+    ? `<div class="muted stagecount">${esc(status)}</div>`
     : "";
   let lowLine = low.length
     ? `<div class="warnline">Low paint: ${low.map((p) => `${esc(p.name)} (${esc(p.stock)})`).join(", ")}</div>`
@@ -330,10 +345,11 @@ function queueItemHtml(q, i) {
   let next = done
     ? ""
     : `<button class="btn" data-next="${qid}" aria-label="Next: ${esc(stages[n + 1])} for ${name}">Next: ${esc(stages[n + 1])}</button>`;
-  let plus = m
-    ? `<button class="btn" data-plus="${qid}" aria-label="+1 painted for ${name}"${total && painted >= total ? " disabled" : ""}>+1 painted</button>`
-    : "";
-  return `<div class="qitem" data-index="${i}"><span class="handle" aria-hidden="true" title="Drag to reorder">⠿</span><div class="qnum">${i + 1}</div><div class="qbody"><b>${name}</b><div class="muted">${details}</div>${progress}${paintedLine}${lowLine}</div><div class="qactions">${next}${plus}<span class="rowacts"><button data-top="${i}" aria-label="Move ${name} to top">Top</button><button data-up="${i}" aria-label="Move ${name} up">↑</button><button data-down="${i}" aria-label="Move ${name} down">↓</button><button data-edit="${qid}">Edit</button><button class="del" data-del="${qid}">Delete</button></span></div></div>`;
+  // +1 counts in the current stage; from "Not started" it starts the first.
+  let plus = done
+    ? ""
+    : `<button class="btn" data-plus="${qid}" aria-label="+1 done in ${esc(stages[Math.max(n, 1)])} for ${name}">+1 done</button>`;
+  return `<div class="qitem" data-index="${i}"><span class="handle" aria-hidden="true" title="Drag to reorder">⠿</span><div class="qnum">${i + 1}</div><div class="qbody"><b>${name}</b><div class="muted">${details}</div>${progress}${countLine}${lowLine}</div><div class="qactions">${next}${plus}<span class="rowacts"><button data-top="${i}" aria-label="Move ${name} to top">Top</button><button data-up="${i}" aria-label="Move ${name} up">↑</button><button data-down="${i}" aria-label="Move ${name} down">↓</button><button data-edit="${qid}">Edit</button><button class="del" data-del="${qid}">Delete</button></span></div></div>`;
 }
 function renderQueue() {
   document.querySelector("#queueContent").innerHTML = db.queue.length

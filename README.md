@@ -7,7 +7,7 @@ ForgeLedger is an offline-first tracker for miniature wargaming. It keeps your p
 - **Paints** with brand, range, colour and type, and a stock level (Full, Good, Half, Low or Empty) that you set with one tap. Low stock shows on the dashboard, with one-click restock to the wishlist.
 - **Miniatures** with model and painted counts, status, army project, and recipes built from your own paints.
 - **Army projects** whose progress and spend are calculated from their miniatures, with overdue and due-soon markers.
-- **A painting queue** linked to your miniatures. Each item has a stage progress bar, a one-tap Next stage button, and a +1 painted counter. Reorder it by dragging, or with the Top and arrow buttons. Completing an item can mark its miniature complete.
+- **A painting queue** linked to your miniatures. Each item has a stage progress bar, a one-tap Next stage button, and a +1 counter for the current stage that moves the item on once every model is done. Reorder it by dragging, or with the Top and arrow buttons. Completing an item can mark its miniature complete.
 - **Painting skills** rated 0–9, with practice goals.
 - **A wishlist** with priorities, prices and product links.
 - **Search, filters and sortable columns** in every list, and Undo for deletes.
