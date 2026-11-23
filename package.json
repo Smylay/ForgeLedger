@@ -3,11 +3,13 @@
   "private": true,
   "description": "Development tools only. The app itself is a plain HTML file and needs no install.",
   "scripts": {
-    "test": "playwright test",
+    "test": "playwright test --project=chromium",
+    "test:all": "playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@playwright/test": "1.63.0",
     "prettier": "3.3.3"
   }

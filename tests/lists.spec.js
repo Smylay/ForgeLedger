@@ -271,9 +271,9 @@ test("blank prices and percentages show blank", async ({ page }) => {
 });
 
 test("the Dashboard nav item has no count badge", async ({ page }) => {
-  await expect(
-    page.locator('#nav button[data-sec="dashboard"] .count'),
-  ).toHaveCount(0);
+  await expect(page.locator('#nav a[data-sec="dashboard"] .count')).toHaveCount(
+    0,
+  );
 });
 
 test("visible controls all have accessible names", async ({ page }) => {

@@ -10,19 +10,49 @@ Keep it runnable from `file://`. Browsers refuse to load ES module scripts from 
 
 ## Running and verifying
 
-- **Run:** open `forgeledger_v2.html` in a browser. It works over `file://`. You can also serve it with `python3 -m http.server` and open `/forgeledger_v2.html`.
+- **Run:** open `index.html` in a browser. It forwards to `forgeledger_v2.html`, which is the app itself. It works over `file://`. You can also serve the folder with `python3 -m http.server` and open `/`.
 - **localStorage is scoped to the origin.** Data saved under `file://` does not appear under `http://localhost:8000`, and data saved under one port does not appear under another. If saved data seems to be missing, check the origin first.
 - **Setup:** `npm install`, then `npx playwright install chromium` once. Only the tests and formatter need this; the app doesn't.
 - **Tests:** `npm test` runs the Playwright suite in `tests/` against the `file://` page.
   - One file: `npx playwright test tests/app.spec.js`. One test by name: `npx playwright test -g "low-stock"`.
   - Each test gets a fresh browser context, so `localStorage` starts empty.
   - The auto `pageErrors` fixture in `tests/helpers.js` fails any test where the page throws an uncaught error.
+  - Most tests open the app from `file://`. `tests/hosted.spec.js` opens it over HTTP from `tests/serve.js`, a minimal static server that Playwright starts on port 4173.
+  - `npm test` runs Chromium only. `npm run test:all` adds Firefox and WebKit; install them first with `npx playwright install firefox webkit`. CI runs all three.
   - Import `test` and `expect` from `./helpers`, not from `@playwright/test`, so the fixtures apply. `helpers.js` also has helpers for seeding data, filling forms, downloads, and imports.
 - **Formatting:** Prettier, configured in `.prettierrc`: 2-space indent, 80-column lines, and 120 columns for HTML. Run `npm run format` to format or `npm run format:check` to check. Format before committing.
 
-## Architecture (`main.js`)
+## Architecture (`js/`)
 
-All code is inside one IIFE. There are no modules and no exports. Mutable state is held in three variables: `db` (all user data), `section` (current nav key), and `editId` (the record open in the modal, if any).
+The code lives in plain `<script>` files that share the global scope. They aren't ES modules, which can't load from `file://`. `forgeledger_v2.html` loads them in this order:
+
+| File         | Contents                                                                                                    |
+| ------------ | ----------------------------------------------------------------------------------------------------------- |
+| `util.js`    | helpers with no app state: `id()`, `esc()`, `safeColour()`, `safeUrl()`, `money()`, `toast()`, `download()` |
+| `schema.js`  | storage keys, `defaults`, `defs`, `column()`, link helpers, `projectStats()`                                |
+| `storage.js` | load, validate, repair, migrate, `save()`, `commit()`, `commitWithUndo()`, backup age                       |
+| `render.js`  | nav and page switching, dashboard, tables, queue, skills, sorting, deadline markers                         |
+| `forms.js`   | `inputAttrs`, `fieldHtml()`, `openForm()`, `submit()`                                                       |
+| `actions.js` | delete, add to wishlist, the queue completion prompt, JSON export/import, CSV                               |
+| `app.js`     | mutable state, `db = load()`, event wiring, start-up                                                        |
+
+- **Only `app.js` runs code at load.** The other files only declare functions and constants, so a function can call anything in any file. Top-level code must only use what earlier files define; for example, `defaults` in `schema.js` calls `id()` from `util.js`.
+- **Every top-level name is global,** so two files can't declare the same `let` or `const` name. Declaring one twice is a `SyntaxError` that stops the app loading.
+- **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `completing` and `toastTimer`.
+
+To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
+
+**Pages and addresses.** Each section has an address: `#/dashboard`, `#/paints`, and so on.
+
+- **The nav** is `<a href="#/key" data-sec="key">` links, with `aria-current="page"` on the current one.
+- **`go(k)`** moves to a section. It sets `location.hash`, which adds a history entry, then calls `show(k)`.
+- **`show(k)`** draws a section. It closes open dialogs, resets search, filter and sort, and sets the page title.
+- **Back, forward and typed addresses** fire `hashchange`, which calls `show()` for the section in `sectionFromHash()`.
+  - Unknown names fall back to the dashboard. `Object.hasOwn` stops names like `toString` from matching.
+  - The slash is optional: `#paints` works too.
+- **Reloading** keeps the current section.
+- **Clicks on nav links.** The click listener handles plain left-clicks itself. Ctrl, Cmd and Shift clicks are left to the browser, so they open a new tab or window.
+- **`index.html` only forwards** to `forgeledger_v2.html`, keeping the hash. The app file keeps its old name, so data saved by earlier versions stays at the same `file://` location.
 
 **Persistence.** `save()` serializes the whole `db` to `localStorage["forgeledger_v2_data"]`.
 
@@ -88,7 +118,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 `daysUntil()` reads `YYYY-MM-DD` as a local date, and ignores anything else.
 
-`COLLECTIONS` (used by loading and validation) repeats the collection keys because `load()` runs before `defs` exists. Keep the two in step.
+`COLLECTIONS` (used by loading and validation) repeats the collection keys that are in `defs`, so storage code doesn't depend on UI config. Keep the two in step.
 
 **Rendering.** Every renderer rebuilds its container with template-literal `innerHTML`. Imported backups can contain arbitrary strings, so:
 
@@ -100,7 +130,23 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 `tests/security.spec.js` tries each known injection route. Add a case there when you render a new field.
 
-**Events.** A single delegated `click` listener on `document` dispatches on `data-*` attributes of the clicked `<button>`: `sec`, `edit`, `del`, `queue`, `up`, `down`, `recovery`, `wish`, `wishall` and `sort`. `edit` and `del` work in every section because they act on the current section. To add a new row action, render a button with a new `data-*` attribute and add a branch to this listener. Other controls are wired directly at the bottom of the IIFE.
+**Accessibility and layout.**
+
+- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the add/edit form and the completion prompt, at desktop and phone sizes. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
+- **Red backgrounds.** Text on a red background uses `--accent-strong`, not `--accent`. White on `--accent` is under the 4.5:1 contrast minimum.
+- **Icon-only buttons** need an `aria-label`, like the queue's "Move … up" arrows.
+- **Button sizes.** Row buttons are at least 32px, and 44px on touch screens (`pointer: coarse`).
+- **Focus.** `:focus-visible` gives every control one blue focus ring. Don't remove outlines.
+- **Phones (≤520px):**
+  - The nav is a single scrolling row, and `show()` scrolls the current link into view.
+  - The page grid uses `minmax(0, 1fr)`, so wide content can't widen the page.
+  - `tests/layout.spec.js` checks that every section fits a 375px screen.
+
+**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`), then dispatches on `data-*` attributes of the clicked `<button>`: `edit`, `del`, `queue`, `up`, `down`, `recovery`, `wish`, `wishall` and `sort`.
+
+- `edit` and `del` work in every section because they act on the current section.
+- To add a new row action, render a button with a new `data-*` attribute and add a branch to this listener.
+- Other controls are wired directly in `app.js`.
 
 **Mutation pattern.** Never change `db` and call `save()` directly. Use `commit(() => { /* change db */ })`: it snapshots `db`, applies the change, and saves. If saving fails, it restores the snapshot, shows an error, and returns `false`. Afterwards, call `renderNav()` (nav badges show item counts) and the renderer for the affected view.
 
@@ -118,9 +164,6 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 Apply runs on the dialog form's `submit`, not its `close`, so the change happens during the click.
 
 The form handler `submit()` writes to `db[section]`, so `openForm(sec, obj)` sets `section` before the modal opens. If saving fails, the form stays open so nothing typed is lost.
-
-Functions that `load()` calls must be function declarations, not `const` arrows: `load()` runs while `db` is being initialised, before later `const` lines have run.
-
 **Data semantics:**
 
 - `FormData` returns strings, so numbers are stored as strings. Consumers wrap them in `Number(...)`. Only `level` fields are converted (and clamped to 0–9) on save.

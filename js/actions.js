@@ -1,0 +1,154 @@
+// User actions that change data or files: delete, wishlist, queue
+// completion, backup export/import and CSV.
+"use strict";
+
+// Delete a record and offer Undo. Links to it from other records, such as
+// miniatures in a deleted project, are cleared.
+function remove(sec, recordId) {
+  let item = db[sec].find((x) => x.id === recordId),
+    unlinked = 0;
+  if (!item) return;
+  commitWithUndo(
+    () => {
+      db[sec] = db[sec].filter((x) => x.id !== recordId);
+      for (let [k, d] of Object.entries(defs))
+        for (let f of d.fields)
+          if (f.to === sec)
+            for (let r of db[k])
+              if (r[f.key] === recordId) {
+                r[f.key] = "";
+                unlinked++;
+              } else if (asList(r[f.key]).includes(recordId)) {
+                r[f.key] = asList(r[f.key]).filter((x) => x !== recordId);
+                unlinked++;
+              }
+    },
+    () =>
+      `Deleted "${item.name}"` +
+      (unlinked ? ` and unlinked ${unlinked} item(s) from it` : ""),
+  );
+}
+
+// Add restock entries for paints to the wishlist, linked to each paint.
+function addToWishlist(paints) {
+  if (!paints.length) return;
+  commitWithUndo(
+    () => {
+      for (let p of paints)
+        db.wishlist.push({
+          id: id(),
+          name: optionLabel(p),
+          category: "Paint",
+          priority: "High",
+          paint: p.id,
+          price: p.price || "",
+          url: "",
+          notes: "Restock",
+        });
+    },
+    () =>
+      paints.length === 1
+        ? `Added "${optionLabel(paints[0])}" to the wishlist`
+        : `Added ${paints.length} paints to the wishlist`,
+  );
+}
+
+// A linked queue item was just marked Complete: ask whether to update its
+// miniature and whether to take it off the queue.
+function askComplete(q) {
+  let m = linked(column(defs.queue, "miniature"), q.miniature);
+  if (!m) return;
+  let done =
+      m.status === "Complete" && Number(m.painted) >= Number(m.quantity || 1),
+    mini = document.querySelector("#completeMini"),
+    dialog = document.querySelector("#completeDialog");
+  completing = q.id;
+  document.querySelector("#completeText").textContent =
+    `"${q.name}" is complete. What else should change?`;
+  document.querySelector("#completeMiniLabel").textContent = done
+    ? `"${m.name}" is already marked complete`
+    : `Mark "${m.name}" complete, with ${m.quantity || 1} of ${m.quantity || 1} painted`;
+  mini.checked = !done;
+  mini.disabled = done;
+  document.querySelector("#completeRemove").checked = false;
+  dialog.showModal();
+}
+function applyComplete() {
+  let q = db.queue.find((x) => x.id === completing),
+    m = q && db.miniatures.find((x) => x.id === q.miniature),
+    mini = document.querySelector("#completeMini"),
+    updateMini = m && mini.checked && !mini.disabled,
+    drop = q && document.querySelector("#completeRemove").checked;
+  if (!updateMini && !drop) return;
+  commitWithUndo(
+    () => {
+      if (updateMini) {
+        m.status = "Complete";
+        m.painted = m.quantity || "1";
+      }
+      if (drop) db.queue = db.queue.filter((x) => x.id !== q.id);
+    },
+    () => {
+      let parts = [];
+      if (updateMini) parts.push(`marked "${m.name}" complete`);
+      if (drop) parts.push(`removed "${q.name}" from the queue`);
+      let text = parts.join(" and ");
+      return text[0].toUpperCase() + text.slice(1);
+    },
+  );
+}
+
+function exportJSON() {
+  download(JSON.stringify(db, null, 2), `forgeledger-backup-${today()}.json`);
+  try {
+    localStorage.setItem(BACKUP_KEY, String(Date.now()));
+  } catch {}
+  renderBackupState();
+  if (section === "dashboard") renderDashboard();
+}
+function csv() {
+  let arr = db[section];
+  if (!arr.length) return toast("Nothing to export");
+  let keys = [...new Set(arr.flatMap(Object.keys))],
+    cell = (v) => {
+      let s = String(v ?? "");
+      // Stop spreadsheets running a cell as a formula; plain numbers are kept.
+      if (/^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s)) s = "'" + s;
+      return '"' + s.replaceAll('"', '""') + '"';
+    },
+    text = [
+      keys.map(cell).join(","),
+      ...arr.map((o) => keys.map((k) => cell(o[k])).join(",")),
+    ].join("\n");
+  download(text, section + ".csv", "text/csv");
+}
+function importJSON(file) {
+  let r = new FileReader();
+  r.onload = () => {
+    let data, problem;
+    try {
+      data = JSON.parse(r.result);
+      problem = problemWith(data);
+    } catch {
+      problem = "it isn't valid JSON";
+    }
+    if (problem) return toast(`Can't import this file: ${problem}.`, 5000);
+    if (hasUserData()) {
+      if (
+        !confirm(
+          "Replace all current data with this backup?\n\nA copy of your current data will be downloaded first.",
+        )
+      )
+        return;
+      download(
+        JSON.stringify(db, null, 2),
+        `forgeledger-before-import-${today()}.json`,
+      );
+    }
+    let next = fromBackup(data);
+    if (!commit(() => (db = next))) return;
+    go("dashboard");
+    toast("Backup imported");
+  };
+  r.readAsText(file);
+}

@@ -8,6 +8,8 @@ const base = require("@playwright/test");
 const APP = pathToFileURL(
   path.join(__dirname, "..", "forgeledger_v2.html"),
 ).href;
+// The same app served over HTTP by tests/serve.js (see playwright.config.js).
+const SITE = "http://127.0.0.1:4173/";
 const KEY = "forgeledger_v2_data";
 
 const test = base.test.extend({
@@ -54,7 +56,7 @@ function stored(page) {
 }
 
 function nav(page, section) {
-  return page.click(`#nav button[data-sec="${section}"]`);
+  return page.click(`#nav a[data-sec="${section}"]`);
 }
 
 async function fillForm(page, values) {
@@ -109,6 +111,7 @@ module.exports = {
   test,
   expect: base.expect,
   APP,
+  SITE,
   KEY,
   openApp,
   seed,
