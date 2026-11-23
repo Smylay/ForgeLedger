@@ -36,16 +36,9 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - **Skills and paint types (phase 11):** a level guide, a library of 20 techniques with a next step for each level, a skill profile, practice suggestions, and Primer and Shade/Wash paint types.
 - **Queue models at different stages (phase 12):** split a queue item by stage, with a count and a Move 1 button for each stage. _(From the bug list.)_
 - **Wishlist Bought button (phase 13):** restocks set the paint back to Full; paints, tools and miniatures move into their lists; anything else asks where it goes.
+- **Editable queue stages (phase 14):** edit the default stages, or give one queue item its own; items follow renames and move on from deleted stages. _(From the bug list.)_
 
-## Phase 14: Editable queue stages (in progress)
-
-_(From the bug list.)_
-
-- **Edit the default stages:** rename, reorder, add and delete the stages between Not started and Complete.
-- **Give one queue item its own stages,** starting from a copy of the default, or put it back on the default.
-- **Items follow the changes:** renamed stages keep their counts, and items at a deleted stage move on to the next stage.
-
-## Phase 15: Miniature photos
+## Phase 15: Miniature photos (in progress)
 
 _(From the bug list.)_
 

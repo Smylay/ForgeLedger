@@ -40,14 +40,18 @@ The code lives in plain `<script>` files that share the global scope. They aren'
 | `schema.js`     | storage keys, `defaults`, `defs`, `column()`, link helpers, `projectStats()`                                           |
 | `skillguide.js` | `LEVELS`, the `TECHNIQUES` library, `nextStep()`, `practiceNext()` and other skill helpers                             |
 | `storage.js`    | load, validate, repair, migrate, `save()`, `commit()`, `commitWithUndo()`, backup age                                  |
+| `photos.js`     | miniature photos in IndexedDB: open, store, shrink, show, tidy, and their part of backups                              |
 | `render.js`     | nav and page switching, dashboard, tables, queue, skills, sorting, deadline markers                                    |
 | `forms.js`      | `inputAttrs`, `fieldHtml()`, `openForm()`, `submit()`                                                                  |
 | `actions.js`    | delete, add to wishlist, the queue completion prompt, JSON export/import, CSV                                          |
 | `app.js`        | mutable state, `db = load()`, event wiring, start-up                                                                   |
 
 - **Only `app.js` runs code at load.** The other files only declare functions and constants, so a function can call anything in any file. Top-level code must only use what earlier files define; for example, `defaults` in `schema.js` calls `id()` from `util.js`.
-- **Every top-level name is global,** so two files can't declare the same `let` or `const` name. Declaring one twice is a `SyntaxError` that stops the app loading.
-- **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `upgraded`, `completing`, `buying`, `editingStages` and `toastTimer`.
+- **Every top-level name is global.**
+  - Declaring a `let` or `const` name twice is a `SyntaxError` that stops the app loading.
+  - A second `function` with a name already used is worse: it silently replaces the first.
+  - `tests/code.spec.js` fails if two files declare the same top-level name.
+- **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `upgraded`, `completing`, `buying`, `editingStages`, `viewing`, `photoDbOpen`, `photoCheck`, `photoUrls` and `toastTimer`.
 
 To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 
@@ -71,16 +75,18 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
   - An import with a problem is rejected whole.
   - Saved data with a problem is repaired with `repair()`. The original string is copied to a `forgeledger_v2_recovered_<ISO time>` key first, and `#alerts` offers a download.
 - **Replacing data on import.** When the app already has data, the user must confirm, and the current data is downloaded first.
-- **Schema version.** `schemaVersion` is stored with the data. It's currently 4. When stored fields change shape, bump `SCHEMA_VERSION` and add a step to `migrate()`; each step checks the version it starts from. Backups from a newer version are refused.
+- **Schema version.** `schemaVersion` is stored with the data. It's currently 5. When stored fields change shape, bump `SCHEMA_VERSION` and add a step to `migrate()`; each step checks the version it starts from. Backups from a newer version are refused.
   - 0 → 1: the version field was added.
   - 1 → 2: each paint's `stock` level is set from its old `remaining` percentage by `stockFromPercent()`. The old `remaining` field stays in the record but is no longer read.
   - 2 → 3: the paint type "Shade" becomes "Shade/Wash".
   - 3 → 4: queue stages became editable (`queueStages`, `queue.stages`). Nothing is converted. The version stops older copies of the app from loading custom stage names they don't know.
+  - 4 → 5: miniatures gained `photos`, and backups carry the images in a top-level `photos`. Nothing is converted. The version stops older copies of the app from putting a backup's images into `localStorage`.
 - **Saving an upgrade.** When `load()` upgrades saved data from an older schema, it sets `upgraded`, and `app.js` saves once at start-up so storage holds the current schema. Repaired data is not saved until the user changes something, so the damaged original is never replaced first.
 - **Missing fields.** Existing records are never rewritten field by field, so every reader must tolerate missing or blank fields.
 - **Untrusted values.** Field values in imported data are not checked. Treat them as untrusted.
 - **Blocked storage.** If storage is blocked, `memoryOnly` is set: the app works in memory and says nothing is saved.
 - **Two tabs.** A `storage` event listener reloads `db` when another tab saves, so two open tabs don't overwrite each other.
+- **Photos live in IndexedDB,** not in `db` (see Photos). `localStorage` holds only each miniature's photo ids.
 - **Settings outside the data.** The keyboard shortcuts setting is in `localStorage["forgeledger_v2_shortcuts"]`, not in `db` or backups.
 - **Backup reminder.** The last export time is kept in `localStorage["forgeledger_v2_last_backup"]`, outside the data. The dashboard warns when there's no backup or the last one is `BACKUP_REMINDER_DAYS` (14) or more days old.
 
@@ -151,7 +157,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 **Accessibility and layout.**
 
-- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the add/edit form, the completion prompt, the Bought prompt, the stage editor and the keyboard shortcuts list, at desktop and phone sizes. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
+- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the add/edit form, the completion prompt, the Bought prompt, the stage editor, the photo viewer and the keyboard shortcuts list, at desktop and phone sizes. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
 - **Red backgrounds.** Text on a red background uses `--accent-strong`, not `--accent`. White on `--accent` is under the 4.5:1 contrast minimum.
 - **Icon-only buttons** need an `aria-label`, like the queue's "Move … up" arrows.
 - **Button sizes.** Row buttons are at least 32px, and 44px on touch screens (`pointer: coarse`). A `pointer: coarse` rule must come after the rule it overrides in `styles.css`: the two selectors are usually equally specific, so the later one wins.
@@ -162,7 +168,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - The page grid uses `minmax(0, 1fr)`, so wide content can't widen the page.
   - `tests/layout.spec.js` checks that every section fits a 375px screen.
 
-**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`), then dispatches on `data-*` attributes of the clicked `<button>`: `edit`, `del`, `queue`, `next`, `plus`, `top`, `up`, `down`, `recovery`, `wish`, `wishall`, `bought`, `stages`, `sort`, `scale`, `step`, `split` and `adv`.
+**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`), then dispatches on `data-*` attributes of the clicked `<button>`: `edit`, `del`, `queue`, `next`, `plus`, `top`, `up`, `down`, `recovery`, `wish`, `wishall`, `bought`, `stages`, `photos`, `sort`, `scale`, `step`, `split` and `adv`.
 
 - `edit` and `del` work in every section because they act on the current section.
 - To add a new row action, render a button with a new `data-*` attribute and add a branch to this listener.
@@ -218,6 +224,31 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - Terrain suggests Miniatures; anything else suggests nowhere.
   - Apply runs on the form's `submit`, like the completion prompt. `buying` holds the item's id and row while the dialog is open.
 - **Focus** moves to the Bought button now in the item's place, or the last one, else the quick-add box (`focusBought()`). After the dialog, this happens in its `close` handler, since closing would otherwise return focus to the removed button.
+
+**Photos.** Miniatures can have photos (`photos: true` in `defs.miniatures`). The code is in `photos.js`.
+
+- **Storage.** The images live in IndexedDB: database `forgeledger_photos`, store `photos`, keyed by `id`.
+  - Each record is `{ id, type, full, thumb, width, height, added }`. `full` and `thumb` are ArrayBuffers, not Blobs.
+  - The miniature's `photos` field holds the ids, in order; the first is the cover. Read it with `photoIds()`, which drops anything that isn't a non-empty string.
+- **Where it works.** `photosWork()` checks once, by writing and reading back a tiny record.
+  - IndexedDB works from `file://` in Chromium and Firefox, but not WebKit (Safari).
+  - Where it fails, the viewer shows `#photosUnavailable` and disables Add. Served over HTTP, photos work in every browser; `tests/hosted.spec.js` checks this.
+- **Adding.** `photoFromFile()` decodes the file through an `<img>`, which applies EXIF rotation.
+  - It shrinks the image to `PHOTO_SIZE` (1600) and `THUMB_SIZE` (320) pixels on the long edge, as JPEG on white.
+  - `addPhotoFiles()` stores the images first, then adds the ids with `commitWithUndo`.
+  - Files that can't be read (e.g. HEIC on some computers) are named in `#photoStatus`.
+- **Showing.** Pages render `<img data-photo="id">` with no `src`; `fillPhotos()` fills them in from IndexedDB.
+  - Thumbnail object URLs are cached in `photoUrls`.
+  - The viewer's full-size URL is revoked when it changes or the viewer closes.
+  - A missing image gets the class `missing`.
+- **In the table.** The cover shows beside the name (`coverHtml()`, in `.withthumb`). The row's Photos button shows the count.
+- **The viewer** is `#photosDialog`, state `viewing`. It has a large view, a thumbnail strip (`data-pick`), Add photos (`#photoFile`, `accept="image/*"`, which offers the camera on phones), Make cover photo and Remove photo.
+- **Removing never deletes the image straight away,** so Undo can restore it. At start-up, `tidyPhotos()` deletes images that no miniature uses and that were added more than `PHOTO_KEEP_MS` (a day) ago.
+- **Backups.** Export backup (`backupJson()`) adds a top-level `photos` object: `{ id: { type, full, thumb } }`, with base64 bytes, for the photos the data uses.
+  - Import takes `photos` out before `fromBackup()`, so it never reaches `localStorage`, and stores the images first.
+  - `photosFromBackup()` skips entries with a type outside `PHOTO_TYPES` or bad base64.
+  - If IndexedDB can't be used, the data still imports, and the toast says how many photos couldn't be stored.
+- **Toasts in dialogs.** A modal dialog makes the rest of the page inert. So `toast()` moves `#toast` into the open dialog, and a capturing `close` listener in `app.js` moves it back. That's how the viewer's Undo stays clickable.
 
 **Mutation pattern.** Never change `db` and call `save()` directly. Use `commit(() => { /* change db */ })`: it snapshots `db`, applies the change, and saves. If saving fails, it restores the snapshot, shows an error, and returns `false`. Afterwards, call `renderNav()` (nav badges show item counts) and the renderer for the affected view.
 
@@ -297,6 +328,7 @@ The form handler `submit()` writes to `db[section]`, so `openForm(sec, obj)` set
   - `queue.stageDone` is not a link: it's the number of models done in the item's current stage (see Queue controls). It's optional, and missing means 0.
   - `queue.split` is not a link: it's a count of models per stage name, for an item split by stage (see Split by stage). It's optional.
   - `queue.stages` is not a link: it's an item's own list of stages between Not started and Complete (see Queue stages). It's optional. The default list is the top-level `queueStages`.
+  - `miniatures.photos` is not a link: it's an array of photo ids in IndexedDB, cover first (see Photos). It's optional.
   - `miniatures.paints` is a `links` array of the paints in its recipe. The older free-text `recipe` field is still there, labelled "Recipe steps".
   - `skills.changed` is not a link: it's the date the skill's level last changed (see Skills). It's optional.
   - `wishlist.paint` points at the paint a wishlist item restocks. `addToWishlist()` sets it when a low paint is added from the dashboard, and the dashboard uses it to show "On wishlist".

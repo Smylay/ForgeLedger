@@ -5,7 +5,7 @@ ForgeLedger is an offline-first tracker for miniature wargaming. It keeps your p
 ## Features
 
 - **Paints** with brand, range, colour and type (including Primer and Shade/Wash), and a stock level (Full, Good, Half, Low or Empty) that you set with one tap. Low stock shows on the dashboard, with one-click restock to the wishlist.
-- **Miniatures** with model and painted counts, status, army project, and recipes built from your own paints.
+- **Miniatures** with model and painted counts, status, army project, recipes built from your own paints, and photos from your computer or phone camera.
 - **Tools** with a condition, from New to Replace soon.
 - **Army projects** whose progress and spend are calculated from their miniatures, with overdue and due-soon markers.
 - **A painting queue** linked to your miniatures. Each item has a stage progress bar, a one-tap Next stage button, and a +1 counter for the current stage that moves the item on once every model is done. Split an item by stage when its models are at different points, such as 2 priming and 3 basecoating. Rename, reorder, add or remove the stages for the whole queue, or give one item stages of its own. Reorder it by dragging, or with the Top and arrow buttons. Completing an item can mark its miniature complete.
@@ -31,6 +31,8 @@ ForgeLedger saves your data automatically in your browser's local storage. Nothi
 - **Clearing your browser's site data deletes it.**
 - **Back up regularly with Export backup.** It downloads a JSON file that you can restore with **Import** in any browser. The dashboard reminds you when your last backup is more than 14 days old.
 - **Importing replaces everything.** ForgeLedger asks first and downloads a copy of your current data before replacing it.
+- **Photos stay on your device too.** They're shrunk to about 1600 pixels and kept in the browser's own storage (IndexedDB), and Export backup includes them, so backups grow by roughly 0.3MB a photo.
+- **Safari can't keep photos for a double-clicked file.** Use Chrome, Edge or Firefox, or open ForgeLedger from a server (below), where photos work in Safari too.
 
 ## Hosting on your own server
 
