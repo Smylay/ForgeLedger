@@ -31,17 +31,15 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
   - recipes are built from your own paints;
   - low stock can go to the wishlist in one click;
   - overdue and due-soon markers for deadlines.
+- **Base (phase 6):**
+  - a README, an MIT licence and this roadmap;
+  - CI that runs the tests in Chromium, Firefox and WebKit, plus a format check;
+  - `main.js` split into plain script files;
+  - pages with their own addresses, so back, forward and bookmarks work;
+  - a hosting guide, with tests that run the app over HTTP as well as from a local file;
+  - a mobile and accessibility pass, with automated WCAG 2.2 AA checks on every page.
 
-## Phase 6: Base (in progress)
-
-- A README, an MIT licence and this roadmap.
-- CI that runs the tests in Chromium, Firefox and WebKit, plus a format check.
-- `main.js` split into plain script files.
-- Pages with their own addresses (`#/paints`, and so on), so back, forward and bookmarks work.
-- A hosting guide for running it on a home server, with tests that run the app over HTTP as well as from a local file.
-- A mobile and accessibility pass, with automated WCAG 2.2 AA checks (axe) on every page at desktop and phone sizes.
-
-## Phase 7: Paint levels
+## Phase 7: Paint levels (in progress)
 
 - **Paint stock as Full / Good / Half / Low / Empty,** set with one tap in the paints table.
 - **Existing Remaining % values convert once:** 0% becomes Empty, under 20% Low, under 50% Half, under 80% Good, and anything higher Full.

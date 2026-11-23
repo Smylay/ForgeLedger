@@ -15,7 +15,7 @@ function fieldHtml(f, obj) {
   let v = obj[f.key] ?? "",
     name = `name="${f.key}"`,
     req = f.required ? "required" : "";
-  if (f.type === "select")
+  if (f.type === "select" || f.type === "scale")
     return `<label>${f.label}<select ${name} ${req}><option value="">Select...</option>${f.options.map((o) => `<option ${v === o ? "selected" : ""}>${o}</option>`).join("")}</select></label>`;
   if (f.type === "link")
     return `<label>${f.label}<select ${name}><option value="">None</option>${db[f.to].map((r) => `<option value="${esc(r.id)}" ${v === r.id ? "selected" : ""}>${esc(r.name)}</option>`).join("")}</select></label>`;

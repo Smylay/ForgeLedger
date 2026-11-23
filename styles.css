@@ -218,6 +218,55 @@ tr:last-child td {
   background: #303945;
   font-size: 12px;
 }
+/* One-tap level buttons (paint stock): a joined row of small buttons. */
+.scale {
+  display: inline-flex;
+  white-space: nowrap;
+}
+.scale button {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  padding: 4px 8px;
+  min-height: 32px;
+  font-size: 12px;
+  margin-left: -1px;
+}
+.scale button:first-child {
+  border-radius: 6px 0 0 6px;
+  margin-left: 0;
+}
+.scale button:last-child {
+  border-radius: 0 6px 6px 0;
+}
+.scale button:hover {
+  color: var(--text);
+}
+.scale button[aria-pressed="true"] {
+  color: #fff;
+  font-weight: 700;
+  position: relative;
+}
+.scale .lvl-0[aria-pressed="true"],
+.scale .lvl-1[aria-pressed="true"] {
+  background: #2f5a2e;
+  border-color: #3f7a3d;
+}
+.scale .lvl-2[aria-pressed="true"] {
+  background: #6b5416;
+  border-color: #8a6d1d;
+}
+.scale .lvl-3[aria-pressed="true"],
+.scale .lvl-4[aria-pressed="true"] {
+  background: #8a2a26;
+  border-color: #a8352f;
+}
+@media (pointer: coarse) {
+  .scale button {
+    min-height: 44px;
+    padding: 4px 10px;
+  }
+}
 .pill.overdue {
   background: #4a2323;
   color: #ffaaa7;

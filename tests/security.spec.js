@@ -26,9 +26,10 @@ test("values from an imported backup can't run script", async ({
         {
           id: attack("paintId"),
           name: attack("paintName"),
-          remaining: "5",
+          stock: "Low", // low, so the dashboard and recipe chips show it
           colour: attack("colour"),
         },
+        { id: "p2", name: "Odd stock", stock: attack("stock") },
       ],
       // The recipe and queue link point at the paint and miniature above,
       // so recipe chips and low-paint warnings render the hostile name.
@@ -73,6 +74,7 @@ test("values from an imported backup can't run script", async ({
       "skillId",
       "level",
       "url",
+      "stock",
     ].filter((f) => window[f]),
   );
   expect(ran).toEqual([]);

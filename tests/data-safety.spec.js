@@ -168,9 +168,9 @@ test.describe("importing", () => {
   }, testInfo) => {
     await importBackup(page, { paints: [{ id: "a", name: "Old" }] }, testInfo);
     await expect(page.locator("#toast")).toHaveText("Backup imported");
-    expect((await stored(page)).schemaVersion).toBe(1);
+    expect((await stored(page)).schemaVersion).toBe(2);
     const backup = JSON.parse(await downloadText(page, "#backupBtn"));
-    expect(backup.schemaVersion).toBe(1);
+    expect(backup.schemaVersion).toBe(2);
   });
 });
 

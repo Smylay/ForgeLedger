@@ -7,10 +7,12 @@ let memoryOnly = false, // storage is blocked: changes live in memory only
   undo = null, // copy of db from just before the last undoable change
   completing = null, // id of the queue item the completion prompt is about
   sort = { key: "", dir: 1 }, // table sort for the current section
+  upgraded = false, // load() upgraded saved data from an older schema
   toastTimer;
 let db = load(),
   section = "dashboard",
   editId = null;
+if (upgraded) save();
 document.addEventListener("click", (e) => {
   let link = e.target.closest("a[data-sec]");
   if (link && e.button === 0 && !(e.ctrlKey || e.metaKey || e.shiftKey)) {
@@ -39,6 +41,7 @@ document.addEventListener("click", (e) => {
         : { key: b.dataset.sort, dir: 1 };
     renderTable();
   }
+  if (b.dataset.scale) setScale(b);
   if (b.dataset.wish)
     addToWishlist(db.paints.filter((p) => p.id === b.dataset.wish));
   if (b.dataset.wishall !== undefined) {

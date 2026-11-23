@@ -38,7 +38,7 @@ The code lives in plain `<script>` files that share the global scope. They aren'
 
 - **Only `app.js` runs code at load.** The other files only declare functions and constants, so a function can call anything in any file. Top-level code must only use what earlier files define; for example, `defaults` in `schema.js` calls `id()` from `util.js`.
 - **Every top-level name is global,** so two files can't declare the same `let` or `const` name. Declaring one twice is a `SyntaxError` that stops the app loading.
-- **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `completing` and `toastTimer`.
+- **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `upgraded`, `completing` and `toastTimer`.
 
 To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 
@@ -62,7 +62,10 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
   - An import with a problem is rejected whole.
   - Saved data with a problem is repaired with `repair()`. The original string is copied to a `forgeledger_v2_recovered_<ISO time>` key first, and `#alerts` offers a download.
 - **Replacing data on import.** When the app already has data, the user must confirm, and the current data is downloaded first.
-- **Schema version.** `schemaVersion` is stored with the data. When stored fields change shape, bump `SCHEMA_VERSION` and add a step to `migrate()`. Backups from a newer version are refused.
+- **Schema version.** `schemaVersion` is stored with the data. It's currently 2. When stored fields change shape, bump `SCHEMA_VERSION` and add a step to `migrate()`; each step checks the version it starts from. Backups from a newer version are refused.
+  - 0 → 1: the version field was added.
+  - 1 → 2: each paint's `stock` level is set from its old `remaining` percentage by `stockFromPercent()`. The old `remaining` field stays in the record but is no longer read.
+- **Saving an upgrade.** When `load()` upgrades saved data from an older schema, it sets `upgraded`, and `app.js` saves once at start-up so storage holds the current schema. Repaired data is not saved until the user changes something, so the damaged original is never replaced first.
 - **Missing fields.** Existing records are never rewritten field by field, so every reader must tolerate missing or blank fields.
 - **Untrusted values.** Field values in imported data are not checked. Treat them as untrusted.
 - **Blocked storage.** If storage is blocked, `memoryOnly` is set: the app works in memory and says nothing is saved.
@@ -93,6 +96,7 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
   | `money`          | number ≥ 0, 2 decimals      | shown with `money()`                                  |
   | `percent`        | whole number 0–100          |                                                       |
   | `level`          | whole number 0–9            | stored as a number                                    |
+  | `scale`          | dropdown of `options`       | in tables, one-tap buttons (`setScale()`)             |
 
 - `columns`: the field keys the table shows.
 - `computed`: read-only columns calculated from other data, such as `projectStats()` for projects. A computed column is `{ label, type, value(record) }`, and `column(d, key)` resolves keys from both `fields` and `computed`.
@@ -107,7 +111,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 **Sorting.** Column headers are buttons (`data-sort`). Clicking one sorts the visible rows by that column, and clicking it again reverses the order. The sort resets when you change section.
 
-- `sortValue()` compares numeric types (`count`, `money`, `percent`, `level`, and computed numbers) as numbers, and everything else by its displayed text, ignoring case.
+- `sortValue()` compares numeric types (`count`, `money`, `percent`, `level`, and computed numbers) as numbers. `scale` fields sort by amount, so the last option (Empty) is lowest. Everything else sorts by its displayed text, ignoring case.
 - Blanks always sort last.
 - Sorting only changes the display; `db` keeps its order.
 
@@ -142,7 +146,9 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - The page grid uses `minmax(0, 1fr)`, so wide content can't widen the page.
   - `tests/layout.spec.js` checks that every section fits a 375px screen.
 
-**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`), then dispatches on `data-*` attributes of the clicked `<button>`: `edit`, `del`, `queue`, `up`, `down`, `recovery`, `wish`, `wishall` and `sort`.
+**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`), then dispatches on `data-*` attributes of the clicked `<button>`: `edit`, `del`, `queue`, `up`, `down`, `recovery`, `wish`, `wishall`, `sort` and `scale`.
+
+- **Level buttons (`scale`).** A tap saves the value with `commit()`, then `setScale()` redraws only that table cell and moves focus back to the chosen button. The row doesn't move in a sorted table, and keyboard users keep their place.
 
 - `edit` and `del` work in every section because they act on the current section.
 - To add a new row action, render a button with a new `data-*` attribute and add a branch to this listener.
@@ -177,7 +183,7 @@ The form handler `submit()` writes to `db[section]`, so `openForm(sec, obj)` set
 
   Older data can still hold links to deleted records; these display blank, and saving the record clears them. Imported `links` values may not be arrays; `asList()` treats anything else as empty.
 
-- A paint is low (`isLow()`) when its Remaining % is set and under 20. Low recipe paints are flagged in three places:
+- Paint stock is `stock`, one of `STOCK_LEVELS`: Full, Good, Half, Low or Empty, or `""` if unknown. A paint is low (`isLow()`) when its stock is Low or Empty. Low recipe paints are flagged in three places:
 
   - the miniatures table;
   - queue items that aren't complete;

@@ -44,6 +44,11 @@ function sortValue(f, x) {
   let numeric = ["count", "money", "percent", "level"].includes(f.type),
     v = f.value ? f.value(x) : x[f.key];
   if (v == null || v === "" || (Array.isArray(v) && !v.length)) return null;
+  // Levels sort by amount: the last option (e.g. Empty) is the lowest.
+  if (f.type === "scale") {
+    let i = f.options.indexOf(v);
+    return i < 0 ? null : f.options.length - 1 - i;
+  }
   if (numeric) return Number.isNaN(Number(v)) ? null : Number(v);
   return cellText(f, x).toLowerCase();
 }
@@ -176,13 +181,13 @@ function renderDashboard() {
           let needed = waiting.filter((m) =>
             asList(m.paints).includes(p.id),
           ).length;
-          return `<div class="stockrow"><span><span class="colour" style="background:${safeColour(p.colour) || "#777"}"></span>${esc(p.brand)} ${esc(p.name)} · <b>${Number(p.remaining || 0)}%</b>${needed ? ` <span class="muted">· needed for ${needed} queued</span>` : ""}</span>${wanted.has(p.id) ? '<span class="muted">On wishlist</span>' : `<span class="rowacts"><button data-wish="${esc(p.id)}">Add to wishlist</button></span>`}</div>`;
+          return `<div class="stockrow"><span><span class="colour" style="background:${safeColour(p.colour) || "#777"}"></span>${esc(p.brand)} ${esc(p.name)} · <b>${esc(p.stock)}</b>${needed ? ` <span class="muted">· needed for ${needed} queued</span>` : ""}</span>${wanted.has(p.id) ? '<span class="muted">On wishlist</span>' : `<span class="rowacts"><button data-wish="${esc(p.id)}">Add to wishlist</button></span>`}</div>`;
         })
         .join("") +
       (toBuy.length > 1
         ? `<div class="rowacts stockall"><button data-wishall>Add all ${toBuy.length} to wishlist</button></div>`
         : "")
-    : '<div class="empty">No paints below 20%.</div>';
+    : '<div class="empty">No paints running low.</div>';
   let age = backupAgeDays();
   document.querySelector("#backupNotice").innerHTML =
     hasUserData() && (age === null || age >= BACKUP_REMINDER_DAYS)
@@ -245,6 +250,14 @@ function cellText(f, x) {
 }
 function cellHtml(f, x) {
   let v = x[f.key];
+  // One button per level; tapping one saves it (setScale in actions.js).
+  if (f.type === "scale")
+    return `<span class="scale" role="group" aria-label="${esc(f.label)} of ${esc(x.name)}">${f.options
+      .map(
+        (o, i) =>
+          `<button type="button" class="lvl-${i}" data-scale="${f.key}" data-id="${esc(x.id)}" data-value="${esc(o)}" aria-pressed="${v === o}">${esc(o)}</button>`,
+      )
+      .join("")}</span>`;
   if (f.type === "url")
     return safeUrl(v)
       ? `<a href="${esc(safeUrl(v))}" target="_blank" rel="noopener noreferrer" style="color:var(--blue)">Open</a>`
@@ -259,7 +272,7 @@ function cellHtml(f, x) {
     return linkedAll(f, v)
       .map(
         (r) =>
-          `<span class="chip">${safeColour(r.colour) ? `<span class="colour" style="background:${safeColour(r.colour)}"></span>` : ""}${esc(r.name)}${isLow(r) ? ` <span class="pill warn">${Number(r.remaining)}%</span>` : ""}</span>`,
+          `<span class="chip">${safeColour(r.colour) ? `<span class="colour" style="background:${safeColour(r.colour)}"></span>` : ""}${esc(r.name)}${isLow(r) ? ` <span class="pill warn">${esc(r.stock)}</span>` : ""}</span>`,
       )
       .join(" ");
   return esc(cellText(f, x));
@@ -296,7 +309,7 @@ function renderQueue() {
               : lowRecipePaints(
                   linked(column(defs.queue, "miniature"), q.miniature),
                 );
-          return `<div class="qitem"><div class="qnum">${i + 1}</div><div><b>${esc(q.name)}</b><div class="muted">${esc(q.stage || "Not started")} · ${esc(q.models || 1)} model(s)${q.due ? " · due " + esc(q.due) + " " + dueBadge(q.due, q.stage === "Complete") : ""}</div>${low.length ? `<div class="warnline">Low paint: ${low.map((p) => `${esc(p.name)} (${Number(p.remaining)}%)`).join(", ")}</div>` : ""}</div><div class="rowacts"><button data-up="${i}" aria-label="Move ${esc(q.name)} up">↑</button><button data-down="${i}" aria-label="Move ${esc(q.name)} down">↓</button><button data-edit="${esc(q.id)}">Edit</button><button class="del" data-del="${esc(q.id)}">Delete</button></div></div>`;
+          return `<div class="qitem"><div class="qnum">${i + 1}</div><div><b>${esc(q.name)}</b><div class="muted">${esc(q.stage || "Not started")} · ${esc(q.models || 1)} model(s)${q.due ? " · due " + esc(q.due) + " " + dueBadge(q.due, q.stage === "Complete") : ""}</div>${low.length ? `<div class="warnline">Low paint: ${low.map((p) => `${esc(p.name)} (${esc(p.stock)})`).join(", ")}</div>` : ""}</div><div class="rowacts"><button data-up="${i}" aria-label="Move ${esc(q.name)} up">↑</button><button data-down="${i}" aria-label="Move ${esc(q.name)} down">↓</button><button data-edit="${esc(q.id)}">Edit</button><button class="del" data-del="${esc(q.id)}">Delete</button></div></div>`;
         })
         .join("")
     : '<div class="card empty">Painting queue is empty.</div>';

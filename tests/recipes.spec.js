@@ -73,8 +73,8 @@ test("the picker names paints with their brand and keeps the selection", async (
 
 test("the table lists recipe paints and flags low ones", async ({ page }) => {
   await nav(page, "miniatures");
-  await expect(recipeCell(page, 0)).toHaveText("Red Black 10%");
-  await expect(recipeCell(page, 0).locator(".pill.warn")).toHaveText("10%");
+  await expect(recipeCell(page, 0)).toHaveText("Red Black Low");
+  await expect(recipeCell(page, 0).locator(".pill.warn")).toHaveText("Low");
 });
 
 test("miniatures can be found by a recipe paint's name", async ({ page }) => {
@@ -89,7 +89,7 @@ test("queue items warn about low recipe paints until complete", async ({
 }) => {
   await nav(page, "queue");
   await expect(page.locator(".qitem").nth(0).locator(".warnline")).toHaveText(
-    "Low paint: Black (10%)",
+    "Low paint: Black (Low)",
   );
   await expect(page.locator(".qitem").nth(1).locator(".warnline")).toHaveCount(
     0,
@@ -100,10 +100,10 @@ test("low-stock warnings count queued miniatures that need the paint", async ({
   page,
 }) => {
   const stock = page.locator("#stockSummary");
-  await expect(stock).toContainText("Acme Black · 10% · needed for 1 queued");
+  await expect(stock).toContainText("Acme Black · Low · needed for 1 queued");
   // Gold is only used by a queue item that is already complete.
-  await expect(stock).toContainText("Other Gold · 5%");
-  await expect(stock).not.toContainText("Gold · 5% · needed");
+  await expect(stock).toContainText("Other Gold · Low");
+  await expect(stock).not.toContainText("Gold · Low · needed");
 });
 
 test("deleting a paint removes it from recipes, and Undo puts it back", async ({

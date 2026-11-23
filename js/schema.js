@@ -4,11 +4,13 @@
 
 const KEY = "forgeledger_v2_data";
 // Bump when stored data changes shape, and add a step to migrate().
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const BACKUP_KEY = "forgeledger_v2_last_backup";
 const RECOVERY_PREFIX = "forgeledger_v2_recovered_";
 const BACKUP_REMINDER_DAYS = 14;
 const DUE_SOON_DAYS = 14; // dates this close get a "Due in N days" marker
+// Paint stock levels, fullest first. Low and Empty count as low stock.
+const STOCK_LEVELS = ["Full", "Good", "Half", "Low", "Empty"];
 const COLLECTIONS = [
   "paints",
   "tools",
@@ -47,7 +49,8 @@ const defaults = {
 //   computed: read-only columns calculated from other data.
 // Field types: text (default), textarea, select (needs `options`), link
 // (stores the id of a record in collection `to`), links (an array of ids),
-// date, url, color, count, money, percent, level.
+// date, url, color, count, money, percent, level, scale (one of `options`,
+// shown in tables as one-tap buttons).
 const defs = {
   paints: {
     title: "Paints",
@@ -75,11 +78,11 @@ const defs = {
         ],
       },
       { key: "quantity", label: "Quantity", type: "count" },
-      { key: "remaining", label: "Remaining %", type: "percent" },
+      { key: "stock", label: "Stock", type: "scale", options: STOCK_LEVELS },
       { key: "price", label: "Cost (£)", type: "money" },
       { key: "notes", label: "Notes", type: "textarea" },
     ],
-    columns: ["name", "brand", "range", "type", "quantity", "remaining"],
+    columns: ["name", "brand", "range", "type", "quantity", "stock"],
     filter: "type",
   },
   tools: {
@@ -296,9 +299,21 @@ function linkedAll(f, value) {
     .map((v) => linked(f, v))
     .filter(Boolean);
 }
-// A paint is low when its Remaining % is set and under 20.
+// A paint is low when its stock is Low or Empty.
 function isLow(p) {
-  return p.remaining !== "" && p.remaining != null && Number(p.remaining) < 20;
+  return p.stock === "Low" || p.stock === "Empty";
+}
+// The stock level for an old Remaining % value, or "" if it isn't a number.
+// migrate() uses it once, when paints move from percentages to levels.
+function stockFromPercent(value) {
+  if (value === "" || value == null) return "";
+  let n = Number(value);
+  if (Number.isNaN(n)) return "";
+  if (n <= 0) return "Empty";
+  if (n < 20) return "Low";
+  if (n < 50) return "Half";
+  if (n < 80) return "Good";
+  return "Full";
 }
 // The low paints a miniature's recipe uses.
 function lowRecipePaints(m) {
