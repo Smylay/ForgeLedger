@@ -153,7 +153,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 - **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the add/edit form, the completion prompt and the keyboard shortcuts list, at desktop and phone sizes. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
 - **Red backgrounds.** Text on a red background uses `--accent-strong`, not `--accent`. White on `--accent` is under the 4.5:1 contrast minimum.
 - **Icon-only buttons** need an `aria-label`, like the queue's "Move … up" arrows.
-- **Button sizes.** Row buttons are at least 32px, and 44px on touch screens (`pointer: coarse`).
+- **Button sizes.** Row buttons are at least 32px, and 44px on touch screens (`pointer: coarse`). A `pointer: coarse` rule must come after the rule it overrides in `styles.css`: the two selectors are usually equally specific, so the later one wins.
 - **Focus.** `:focus-visible` gives every control one blue focus ring. Don't remove outlines.
 - **Narrow screens (≤850px):** the sidebar footer's text is hidden, but the "Keyboard shortcuts" button stays, top right beside the brand, so the off switch can be reached with a tablet keyboard.
 - **Phones (≤520px):**
@@ -161,7 +161,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - The page grid uses `minmax(0, 1fr)`, so wide content can't widen the page.
   - `tests/layout.spec.js` checks that every section fits a 375px screen.
 
-**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`), then dispatches on `data-*` attributes of the clicked `<button>`: `edit`, `del`, `queue`, `next`, `plus`, `top`, `up`, `down`, `recovery`, `wish`, `wishall`, `sort`, `scale` and `step`.
+**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`), then dispatches on `data-*` attributes of the clicked `<button>`: `edit`, `del`, `queue`, `next`, `plus`, `top`, `up`, `down`, `recovery`, `wish`, `wishall`, `sort`, `scale`, `step`, `split` and `adv`.
 
 - `edit` and `del` work in every section because they act on the current section.
 - To add a new row action, render a button with a new `data-*` attribute and add a branch to this listener.
@@ -232,6 +232,20 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - The handle has `touch-action: none`, so a finger can drag it without scrolling the page.
 - **Focus.** After each action, `refocus()` puts keyboard focus back on the same control of the same item.
 
+**Split by stage.** A queue item's models can be at different stages. The "Split by stage" toggle (`data-split`, `toggleSplit()`) shows on unfinished items with two or more models. It has `aria-pressed`.
+
+- **Stored as `split`:** an optional count per stage name, e.g. `{ Priming: 2, Basecoating: 3 }`. No `split`, or anything that isn't a plain object, means not split.
+- **`stage` and `stageDone` stay in step** whenever `storeSplit()` saves: the least advanced stage, and how many models are past it. Code that reads only `stage`, like the dashboard, deadline markers and older versions, still works.
+- **Read counts with `splitCounts()`.** It returns one count per stage, adding up to `queueTotal()`.
+  - Junk, negative and unknown-stage counts are ignored.
+  - If the total has grown, the extra models start at Not started. If it has shrunk, models come off the least advanced stages first.
+- **Splitting** (`splitFrom()`) keeps progress: the models done in the current stage start at the next one.
+- **Joining** puts every model at the least advanced stage, and counts the rest as done there.
+- **Move 1** (`data-adv` and `data-from`, `moveOneOn()`) moves one model to the next stage, with Undo. It's shown for each stage that has models. When the last model reaches Complete, the completion prompt opens.
+- **Next and +1 are hidden** while an item is split.
+- **The progress bar** fills each step with the share of models past it. For Complete, it's the share at Complete. `aria-valuenow` is the models' average step, and `aria-valuetext` is `splitText()`, e.g. "Priming 2 · Basecoating 3".
+- **In the form,** choosing another stage puts every model there, and removes `split`. Otherwise saving re-stores the counts, since the model count may have changed.
+
 **Completing queue items.** When a queue item's stage has just become "Complete" (from the form or the Next button) and the item links to a miniature, `askComplete()` opens `#completeDialog`. It offers two choices:
 
 - mark the miniature complete, with painted count equal to its model count;
@@ -249,6 +263,7 @@ The form handler `submit()` writes to `db[section]`, so `openForm(sec, obj)` set
   - `miniatures.project` and `queue.project` point at projects.
   - `queue.miniature` points at a miniature. It's set when a miniature is queued from its row; items queued before this field existed have none.
   - `queue.stageDone` is not a link: it's the number of models done in the item's current stage (see Queue controls). It's optional, and missing means 0.
+  - `queue.split` is not a link: it's a count of models per stage name, for an item split by stage (see Split by stage). It's optional.
   - `miniatures.paints` is a `links` array of the paints in its recipe. The older free-text `recipe` field is still there, labelled "Recipe steps".
   - `skills.changed` is not a link: it's the date the skill's level last changed (see Skills). It's optional.
   - `wishlist.paint` points at the paint a wishlist item restocks. `addToWishlist()` sets it when a low paint is added from the dashboard, and the dashboard uses it to show "On wishlist".

@@ -89,6 +89,13 @@ function submit(e) {
     // count, or fields from older versions) survive an edit.
     if (i >= 0) arr[i] = { ...arr[i], ...o };
     else arr.push(o);
+    // A split queue item: choosing another stage puts every model there;
+    // otherwise keep its stage in step, as the model count may have changed.
+    let q = arr[i >= 0 ? i : arr.length - 1];
+    if (section === "queue" && isSplit(q)) {
+      if (prev.stage !== o.stage) delete q.split;
+      else storeSplit(q, splitCounts(q));
+    }
   });
   if (!saved) return; // keep the form open so nothing typed is lost
   document.querySelector("#modal").close();

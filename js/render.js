@@ -174,7 +174,7 @@ function renderDashboard() {
         .slice(0, 5)
         .map(
           (q, i) =>
-            `<div>${i + 1}. <b>${esc(q.name)}</b> <span class="muted">${esc(q.stage || "Not started")}</span></div>`,
+            `<div>${i + 1}. <b>${esc(q.name)}</b> <span class="muted">${esc(isSplit(q) ? splitText(q) : q.stage || "Not started")}</span></div>`,
         )
         .join("")
     : '<div class="empty">Queue is empty.</div>';
@@ -360,7 +360,15 @@ function renderTable() {
 function queueItemHtml(q, i) {
   let stages = queueStages(),
     last = stages.length - 1,
-    n = stageIndex(q),
+    split = isSplit(q),
+    counts = split ? splitCounts(q) : null,
+    // A split item is as far on as its least advanced model.
+    n = split
+      ? Math.max(
+          0,
+          counts.findIndex((c) => c > 0),
+        )
+      : stageIndex(q),
     done = n === last,
     m = linked(column(defs.queue, "miniature"), q.miniature),
     low = done ? [] : lowRecipePaints(m),
@@ -369,37 +377,69 @@ function queueItemHtml(q, i) {
     working = n > 0 && !done, // in a stage that +1 counts towards
     qid = esc(q.id),
     name = esc(q.name);
-  let details = `${esc(stages[n])} · ${esc(q.models || 1)} model(s)${q.due ? " · due " + esc(q.due) + " " + dueBadge(q.due, done) : ""}`;
+  let details = `${split && !done ? "Split by stage" : esc(stages[n])} · ${total} model(s)${q.due ? " · due " + esc(q.due) + " " + dueBadge(q.due, done) : ""}`;
   // Steps after "Not started": earlier stages full, the current one filled
-  // as far as its count, later ones empty.
+  // as far as its count, later ones empty. Split, each step fills with the
+  // share of models past it (or, for Complete, at it).
+  let past = (j) =>
+    j === last ? counts[last] : counts.slice(j + 1).reduce((a, b) => a + b, 0);
   let fill = (k) =>
-    done || k < n - 1
-      ? 100
-      : k === n - 1
-        ? Math.round((100 * count) / total)
-        : 0;
-  let status = working ? `${stages[n]}: ${count} of ${total} done` : stages[n];
-  let progress = `<div class="stages" role="progressbar" aria-label="Progress of ${name}" aria-valuemin="0" aria-valuemax="${last}" aria-valuenow="${n}" aria-valuetext="${esc(status)}, step ${n} of ${last}">${stages
+    split
+      ? Math.round((100 * past(k + 1)) / total)
+      : done || k < n - 1
+        ? 100
+        : k === n - 1
+          ? Math.round((100 * count) / total)
+          : 0;
+  let status = split
+    ? splitText(q)
+    : working
+      ? `${stages[n]}: ${count} of ${total} done`
+      : stages[n];
+  // Split, the bar's value is the models' average step.
+  let now = split
+    ? Math.round((10 * counts.reduce((a, c, j) => a + c * j, 0)) / total) / 10
+    : n;
+  let progress = `<div class="stages" role="progressbar" aria-label="Progress of ${name}" aria-valuemin="0" aria-valuemax="${last}" aria-valuenow="${now}" aria-valuetext="${esc(status)}${split ? "" : `, step ${n} of ${last}`}">${stages
     .slice(1)
     .map(
       (s, k) =>
         `<span title="${esc(s)}"><i style="width:${fill(k)}%"></i></span>`,
     )
     .join("")}</div>`;
-  let countLine = working
-    ? `<div class="muted stagecount">${esc(status)}</div>`
-    : "";
+  let countLine =
+    working && !split
+      ? `<div class="muted stagecount">${esc(status)}</div>`
+      : "";
+  // Split: each stage that has models, with a button to move one on.
+  let splitRow =
+    split && !done
+      ? `<div class="splitrow" role="group" aria-label="Models by stage, ${name}">${stages
+          .map((s, j) =>
+            counts[j]
+              ? `<span class="splitstage">${esc(s)} <b>${counts[j]}</b>${j < last ? `<button class="btn" data-adv="${qid}" data-from="${j}" aria-label="Move 1 to ${esc(stages[j + 1])} from ${esc(s)}, ${name}">Move 1 to ${esc(stages[j + 1])}</button>` : ""}</span>`
+              : "",
+          )
+          .join("")}</div>`
+      : "";
+  // The toggle: off, every model is at one stage, as before.
+  let splitBtn =
+    done || total < 2
+      ? ""
+      : `<button class="btn" data-split="${qid}" aria-pressed="${split}" aria-label="Split by stage: ${name}">Split by stage</button>`;
   let lowLine = low.length
     ? `<div class="warnline">Low paint: ${low.map((p) => `${esc(p.name)} (${esc(p.stock)})`).join(", ")}</div>`
     : "";
-  let next = done
-    ? ""
-    : `<button class="btn" data-next="${qid}" aria-label="Next: ${esc(stages[n + 1])} for ${name}">Next: ${esc(stages[n + 1])}</button>`;
+  let next =
+    done || split
+      ? ""
+      : `<button class="btn" data-next="${qid}" aria-label="Next: ${esc(stages[n + 1])} for ${name}">Next: ${esc(stages[n + 1])}</button>`;
   // +1 counts in the current stage; from "Not started" it starts the first.
-  let plus = done
-    ? ""
-    : `<button class="btn" data-plus="${qid}" aria-label="+1 done in ${esc(stages[Math.max(n, 1)])} for ${name}">+1 done</button>`;
-  return `<div class="qitem" data-index="${i}"><span class="handle" aria-hidden="true" title="Drag to reorder">⠿</span><div class="qnum">${i + 1}</div><div class="qbody"><b>${name}</b><div class="muted">${details}</div>${progress}${countLine}${lowLine}</div><div class="qactions">${next}${plus}<span class="rowacts"><button data-top="${i}" aria-label="Move ${name} to top">Top</button><button data-up="${i}" aria-label="Move ${name} up">↑</button><button data-down="${i}" aria-label="Move ${name} down">↓</button><button data-edit="${qid}">Edit</button><button class="del" data-del="${qid}">Delete</button></span></div></div>`;
+  let plus =
+    done || split
+      ? ""
+      : `<button class="btn" data-plus="${qid}" aria-label="+1 done in ${esc(stages[Math.max(n, 1)])} for ${name}">+1 done</button>`;
+  return `<div class="qitem" data-index="${i}"><span class="handle" aria-hidden="true" title="Drag to reorder">⠿</span><div class="qnum">${i + 1}</div><div class="qbody"><b>${name}</b><div class="muted">${details}</div>${progress}${countLine}${splitRow}${lowLine}</div><div class="qactions">${next}${plus}${splitBtn}<span class="rowacts"><button data-top="${i}" aria-label="Move ${name} to top">Top</button><button data-up="${i}" aria-label="Move ${name} up">↑</button><button data-down="${i}" aria-label="Move ${name} down">↓</button><button data-edit="${qid}">Edit</button><button class="del" data-del="${qid}">Delete</button></span></div></div>`;
 }
 function renderQueue() {
   document.querySelector("#queueContent").innerHTML = db.queue.length

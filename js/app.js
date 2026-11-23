@@ -68,6 +68,8 @@ document.addEventListener("click", (e) => {
   }
   if (b.dataset.next) nextStage(b.dataset.next);
   if (b.dataset.plus) plusOneDone(b.dataset.plus);
+  if (b.dataset.split) toggleSplit(b.dataset.split);
+  if (b.dataset.adv) moveOneOn(b.dataset.adv, Number(b.dataset.from));
   // Reordering keeps focus on the same button of the item that moved.
   for (let dir of ["top", "up", "down"]) {
     if (b.dataset[dir] === undefined) continue;

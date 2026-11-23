@@ -176,7 +176,7 @@ function moveQueueItem(from, to) {
 function nextStage(qid) {
   let q = db.queue.find((x) => x.id === qid),
     stages = queueStages(),
-    n = q ? stageIndex(q) : stages.length;
+    n = q && !isSplit(q) ? stageIndex(q) : stages.length;
   if (n >= stages.length - 1) return;
   let to = stages[n + 1],
     sel = `[data-next="${CSS.escape(qid)}"]`;
@@ -200,7 +200,7 @@ function nextStage(qid) {
 // Complete asks about the linked miniature.
 function plusOneDone(qid) {
   let q = db.queue.find((x) => x.id === qid);
-  if (!q) return;
+  if (!q || isSplit(q)) return;
   let stages = queueStages(),
     n = stageIndex(q);
   if (n === stages.length - 1) return;
@@ -226,6 +226,54 @@ function plusOneDone(qid) {
     `[data-edit="${CSS.escape(qid)}"]`,
   );
   if (advance && to === "Complete") askComplete(q);
+}
+
+// Split by stage: on, the models done in the current stage are counted at
+// the next one; off, every model joins the least advanced stage, and the
+// models past it count as done there. Both with Undo.
+function toggleSplit(qid) {
+  let q = db.queue.find((x) => x.id === qid);
+  if (!q) return;
+  let on = !isSplit(q);
+  let saved = commitWithUndo(
+    () => {
+      if (on) storeSplit(q, splitFrom(q));
+      else {
+        storeSplit(q, splitCounts(q)); // bring stage and stageDone up to date
+        delete q.split;
+      }
+    },
+    () =>
+      on
+        ? `Split "${q.name}" by stage`
+        : `Joined "${q.name}": ${q.stage}${q.stageDone ? `, ${q.stageDone} of ${queueTotal(q)} done` : ""}`,
+  );
+  if (saved) refocus(`[data-split="${CSS.escape(qid)}"]`);
+}
+// Split: move one model from stage `from` to the next, with Undo. The last
+// model reaching Complete asks about the linked miniature.
+function moveOneOn(qid, from) {
+  let q = db.queue.find((x) => x.id === qid);
+  if (!q || !isSplit(q)) return;
+  let stages = queueStages(),
+    counts = splitCounts(q);
+  if (!(from >= 0 && from < stages.length - 1 && counts[from] > 0)) return;
+  counts[from]--;
+  counts[from + 1]++;
+  let saved = commitWithUndo(
+    () => storeSplit(q, counts),
+    () => `"${q.name}": 1 moved to ${stages[from + 1]} (${splitText(q)})`,
+  );
+  if (!saved) return;
+  let id = CSS.escape(qid);
+  // Stay on this stage's button while it has models, else follow the model.
+  refocus(
+    `[data-adv="${id}"][data-from="${from}"]`,
+    `[data-adv="${id}"][data-from="${from + 1}"]`,
+    `[data-split="${id}"]`,
+    `[data-edit="${id}"]`,
+  );
+  if (q.stage === "Complete") askComplete(q);
 }
 
 // One tap on - or +: change a count by one within its limits, then redraw
