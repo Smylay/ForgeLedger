@@ -1057,10 +1057,18 @@ dialog::backdrop {
   margin-left: 12px;
   padding: 4px 10px;
 }
-/* Laptops: a narrower sidebar leaves the tables more room. */
+/* Laptops: a narrower sidebar and tighter padding leave the tables more
+   room. */
 @media (max-width: 1440px) {
   .shell {
     grid-template-columns: 200px minmax(0, 1fr);
+  }
+  .main {
+    padding: 24px 18px;
+  }
+  th,
+  td {
+    padding: 10px 6px;
   }
 }
 @media (max-width: 850px) {

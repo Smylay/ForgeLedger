@@ -170,7 +170,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 - **Icon-only buttons** need an `aria-label`, like the queue's "Move … up" arrows.
 - **Button sizes.** Row buttons are at least 32px, and 44px on touch screens (`pointer: coarse`). A `pointer: coarse` rule must come after the rule it overrides in `styles.css`: the two selectors are usually equally specific, so the later one wins.
 - **Focus.** `:focus-visible` gives every control one blue focus ring. Don't remove outlines.
-- **Laptops (≤1440px):** the sidebar is 200px instead of 245px. Row buttons in tables (`td.rowacts`) may wrap, so the browser only stacks them when a table needs the room. `tests/layout.spec.js` checks, with the example data, that no table scrolls sideways at 1280px.
+- **Laptops (≤1440px):** the sidebar is 200px instead of 245px, and the page and table cells have less side padding. Row buttons in tables (`td.rowacts`) may wrap, so the browser only stacks them when a table needs the room. `tests/layout.spec.js` checks, with the example data, that no table scrolls sideways at 1280px. CI's fallback font (DejaVu Sans) is wider than most, so check there, not only locally.
 - **Narrow screens (≤850px):** the sidebar footer's text and the "Keyboard shortcuts" button are hidden. The Settings button stays, top right beside the brand. Settings has the shortcuts' off switch and a link to the list, so both can be reached with a tablet keyboard.
 - **Phones (≤520px):**
   - The nav is a single scrolling row, and `show()` scrolls the current link into view.
@@ -285,7 +285,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - `save()` calls `scheduleAutoSave()`. Once changes stop for `AUTOSAVE_DELAY` (1.5s), `writeAutoSave()` writes `backupJson(db)`, photos included. Only one write runs at a time; a change during a write writes again afterwards.
   - A successful write sets the last backup time, like Export backup.
   - The status shows in Settings and in the sidebar (`#autoSaveState`).
-  - `tests/settings.spec.js` tests it in Chromium by replacing the picker with a file in the origin private file system, over HTTP.
+  - `tests/settings.spec.js` tests it in Chromium by replacing the picker with a file in the origin private file system, over HTTP. Start-up with a remembered file is tested by giving `loadAutoSave()` a stand-in handle, not by reloading: CI's headless Chromium crashes when it reads a private-file-system handle back from IndexedDB after a reload.
 - **Erase all data** (`eraseAll()`) asks first, stops auto-save (so its file keeps the data), downloads a backup, then resets `db` to `defaults` and deletes every stored photo. There's no Undo.
 
 **Versions.** `APP_VERSION` in `schema.js` is the app's version, e.g. "1.0.0". It must match `version` in `package.json`; `tests/settings.spec.js` checks. It's shown in the sidebar and Settings (`.appversion`).

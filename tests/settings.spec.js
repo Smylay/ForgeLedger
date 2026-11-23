@@ -324,8 +324,12 @@ test.describe("auto-save to a file", () => {
 
   test.describe("in Chromium", () => {
     // The picker is replaced with a file in the page's private file system,
-    // which Chromium can write the same way as a file the user picked. Test
-    // switches (in localStorage) make permission lapse or writing fail.
+    // which Chromium can write the same way as a file the user picked. A test
+    // switch in localStorage makes writing fail.
+    //
+    // A handle to that stand-in file can't be read back from IndexedDB after
+    // a reload: CI's headless Chromium crashes. So start-up is tested with a
+    // stand-in for the handle it reads, instead of by reloading.
     test.skip(
       ({ browserName }) => browserName !== "chromium",
       "only Chromium can save to a picked file",
@@ -338,16 +342,6 @@ test.describe("auto-save to a file", () => {
             "autosave.json",
             { create: true },
           );
-        const perm = FileSystemHandle.prototype.queryPermission;
-        FileSystemHandle.prototype.queryPermission = function (o) {
-          return localStorage.getItem("test_perm") === "prompt"
-            ? Promise.resolve("prompt")
-            : perm.call(this, o);
-        };
-        FileSystemHandle.prototype.requestPermission = async () => {
-          localStorage.removeItem("test_perm");
-          return "granted";
-        };
         const writable = FileSystemFileHandle.prototype.createWritable;
         FileSystemFileHandle.prototype.createWritable = function (...a) {
           return localStorage.getItem("test_fail")
@@ -398,41 +392,80 @@ test.describe("auto-save to a file", () => {
         .toEqual(["Red"]);
     });
 
-    test("is remembered after a reload, and can be stopped", async ({
-      page,
-    }) => {
+    test("is remembered, and forgotten when stopped", async ({ page }) => {
+      const stored = () =>
+        page.evaluate(() => handleTx("readonly", (st) => st.getAllKeys()));
       await openSettings(page);
       await page.click("#autoSaveChoose");
       await expect(page.locator("#autoSaveStatus")).toContainText("On:");
-      await reload(page);
-      await openSettings(page);
-      await expect(page.locator("#autoSaveStatus")).toContainText(
-        "On: saving to autosave.json",
-      );
+      expect(await stored()).toEqual(["autosave"]);
       await page.click("#autoSaveStop");
       await expect(page.locator("#autoSaveStatus")).toContainText("Off.");
       await expect(page.locator("#autoSaveState")).toHaveText("");
-      await reload(page);
+      await expect(page.locator("#autoSaveChoose")).toBeVisible();
+      expect(await stored()).toEqual([]);
+    });
+
+    // Start-up with a remembered file: `handleTx` gives the app a stand-in
+    // handle, which reports `permission` until permission is requested, and
+    // keeps what's written to it in `__written`.
+    const startWith = (page, permission) =>
+      page.evaluate(async (permission) => {
+        window.__written = [];
+        const handle = {
+          name: "remembered.json",
+          queryPermission: async () => permission,
+          requestPermission: async () => (permission = "granted"),
+          createWritable: async () => ({
+            write: async (text) => window.__written.push(JSON.parse(text)),
+            close: async () => {},
+          }),
+        };
+        handleTx = async () => handle;
+        autoSave = { handle: null, state: "off", savedAt: 0, error: "" };
+        await loadAutoSave();
+      }, permission);
+
+    test("picks up a remembered file at start-up", async ({ page }) => {
+      await startWith(page, "granted");
+      await expect(page.locator("#autoSaveState")).toHaveText("Auto-save: on");
       await openSettings(page);
-      await expect(page.locator("#autoSaveStatus")).toContainText("Off.");
+      await expect(page.locator("#autoSaveStatus")).toContainText(
+        "On: saving to remembered.json",
+      );
+      await page.click("#closeSettings");
+      await addItem(page, "paints", { name: "Red" });
+      await expect
+        .poll(() => page.evaluate(() => window.__written.at(-1)?.paints))
+        .toMatchObject([{ name: "Red" }]);
     });
 
     test("pauses until permission is given again", async ({ page }) => {
-      await openSettings(page);
-      await page.click("#autoSaveChoose");
-      await expect(page.locator("#autoSaveStatus")).toContainText("On:");
-      await page.evaluate(() => localStorage.setItem("test_perm", "prompt"));
-      await reload(page);
+      await startWith(page, "prompt");
       await expect(page.locator("#autoSaveState")).toHaveText(
         "Auto-save: paused",
       );
       await openSettings(page);
       await expect(page.locator("#autoSaveStatus")).toContainText(
-        "Paused: the browser needs your permission again",
+        "Paused: the browser needs your permission again to save to remembered.json",
       );
+      await expect(page.locator("#autoSaveChoose")).toBeHidden();
+      // Nothing is written while paused.
+      await page.click("#closeSettings");
+      await addItem(page, "paints", { name: "Red" });
+      await page.waitForTimeout(2000); // longer than the auto-save delay
+      expect(await page.evaluate(() => window.__written)).toEqual([]);
+
+      await openSettings(page);
       await page.click("#autoSaveResume");
-      await expect(page.locator("#autoSaveStatus")).toContainText("On:");
+      await expect(page.locator("#autoSaveStatus")).toContainText(
+        "On: saving to remembered.json. Last saved at",
+      );
       await expect(page.locator("#autoSaveResume")).toBeHidden();
+      // Resuming writes straight away.
+      expect(
+        await page.evaluate(() => window.__written.at(-1).paints[0].name),
+      ).toBe("Red");
     });
 
     test("says when writing fails", async ({ page }) => {
