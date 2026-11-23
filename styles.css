@@ -47,6 +47,11 @@ button {
   position: sticky;
   top: 0;
   height: 100vh;
+  /* The footer sits below the nav, at the bottom when there's room; in a
+     short window the sidebar scrolls instead of overlapping. */
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
 }
 .brand {
   font-weight: 900;
@@ -81,10 +86,8 @@ button {
   font-size: 11px;
 }
 .sidefoot {
-  position: absolute;
-  bottom: 18px;
-  left: 14px;
-  right: 14px;
+  margin-top: auto;
+  padding-top: 16px;
   color: var(--muted);
   font-size: 12px;
 }
@@ -334,6 +337,10 @@ tr:last-child td {
   border: 1px solid #fff4;
   margin-right: 7px;
 }
+/* A paint with no colour: an outline keeps names lined up. */
+.colour.none {
+  border: 1px dashed var(--muted);
+}
 .rowacts {
   white-space: nowrap;
 }
@@ -493,8 +500,12 @@ dialog::backdrop {
   height: 6px;
   border-radius: 3px;
   background: #303945;
+  overflow: hidden;
 }
-.stages span.on {
+/* The filled part of each step; the current step fills as models are done. */
+.stages i {
+  display: block;
+  height: 100%;
   background: var(--gold);
 }
 .qactions {
@@ -580,6 +591,7 @@ dialog::backdrop {
     height: auto;
     border-right: 0;
     border-bottom: 1px solid var(--line);
+    overflow: visible; /* the nav row scrolls on its own */
   }
   .nav {
     grid-template-columns: repeat(4, 1fr);

@@ -59,3 +59,15 @@ test("short pages leave no gap under the header", async ({ page }) => {
   expect(main.y - (side.y + side.height)).toBeLessThanOrEqual(1);
   expect(side.height).toBeLessThan(200);
 });
+
+test.describe("short desktop window", () => {
+  test.use({ viewport: { width: 1280, height: 420 } });
+
+  test("the sidebar footer doesn't overlap the nav", async ({ page }) => {
+    const [lastLink, foot] = await Promise.all([
+      page.locator("#nav a").last().boundingBox(),
+      page.locator(".sidefoot").boundingBox(),
+    ]);
+    expect(foot.y).toBeGreaterThanOrEqual(lastLink.y + lastLink.height);
+  });
+});

@@ -83,6 +83,7 @@ const defs = {
       { key: "notes", label: "Notes", type: "textarea" },
     ],
     columns: ["name", "brand", "range", "type", "quantity", "stock"],
+    swatch: "colour", // show this colour beside each paint's name
     filter: "type",
   },
   tools: {
@@ -350,4 +351,16 @@ function queueStages() {
 // last stage (Complete). Blank or unknown stages count as Not started.
 function stageIndex(q) {
   return Math.max(0, queueStages().indexOf(q.stage || "Not started"));
+}
+// How many models a queue item covers: its own model count, else its
+// miniature's, else 1.
+function queueTotal(q) {
+  let m = linked(column(defs.queue, "miniature"), q.miniature);
+  return Number(q.models) || Number(m?.quantity) || 1;
+}
+// Models done in a queue item's current stage (`stageDone`), kept within
+// 0 to queueTotal() whatever is stored.
+function stageDoneCount(q) {
+  let n = Math.floor(Number(q.stageDone) || 0);
+  return Math.min(queueTotal(q), Math.max(0, n));
 }

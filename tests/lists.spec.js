@@ -283,3 +283,53 @@ test("visible controls all have accessible names", async ({ page }) => {
     expect(unnamed, section).toEqual([]);
   }
 });
+
+test.describe("paint swatches", () => {
+  test.beforeEach(async ({ page }) => {
+    await seed(page, {
+      schemaVersion: 2,
+      paints: [
+        { id: "a", name: "Red", colour: "#cc0000" },
+        { id: "b", name: "Plain", colour: "" },
+        { id: "c", name: "Odd", colour: "red; width:999px" },
+      ],
+    });
+    await nav(page, "paints");
+  });
+
+  test("each paint's colour shows beside its name", async ({ page }) => {
+    const dots = page.locator("#content tbody td:first-child .colour");
+    await expect(dots).toHaveCount(3);
+    await expect(dots.nth(0)).toHaveCSS("background-color", "rgb(204, 0, 0)");
+    await expect(tableRows(page).nth(0).locator("td").first()).toHaveText(
+      "Red",
+    );
+  });
+
+  test("no colour, or an invalid one, shows a hollow dot", async ({ page }) => {
+    const dots = page.locator("#content tbody td:first-child .colour");
+    for (const i of [1, 2]) {
+      await expect(dots.nth(i)).toHaveClass(/none/);
+      await expect(dots.nth(i)).toHaveCSS(
+        "background-color",
+        "rgba(0, 0, 0, 0)",
+      );
+    }
+  });
+});
+
+test("editing keeps fields the form doesn't show", async ({ page }) => {
+  await seed(page, {
+    schemaVersion: 2,
+    paints: [{ id: "a", name: "Old", remaining: "40", stock: "Half" }],
+  });
+  await nav(page, "paints");
+  await page.click("button[data-edit]");
+  await fillForm(page, { name: "Renamed" });
+  await submitForm(page);
+  expect((await stored(page)).paints[0]).toMatchObject({
+    name: "Renamed",
+    remaining: "40",
+    stock: "Half",
+  });
+});

@@ -77,10 +77,14 @@ function submit(e) {
   }
   o.id = editId || id();
   let prev = db[section].find((x) => x.id === o.id);
+  // A queue item moved to another stage starts that stage's count again.
+  if (section === "queue" && prev && prev.stage !== o.stage) o.stageDone = 0;
   let saved = commit(() => {
     let arr = db[section],
       i = arr.findIndex((x) => x.id === o.id);
-    if (i >= 0) arr[i] = o;
+    // Merge, so fields the form doesn't show (like a queue item's stage
+    // count, or fields from older versions) survive an edit.
+    if (i >= 0) arr[i] = { ...arr[i], ...o };
     else arr.push(o);
   });
   if (!saved) return; // keep the form open so nothing typed is lost

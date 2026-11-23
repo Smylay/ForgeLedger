@@ -184,7 +184,10 @@ function nextStage(qid) {
     sel = `[data-next="${CSS.escape(qid)}"]`;
   if (
     !commitWithUndo(
-      () => (q.stage = to),
+      () => {
+        q.stage = to;
+        q.stageDone = 0; // each stage counts its own models
+      },
       () => `Moved "${q.name}" to ${to}`,
     )
   )
@@ -193,23 +196,36 @@ function nextStage(qid) {
   if (to === "Complete") askComplete(q);
 }
 
-// Count one more painted model on a queue item's miniature, with Undo.
-// Stops at the miniature's model count when it has one.
-function paintedPlusOne(qid) {
-  let q = db.queue.find((x) => x.id === qid),
-    m = q && linked(column(defs.queue, "miniature"), q.miniature);
-  if (!m) return;
-  let total = Number(m.quantity) || 0,
-    painted = (Number(m.painted) || 0) + 1;
-  if (total && painted > total) return;
+// +1: one more model done in a queue item's current stage, with Undo.
+// From "Not started" it starts the first stage. When every model is done
+// the item moves on to the next stage, whose count starts at 0; reaching
+// Complete asks about the linked miniature.
+function plusOneDone(qid) {
+  let q = db.queue.find((x) => x.id === qid);
+  if (!q) return;
+  let stages = queueStages(),
+    n = stageIndex(q);
+  if (n === stages.length - 1) return;
+  let stage = stages[Math.max(n, 1)],
+    total = queueTotal(q),
+    count = (n === 0 ? 0 : stageDoneCount(q)) + 1,
+    advance = count >= total,
+    to = advance ? stages[Math.max(n, 1) + 1] : stage;
   let saved = commitWithUndo(
-    () => (m.painted = String(painted)),
-    () => `${m.name}: ${painted}${total ? ` of ${total}` : ""} painted`,
+    () => {
+      q.stage = to;
+      q.stageDone = advance ? 0 : count;
+    },
+    () =>
+      advance
+        ? `"${q.name}": ${stage} done, moved to ${to}`
+        : `"${q.name}": ${stage} ${count} of ${total} done`,
   );
-  if (saved)
-    refocus(
-      `[data-plus="${CSS.escape(qid)}"]`,
-      `[data-next="${CSS.escape(qid)}"]`,
-      `[data-edit="${CSS.escape(qid)}"]`,
-    );
+  if (!saved) return;
+  refocus(
+    `[data-plus="${CSS.escape(qid)}"]`,
+    `[data-next="${CSS.escape(qid)}"]`,
+    `[data-edit="${CSS.escape(qid)}"]`,
+  );
+  if (advance && to === "Complete") askComplete(q);
 }
