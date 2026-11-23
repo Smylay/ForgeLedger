@@ -33,7 +33,7 @@ ForgeLedger saves your data automatically in your browser's local storage. Nothi
 
 ForgeLedger is a set of static files, so any web server can host it. The server stores nothing. Each visitor's data stays in their own browser, as described in [Your data](#your-data).
 
-Serve the repository folder with any one of these, then open `http://<server-address>:8080/`:
+The app needs only `index.html`, `forgeledger_v2.html`, `styles.css` and the `js` folder. You can serve the whole repository folder, or just those files. Use any one of the options below, then open `http://<server-address>:8080/`.
 
 - **Python**, for quick use on your home network:
 

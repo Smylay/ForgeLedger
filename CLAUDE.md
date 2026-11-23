@@ -17,6 +17,8 @@ Keep it runnable from `file://`. Browsers refuse to load ES module scripts from 
   - One file: `npx playwright test tests/app.spec.js`. One test by name: `npx playwright test -g "low-stock"`.
   - Each test gets a fresh browser context, so `localStorage` starts empty.
   - The auto `pageErrors` fixture in `tests/helpers.js` fails any test where the page throws an uncaught error.
+  - Most tests open the app from `file://`. `tests/hosted.spec.js` opens it over HTTP from `tests/serve.js`, a minimal static server that Playwright starts on port 4173.
+  - `npm test` runs Chromium only. `npm run test:all` adds Firefox and WebKit; install them first with `npx playwright install firefox webkit`. CI runs all three.
   - Import `test` and `expect` from `./helpers`, not from `@playwright/test`, so the fixtures apply. `helpers.js` also has helpers for seeding data, filling forms, downloads, and imports.
 - **Formatting:** Prettier, configured in `.prettierrc`: 2-space indent, 80-column lines, and 120 columns for HTML. Run `npm run format` to format or `npm run format:check` to check. Format before committing.
 
