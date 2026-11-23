@@ -173,6 +173,27 @@
         </div>
       </form>
     </dialog>
+    <dialog id="boughtDialog" aria-labelledby="boughtTitle">
+      <form method="dialog" id="boughtForm">
+        <div class="modalhead"><strong id="boughtTitle">Bought</strong></div>
+        <div class="modalbody">
+          <fieldset class="choices">
+            <legend id="boughtText"></legend>
+            <label class="check"><input type="radio" name="to" value="paints" />Add it to Paints</label>
+            <label class="check"><input type="radio" name="to" value="tools" />Add it to Tools</label>
+            <label class="check"><input type="radio" name="to" value="miniatures" />Add it to Miniatures</label>
+            <label class="check"><input type="radio" name="to" value="" />Don't add it anywhere</label>
+          </fieldset>
+        </div>
+        <div class="modalfoot">
+          <span></span>
+          <div>
+            <button class="btn" value="cancel">Cancel</button>
+            <button class="btn primary" value="apply">Apply</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
     <div class="toast" id="toast" aria-live="polite">
       <span id="toastText"></span><button class="btn" id="toastAction" type="button" hidden></button>
     </div>

@@ -98,6 +98,74 @@ function applyComplete() {
   );
 }
 
+// Wishlist categories that have a list to go into when bought.
+const BOUGHT_TO = { Paint: "paints", Tool: "tools", Miniature: "miniatures" };
+
+// "Bought" on a wishlist row. A restock (linked to a paint that still
+// exists) sets that paint back to Full; Paint, Tool and Miniature items
+// are added to that list; anything else asks where it goes. `b` is the
+// button, so focus can move to the next row's Bought afterwards.
+function bought(b) {
+  let w = db.wishlist.find((x) => x.id === b.dataset.bought);
+  if (!w) return;
+  let row = [...document.querySelectorAll("[data-bought]")].indexOf(b),
+    paint = linked(column(defs.wishlist, "paint"), w.paint),
+    to = BOUGHT_TO[w.category];
+  if (paint || to) {
+    if (buy(w, to, paint)) focusBought(row);
+    return;
+  }
+  buying = { id: w.id, row };
+  document.querySelector("#boughtText").textContent =
+    `Where should "${w.name}" go? It comes off the wishlist either way.`;
+  let choice = w.category === "Terrain" ? "miniatures" : "";
+  for (let r of document.querySelectorAll("#boughtForm [name=to]"))
+    r.checked = r.value === choice;
+  document.querySelector("#boughtDialog").showModal();
+}
+// The Bought prompt's Apply.
+function applyBought(to) {
+  let w = buying && db.wishlist.find((x) => x.id === buying.id);
+  if (w) buy(w, to || null, null);
+}
+// Take `w` off the wishlist, and restock `paint` or add a record to the
+// `to` list (or neither), all with one Undo. Returns whether it saved.
+function buy(w, to, paint) {
+  let record = !paint && to ? boughtRecord(to, w) : null;
+  return commitWithUndo(
+    () => {
+      db.wishlist = db.wishlist.filter((x) => x.id !== w.id);
+      if (paint) paint.stock = "Full";
+      if (record) db[to].push(record);
+    },
+    () =>
+      paint
+        ? `Bought "${w.name}": "${paint.name}" is Full again`
+        : record
+          ? `Bought "${w.name}": added to ${defs[to].nav || defs[to].title}`
+          : `Bought "${w.name}": taken off the wishlist`,
+  );
+}
+// A new paint, tool or miniature from a wishlist item: its name, price
+// and notes, with the product link added to the notes.
+function boughtRecord(to, w) {
+  let link = safeUrl(w.url),
+    notes = [w.notes, link && `Bought from ${link}`].filter(Boolean).join("\n"),
+    r = { id: id(), name: w.name, price: w.price || "", notes };
+  if (to === "paints") return { ...r, quantity: "1", stock: "Full" };
+  if (to === "tools") return { ...r, quantity: "1", condition: "New" };
+  return { ...r, status: "Unbuilt" }; // its model count isn't known
+}
+// After a row goes, focus the Bought button now in its place (or the last
+// one), else the quick-add box.
+function focusBought(row) {
+  let all = document.querySelectorAll("[data-bought]");
+  (
+    all[Math.min(row, all.length - 1)] ||
+    document.querySelector(".view.active .quickadd input")
+  )?.focus();
+}
+
 function exportJSON() {
   download(JSON.stringify(db, null, 2), `forgeledger-backup-${today()}.json`);
   try {

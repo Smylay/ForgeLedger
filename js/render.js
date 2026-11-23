@@ -325,7 +325,7 @@ function rowHtml(d, x) {
         `<td>${c.key === "name" && d.swatch ? swatchHtml(x[d.swatch]) : ""}${cellHtml(c, x)}</td>`,
     )
     .join("");
-  return `<tr data-row="${esc(x.id)}">${cells}<td class="rowacts"><button data-edit="${esc(x.id)}">Edit</button><button class="del" data-del="${esc(x.id)}">Delete</button>${section === "miniatures" ? `<button data-queue="${esc(x.id)}">Queue</button>` : ""}</td></tr>`;
+  return `<tr data-row="${esc(x.id)}">${cells}<td class="rowacts">${section === "wishlist" ? `<button data-bought="${esc(x.id)}" aria-label="Bought: ${esc(x.name)}">Bought</button>` : ""}<button data-edit="${esc(x.id)}">Edit</button><button class="del" data-del="${esc(x.id)}">Delete</button>${section === "miniatures" ? `<button data-queue="${esc(x.id)}">Queue</button>` : ""}</td></tr>`;
 }
 // Redraw one table row after a one-tap change, so the row keeps its place
 // (even in a sorted table), then put focus back on the first of `focus`
