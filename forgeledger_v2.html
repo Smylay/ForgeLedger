@@ -57,6 +57,9 @@
           </div>
         </section>
         <section class="view" id="listView">
+          <form class="quickadd" autocomplete="off">
+            <input name="name" required /><button class="btn">Add</button>
+          </form>
           <div class="toolbar">
             <input id="search" placeholder="Search..." aria-label="Search" /><select
               id="filter"
@@ -71,12 +74,18 @@
             Drag an item by its handle on the left, or use Top, ↑ and ↓, to change the order. Changes save
             automatically.
           </div>
+          <form class="quickadd" autocomplete="off">
+            <input name="name" required /><button class="btn">Add</button>
+          </form>
           <div class="queue" id="queueContent"></div>
         </section>
         <section class="view" id="skillsView">
           <div class="notice">
             Rate proficiency from 0 to 9. Add notes or a next practice goal when editing a skill.
           </div>
+          <form class="quickadd" autocomplete="off">
+            <input name="name" required /><button class="btn">Add</button>
+          </form>
           <div class="skillgrid" id="skillsContent"></div>
         </section>
       </main>

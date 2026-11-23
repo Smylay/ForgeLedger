@@ -118,6 +118,13 @@ function show(k) {
     .querySelector("#" + (d ? d.view || "listView" : "dashboard"))
     .classList.add("active");
   document.querySelector("#addBtn").style.display = d ? "inline-block" : "none";
+  if (d) {
+    let what = `${/^[aeiou]/i.test(d.noun) ? "an" : "a"} ${d.noun}`;
+    for (let input of document.querySelectorAll(".quickadd input")) {
+      input.placeholder = `Quick add ${what}…`;
+      input.setAttribute("aria-label", `Quick add ${what}, by name`);
+    }
+  }
   render();
 }
 function render() {

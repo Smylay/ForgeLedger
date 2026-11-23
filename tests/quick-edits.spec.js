@@ -156,3 +156,70 @@ test.describe("+/- on counts", () => {
     ).toBeVisible();
   });
 });
+
+test.describe("quick add", () => {
+  const box = (page) => page.locator(".view.active .quickadd input");
+
+  test("adds a record by name and keeps the box ready", async ({ page }) => {
+    await nav(page, "paints");
+    await box(page).fill("Blue");
+    await box(page).press("Enter");
+    await box(page).fill("Green");
+    await box(page).press("Enter");
+    expect((await stored(page)).paints.map((p) => p.name)).toEqual([
+      "Red",
+      "Blue",
+      "Green",
+    ]);
+    await expect(box(page)).toHaveValue("");
+    await expect(box(page)).toBeFocused();
+    await expect(page.locator("#toastText")).toHaveText('Added "Green"');
+    await page.click("#toastAction");
+    expect((await stored(page)).paints).toHaveLength(2);
+  });
+
+  test("works on the queue and skills too", async ({ page }) => {
+    await nav(page, "queue");
+    await box(page).fill("Terrain");
+    await box(page).press("Enter");
+    await expect(page.locator("#queueContent .qitem")).toHaveCount(1);
+    await nav(page, "skills");
+    await box(page).fill("Freehand");
+    await box(page).press("Enter");
+    await expect(page.locator(".skill").last()).toContainText("Freehand");
+    await expect(page.locator(".skill").last()).toContainText("0/9");
+  });
+
+  test("names the section in its label", async ({ page }) => {
+    await nav(page, "projects");
+    await expect(box(page)).toHaveAttribute(
+      "placeholder",
+      "Quick add an army project…",
+    );
+    await expect(box(page)).toHaveAttribute(
+      "aria-label",
+      "Quick add an army project, by name",
+    );
+    await nav(page, "paints");
+    await expect(box(page)).toHaveAttribute(
+      "placeholder",
+      "Quick add a paint…",
+    );
+  });
+
+  test("ignores a blank name", async ({ page }) => {
+    await nav(page, "tools");
+    await box(page).fill("   ");
+    await box(page).press("Enter");
+    expect((await stored(page)).tools).toHaveLength(1);
+  });
+
+  test("clears a search that would hide the new record", async ({ page }) => {
+    await nav(page, "paints");
+    await page.fill("#search", "zzz");
+    await box(page).fill("Yellow");
+    await box(page).press("Enter");
+    await expect(page.locator("#search")).toHaveValue("");
+    await expect(tableRows(page)).toHaveCount(2);
+  });
+});

@@ -166,6 +166,21 @@ button {
   height: 100%;
   background: linear-gradient(90deg, var(--accent), var(--gold));
 }
+/* One-line quick add above each list. */
+.quickadd {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.quickadd input {
+  flex: 1;
+  min-width: 0;
+  background: #101419;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 9px;
+}
 .toolbar {
   display: flex;
   gap: 8px;

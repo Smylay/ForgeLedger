@@ -79,6 +79,11 @@ document.addEventListener("click", (e) => {
   }
 });
 document.querySelector("#addBtn").onclick = () => openForm(section);
+for (let form of document.querySelectorAll(".quickadd"))
+  form.onsubmit = (e) => {
+    e.preventDefault();
+    quickAdd(form);
+  };
 document.querySelector("#itemForm").onsubmit = submit;
 document.querySelector("#itemForm").oninput = (e) => {
   let form = e.currentTarget;

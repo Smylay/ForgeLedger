@@ -245,3 +245,21 @@ function stepCount(b) {
   let btn = (step) => `[data-key="${f.key}"][data-step="${step}"]`;
   redrawRow(rec, btn(delta), btn(-delta));
 }
+
+// Quick add: a new record in the current section with just a name, with
+// Undo. Search and filter are cleared so the new record is visible, and
+// the box is emptied (keeping focus) for the next one.
+function quickAdd(form) {
+  let input = form.elements.name,
+    name = input.value.trim();
+  if (!name || !defs[section]) return;
+  document.querySelector("#search").value = "";
+  document.querySelector("#filter").value = "";
+  let added = commitWithUndo(
+    () => db[section].push({ id: id(), name }),
+    () => `Added "${name}"`,
+  );
+  if (!added) return;
+  input.value = "";
+  input.focus();
+}
