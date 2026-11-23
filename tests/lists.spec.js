@@ -149,15 +149,6 @@ test.describe("form limits", () => {
 
   const limits = [
     [
-      "paints",
-      "remaining",
-      [
-        ["100", true],
-        ["101", false],
-        ["50.5", false],
-      ],
-    ],
-    [
       "miniatures",
       "quantity",
       [
@@ -198,7 +189,7 @@ test.describe("form limits", () => {
 
 test.describe("paint colour", () => {
   test("a new paint has no colour unless one is picked", async ({ page }) => {
-    await addItem(page, "paints", { name: "Plain", remaining: "5" });
+    await addItem(page, "paints", { name: "Plain", stock: "Low" });
     expect((await stored(page)).paints[0].colour).toBe("");
     await nav(page, "dashboard");
     await expect(page.locator("#stockSummary .colour")).toHaveCSS(
@@ -262,12 +253,16 @@ test.describe("deleting a project", () => {
   });
 });
 
-test("blank prices and percentages show blank", async ({ page }) => {
+test("blank prices show blank, and unknown stock has no level", async ({
+  page,
+}) => {
   await addItem(page, "paints", { name: "Red" });
   await addItem(page, "tools", { name: "Knife" });
   await expect(tableRows(page).first().locator("td").nth(4)).toHaveText("");
   await nav(page, "paints");
-  await expect(tableRows(page).first().locator("td").nth(5)).toHaveText("");
+  await expect(
+    tableRows(page).first().locator('[aria-pressed="true"]'),
+  ).toHaveCount(0);
 });
 
 test("the Dashboard nav item has no count badge", async ({ page }) => {

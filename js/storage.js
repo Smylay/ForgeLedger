@@ -44,7 +44,13 @@ function fillIds(data) {
 // Bring data from an older schema up to SCHEMA_VERSION. When stored data
 // changes shape, add a step here rather than renaming fields in place.
 function migrate(data) {
+  let from = Number(data.schemaVersion) || 0;
   // 0 (no schemaVersion) -> 1: the version field was added, nothing else.
+  // 1 -> 2: paint stock is a level (Full ... Empty) instead of Remaining %.
+  // The old `remaining` value stays in the record but is no longer read.
+  if (from < 2)
+    for (let p of data.paints || [])
+      if (p.stock === undefined) p.stock = stockFromPercent(p.remaining);
   data.schemaVersion = SCHEMA_VERSION;
   return data;
 }
@@ -77,6 +83,11 @@ function load() {
     } catch {}
     data = isRecord(data) ? repair(data) : {};
   }
+  // Older saved data is upgraded in memory here; app.js saves it once so
+  // storage holds the current schema too. Repaired data isn't saved until
+  // the user changes something, so the damaged original is never replaced
+  // before they can download it.
+  upgraded = !problem && (Number(data.schemaVersion) || 0) < SCHEMA_VERSION;
   return fromBackup(data);
 }
 

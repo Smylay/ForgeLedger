@@ -12,7 +12,7 @@ const {
 test.beforeEach(async ({ page }) => openApp(page));
 
 test("exported backup matches stored data", async ({ page }) => {
-  await addItem(page, "paints", { name: "Red", remaining: "40" });
+  await addItem(page, "paints", { name: "Red", stock: "Half" });
   await addItem(page, "tools", { name: "Knife" });
   const backup = JSON.parse(await downloadText(page, "#backupBtn"));
   expect(backup).toEqual(await stored(page));

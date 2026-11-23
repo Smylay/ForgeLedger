@@ -207,13 +207,13 @@ test.describe("skills", () => {
 });
 
 test.describe("dashboard", () => {
-  test("low-stock warnings ignore paints with no Remaining %", async ({
+  test("low-stock warnings show only Low and Empty paints", async ({
     page,
   }) => {
     await addItem(page, "paints", { name: "Blank" });
-    await addItem(page, "paints", { name: "Empty", remaining: "0" });
-    await addItem(page, "paints", { name: "Low", remaining: "15" });
-    await addItem(page, "paints", { name: "Full", remaining: "80" });
+    await addItem(page, "paints", { name: "Empty", stock: "Empty" });
+    await addItem(page, "paints", { name: "Low", stock: "Low" });
+    await addItem(page, "paints", { name: "Full", stock: "Full" });
     await nav(page, "dashboard");
     const stock = page.locator("#stockSummary");
     await expect(stock).toContainText("Empty");

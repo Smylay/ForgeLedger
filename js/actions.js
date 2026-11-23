@@ -152,3 +152,17 @@ function importJSON(file) {
   };
   r.readAsText(file);
 }
+
+// One tap on a level button (e.g. a paint's stock): save it, then redraw
+// only that cell so the row keeps its place and keyboard focus stays on
+// the chosen button.
+function setScale(b) {
+  let f = column(defs[section], b.dataset.scale),
+    rec = db[section].find((x) => x.id === b.dataset.id),
+    value = b.dataset.value;
+  if (!rec || f?.type !== "scale" || !f.options.includes(value)) return;
+  if (!commit(() => (rec[f.key] = value))) return;
+  let cell = b.closest("td");
+  cell.innerHTML = cellHtml(f, rec);
+  cell.querySelector('[aria-pressed="true"]').focus();
+}
