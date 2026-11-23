@@ -51,6 +51,10 @@ function migrate(data) {
   if (from < 2)
     for (let p of data.paints || [])
       if (p.stock === undefined) p.stock = stockFromPercent(p.remaining);
+  // 2 -> 3: the "Shade" paint type is now "Shade/Wash".
+  if (from < 3)
+    for (let p of data.paints || [])
+      if (p.type === "Shade") p.type = "Shade/Wash";
   data.schemaVersion = SCHEMA_VERSION;
   return data;
 }
