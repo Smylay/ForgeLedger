@@ -55,6 +55,9 @@ function migrate(data) {
   if (from < 3)
     for (let p of data.paints || [])
       if (p.type === "Shade") p.type = "Shade/Wash";
+  // 3 -> 4: queue stages can be edited (`queueStages`, and a queue item's
+  // own `stages`). Both are new and optional, so nothing is converted; the
+  // version stops older copies of the app mangling custom stage names.
   data.schemaVersion = SCHEMA_VERSION;
   return data;
 }
@@ -148,11 +151,12 @@ function commitWithUndo(change, message) {
 // True once anything differs from a fresh install, ignoring ids.
 function hasUserData() {
   let plain = (d) =>
-    JSON.stringify(
-      COLLECTIONS.map((k) =>
+    JSON.stringify([
+      ...COLLECTIONS.map((k) =>
         k === "skills" ? d.skills.map(({ id: _, ...s }) => s) : d[k],
       ),
-    );
+      d.queueStages ?? null,
+    ]);
   return plain(db) !== plain(defaults);
 }
 

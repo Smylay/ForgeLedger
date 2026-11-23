@@ -49,7 +49,7 @@ test.describe("migration from Remaining %", () => {
     await seed(page, { paints: [...paints, { id: "n", name: "None" }] });
     expect(await stockOf(page)).toEqual({ ...expected, None: "" });
     const data = await stored(page);
-    expect(data.schemaVersion).toBe(3);
+    expect(data.schemaVersion).toBe(4);
     // The old field stays in the record so nothing is lost.
     expect(data.paints[1].remaining).toBe("5");
   });
@@ -97,7 +97,7 @@ test.describe("paint types", () => {
       Layer: "Layer",
       Untyped: undefined,
     });
-    expect((await stored(page)).schemaVersion).toBe(3);
+    expect((await stored(page)).schemaVersion).toBe(4);
   });
 
   test("and in an imported backup", async ({ page }, testInfo) => {

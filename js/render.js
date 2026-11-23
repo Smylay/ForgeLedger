@@ -358,7 +358,7 @@ function renderTable() {
 // bar, then its actions. Buttons carry the item id (next, plus) or its
 // position (top, up, down), which the click listener in app.js reads.
 function queueItemHtml(q, i) {
-  let stages = queueStages(),
+  let stages = queueStages(q),
     last = stages.length - 1,
     split = isSplit(q),
     counts = split ? splitCounts(q) : null,
@@ -377,7 +377,7 @@ function queueItemHtml(q, i) {
     working = n > 0 && !done, // in a stage that +1 counts towards
     qid = esc(q.id),
     name = esc(q.name);
-  let details = `${split && !done ? "Split by stage" : esc(stages[n])} · ${total} model(s)${q.due ? " · due " + esc(q.due) + " " + dueBadge(q.due, done) : ""}`;
+  let details = `${split && !done ? "Split by stage" : esc(stages[n])} · ${total} model(s)${ownStages(q) ? " · own stages" : ""}${q.due ? " · due " + esc(q.due) + " " + dueBadge(q.due, done) : ""}`;
   // Steps after "Not started": earlier stages full, the current one filled
   // as far as its count, later ones empty. Split, each step fills with the
   // share of models past it (or, for Complete, at it).
@@ -439,7 +439,7 @@ function queueItemHtml(q, i) {
     done || split
       ? ""
       : `<button class="btn" data-plus="${qid}" aria-label="+1 done in ${esc(stages[Math.max(n, 1)])} for ${name}">+1 done</button>`;
-  return `<div class="qitem" data-index="${i}"><span class="handle" aria-hidden="true" title="Drag to reorder">⠿</span><div class="qnum">${i + 1}</div><div class="qbody"><b>${name}</b><div class="muted">${details}</div>${progress}${countLine}${splitRow}${lowLine}</div><div class="qactions">${next}${plus}${splitBtn}<span class="rowacts"><button data-top="${i}" aria-label="Move ${name} to top">Top</button><button data-up="${i}" aria-label="Move ${name} up">↑</button><button data-down="${i}" aria-label="Move ${name} down">↓</button><button data-edit="${qid}">Edit</button><button class="del" data-del="${qid}">Delete</button></span></div></div>`;
+  return `<div class="qitem" data-index="${i}"><span class="handle" aria-hidden="true" title="Drag to reorder">⠿</span><div class="qnum">${i + 1}</div><div class="qbody"><b>${name}</b><div class="muted">${details}</div>${progress}${countLine}${splitRow}${lowLine}</div><div class="qactions">${next}${plus}${splitBtn}<span class="rowacts"><button data-top="${i}" aria-label="Move ${name} to top">Top</button><button data-up="${i}" aria-label="Move ${name} up">↑</button><button data-down="${i}" aria-label="Move ${name} down">↓</button><button data-stages="${qid}" aria-label="Stages for ${name}">Stages</button><button data-edit="${qid}">Edit</button><button class="del" data-del="${qid}">Delete</button></span></div></div>`;
 }
 function renderQueue() {
   document.querySelector("#queueContent").innerHTML = db.queue.length

@@ -35,12 +35,23 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - **Fewer trips to the edit form (phase 10):** one-tap status fields, +/− buttons on counts, a quick-add row, and keyboard shortcuts with an off switch.
 - **Skills and paint types (phase 11):** a level guide, a library of 20 techniques with a next step for each level, a skill profile, practice suggestions, and Primer and Shade/Wash paint types.
 - **Queue models at different stages (phase 12):** split a queue item by stage, with a count and a Move 1 button for each stage. _(From the bug list.)_
+- **Wishlist Bought button (phase 13):** restocks set the paint back to Full; paints, tools and miniatures move into their lists; anything else asks where it goes.
 
-## Phase 13: Wishlist "Bought" button (in progress)
+## Phase 14: Editable queue stages (in progress)
 
-- **Paint, Tool and Miniature items** move into that list with their name, price and notes.
-- **Restock items linked to a paint** set that paint back to Full instead of creating a duplicate.
-- **Terrain, Book and Other items** ask where they should go.
+_(From the bug list.)_
+
+- **Edit the default stages:** rename, reorder, add and delete the stages between Not started and Complete.
+- **Give one queue item its own stages,** starting from a copy of the default, or put it back on the default.
+- **Items follow the changes:** renamed stages keep their counts, and items at a deleted stage move on to the next stage.
+
+## Phase 15: Miniature photos
+
+_(From the bug list.)_
+
+- **Add photos to a miniature,** from a file or a phone's camera. They're shrunk and kept in the browser's own storage (IndexedDB), so they stay on your device.
+- **Export backup includes them,** so one file still moves everything.
+- **Works opened as a file** in Chrome, Edge and Firefox. Safari can't use the browser's image storage from a double-clicked file, so it needs the app served, for example from your home server.
 
 ## Later
 

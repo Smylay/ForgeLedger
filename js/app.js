@@ -7,6 +7,7 @@ let memoryOnly = false, // storage is blocked: changes live in memory only
   undo = null, // copy of db from just before the last undoable change
   completing = null, // id of the queue item the completion prompt is about
   buying = null, // { id, row } of the wishlist item the Bought prompt is about
+  editingStages = null, // { qid } while the stage editor is open (null qid: default)
   sort = { key: "", dir: 1 }, // table sort for the current section
   upgraded = false, // load() upgraded saved data from an older schema
   toastTimer;
@@ -51,6 +52,7 @@ document.addEventListener("click", (e) => {
     addToWishlist(db.paints.filter((p) => isLow(p) && !wanted.has(p.id)));
   }
   if (b.dataset.bought) bought(b);
+  if (b.dataset.stages) openStages(b.dataset.stages);
   if (b.dataset.queue) {
     let m = db.miniatures.find((x) => x.id === b.dataset.queue);
     let queued = commit(() =>
@@ -107,6 +109,32 @@ document.querySelector("#itemForm").oninput = (e) => {
 // Runs as the button is clicked; the dialog closes itself afterwards.
 document.querySelector("#completeForm").onsubmit = (e) => {
   if (e.submitter?.value === "apply") applyComplete();
+};
+// The stage editor.
+document.querySelector("#stagesBtn").onclick = () => openStages(null);
+document.querySelector("#stageList").onclick = (e) => {
+  let b = e.target.closest("button");
+  if (b) stageRowAction(b);
+};
+// A name problem can involve two rows (a repeat), so any edit clears all
+// of them; Save checks again.
+document.querySelector("#stageList").oninput = () => {
+  for (let input of document.querySelectorAll("#stageList input"))
+    input.setCustomValidity("");
+};
+document.querySelector("#addStage").onclick = addStageRow;
+document.querySelector("#resetStages").onclick = () => {
+  useDefaultStages(editingStages?.qid);
+  document.querySelector("#stagesDialog").close();
+};
+document.querySelector("#stagesForm").onsubmit = (e) => {
+  if (e.submitter?.value === "save" && !saveStages()) e.preventDefault();
+};
+// Closing returns focus to the button that opened the editor, redrawn by now.
+document.querySelector("#stagesDialog").onclose = () => {
+  let qid = editingStages?.qid;
+  editingStages = null;
+  refocus(qid ? `[data-stages="${CSS.escape(qid)}"]` : "#stagesBtn");
 };
 document.querySelector("#boughtForm").onsubmit = (e) => {
   if (e.submitter?.value === "apply")

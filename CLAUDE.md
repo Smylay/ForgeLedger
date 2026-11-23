@@ -47,7 +47,7 @@ The code lives in plain `<script>` files that share the global scope. They aren'
 
 - **Only `app.js` runs code at load.** The other files only declare functions and constants, so a function can call anything in any file. Top-level code must only use what earlier files define; for example, `defaults` in `schema.js` calls `id()` from `util.js`.
 - **Every top-level name is global,** so two files can't declare the same `let` or `const` name. Declaring one twice is a `SyntaxError` that stops the app loading.
-- **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `upgraded`, `completing`, `buying` and `toastTimer`.
+- **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `upgraded`, `completing`, `buying`, `editingStages` and `toastTimer`.
 
 To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 
@@ -71,10 +71,11 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
   - An import with a problem is rejected whole.
   - Saved data with a problem is repaired with `repair()`. The original string is copied to a `forgeledger_v2_recovered_<ISO time>` key first, and `#alerts` offers a download.
 - **Replacing data on import.** When the app already has data, the user must confirm, and the current data is downloaded first.
-- **Schema version.** `schemaVersion` is stored with the data. It's currently 3. When stored fields change shape, bump `SCHEMA_VERSION` and add a step to `migrate()`; each step checks the version it starts from. Backups from a newer version are refused.
+- **Schema version.** `schemaVersion` is stored with the data. It's currently 4. When stored fields change shape, bump `SCHEMA_VERSION` and add a step to `migrate()`; each step checks the version it starts from. Backups from a newer version are refused.
   - 0 → 1: the version field was added.
   - 1 → 2: each paint's `stock` level is set from its old `remaining` percentage by `stockFromPercent()`. The old `remaining` field stays in the record but is no longer read.
   - 2 → 3: the paint type "Shade" becomes "Shade/Wash".
+  - 3 → 4: queue stages became editable (`queueStages`, `queue.stages`). Nothing is converted. The version stops older copies of the app from loading custom stage names they don't know.
 - **Saving an upgrade.** When `load()` upgrades saved data from an older schema, it sets `upgraded`, and `app.js` saves once at start-up so storage holds the current schema. Repaired data is not saved until the user changes something, so the damaged original is never replaced first.
 - **Missing fields.** Existing records are never rewritten field by field, so every reader must tolerate missing or blank fields.
 - **Untrusted values.** Field values in imported data are not checked. Treat them as untrusted.
@@ -150,7 +151,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 **Accessibility and layout.**
 
-- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the add/edit form, the completion prompt, the Bought prompt and the keyboard shortcuts list, at desktop and phone sizes. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
+- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the add/edit form, the completion prompt, the Bought prompt, the stage editor and the keyboard shortcuts list, at desktop and phone sizes. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
 - **Red backgrounds.** Text on a red background uses `--accent-strong`, not `--accent`. White on `--accent` is under the 4.5:1 contrast minimum.
 - **Icon-only buttons** need an `aria-label`, like the queue's "Move … up" arrows.
 - **Button sizes.** Row buttons are at least 32px, and 44px on touch screens (`pointer: coarse`). A `pointer: coarse` rule must come after the rule it overrides in `styles.css`: the two selectors are usually equally specific, so the later one wins.
@@ -161,7 +162,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - The page grid uses `minmax(0, 1fr)`, so wide content can't widen the page.
   - `tests/layout.spec.js` checks that every section fits a 375px screen.
 
-**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`), then dispatches on `data-*` attributes of the clicked `<button>`: `edit`, `del`, `queue`, `next`, `plus`, `top`, `up`, `down`, `recovery`, `wish`, `wishall`, `bought`, `sort`, `scale`, `step`, `split` and `adv`.
+**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`), then dispatches on `data-*` attributes of the clicked `<button>`: `edit`, `del`, `queue`, `next`, `plus`, `top`, `up`, `down`, `recovery`, `wish`, `wishall`, `bought`, `stages`, `sort`, `scale`, `step`, `split` and `adv`.
 
 - `edit` and `del` work in every section because they act on the current section.
 - To add a new row action, render a button with a new `data-*` attribute and add a branch to this listener.
@@ -243,6 +244,26 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - The handle has `touch-action: none`, so a finger can drag it without scrolling the page.
 - **Focus.** After each action, `refocus()` puts keyboard focus back on the same control of the same item.
 
+**Queue stages.** "Not started" and "Complete" are always the first and last stages, because +1, the completion prompt and due markers depend on them. The stages between them can be edited.
+
+- **The default list** is `db.queueStages`, an optional array of names. Without it, the list is `DEFAULT_STAGES`.
+- **An item's own list** is `queue.stages`. An item without one uses the default, and follows later changes to it.
+- **Reading stages:**
+  - Read an item's stages with `queueStages(q)`; with no item, it gives the default.
+  - `ownStages(q)` says whether the item has its own list.
+  - `cleanStages()` cleans any stored list. It trims names, cuts them to `MAX_STAGE_NAME` (40) characters, and drops blanks, repeats ignoring case, non-text and the two end names. It keeps at most `MAX_STAGES` (20). A list with nothing usable counts as missing.
+- **Items store stage names,** in `stage` and `split`, so stages are matched by name. A name the item's list doesn't have counts as Not started.
+- **The stage editor** (`#stagesDialog`, `openStages(qid)`) opens from "Edit default stages" (`#stagesBtn`, `qid` null) or an item's Stages button (`data-stages`).
+  - Each row is a name box plus ↑, ↓ and Delete. Each row keeps the name it started with in `data-orig`, so Save can tell a rename from a delete.
+  - Moves shift the neighbouring row, so the pressed button stays on the page and keeps focus.
+  - The last stage can't be deleted.
+- **Saving** (`saveStages()`) checks the names with `setCustomValidity`: not blank, not repeated, not an end name. Any edit clears every row's message, since a repeat involves two rows.
+- **`applyStages()`** saves the list, and updates every affected item in one `commitWithUndo`. For the default list, that's every item without its own; otherwise it's the one item.
+  - `stageMap()` maps each old stage to its new name. A deleted stage maps to the next stage kept, else the one before, so items move on but never straight to Complete.
+  - `remapStages()` applies the map to `stage` and `split`. It resets `stageDone` for items whose stage was deleted, then re-stores split counts in the new order.
+- **"Use the default stages"** (`useDefaultStages()`) removes an item's own list. A stage the default lacks maps to the default stage in the same position.
+- **Display.** The progress bar has one step per stage after Not started (`grid-auto-flow: column`). The form's Stage dropdown lists the item's stages through the field's `optionsFor`.
+
 **Split by stage.** A queue item's models can be at different stages. The "Split by stage" toggle (`data-split`, `toggleSplit()`) shows on unfinished items with two or more models. It has `aria-pressed`.
 
 - **Stored as `split`:** an optional count per stage name, e.g. `{ Priming: 2, Basecoating: 3 }`. No `split`, or anything that isn't a plain object, means not split.
@@ -275,6 +296,7 @@ The form handler `submit()` writes to `db[section]`, so `openForm(sec, obj)` set
   - `queue.miniature` points at a miniature. It's set when a miniature is queued from its row; items queued before this field existed have none.
   - `queue.stageDone` is not a link: it's the number of models done in the item's current stage (see Queue controls). It's optional, and missing means 0.
   - `queue.split` is not a link: it's a count of models per stage name, for an item split by stage (see Split by stage). It's optional.
+  - `queue.stages` is not a link: it's an item's own list of stages between Not started and Complete (see Queue stages). It's optional. The default list is the top-level `queueStages`.
   - `miniatures.paints` is a `links` array of the paints in its recipe. The older free-text `recipe` field is still there, labelled "Recipe steps".
   - `skills.changed` is not a link: it's the date the skill's level last changed (see Skills). It's optional.
   - `wishlist.paint` points at the paint a wishlist item restocks. `addToWishlist()` sets it when a low paint is added from the dashboard, and the dashboard uses it to show "On wishlist".

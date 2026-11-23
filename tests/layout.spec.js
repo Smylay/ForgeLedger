@@ -75,6 +75,16 @@ test("the keyboard shortcuts button is still there, beside the brand", async ({
   await expect(page.locator("#keysDialog")).toBeVisible();
 });
 
+test("the stage editor's rows fit the screen", async ({ page }) => {
+  await nav(page, "queue");
+  await page.click("#stagesBtn");
+  const [list, del] = await Promise.all([
+    page.locator("#stageList").boundingBox(),
+    page.locator("#stageList [data-sdel]").first().boundingBox(),
+  ]);
+  expect(del.x + del.width).toBeLessThanOrEqual(list.x + list.width + 1);
+});
+
 test("short pages leave no gap under the header", async ({ page }) => {
   await nav(page, "queue");
   const [side, main] = await Promise.all([
