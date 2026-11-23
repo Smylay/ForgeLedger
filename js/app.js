@@ -57,6 +57,9 @@ document.addEventListener("click", (e) => {
     addToWishlist(db.paints.filter((p) => isLow(p) && !wanted.has(p.id)));
   }
   if (b.dataset.bought) bought(b);
+  if (b.dataset.demo === "load") loadDemo();
+  if (b.dataset.demo === "clear") clearDemo();
+  if (b.dataset.demo === "keep") keepDemo();
   if (b.dataset.unreward) {
     newRewards = newRewards.filter((rid) => rid !== b.dataset.unreward);
     renderRewardNotice();

@@ -206,6 +206,22 @@ for (const viewport of [
       expect(await violations(page)).toEqual([]);
     });
 
+    test("the example data offer and notice have no accessibility violations", async ({
+      page,
+    }) => {
+      await page.evaluate(() => localStorage.clear());
+      await page.reload();
+      await expect(page.locator("#startNotice .notice")).toContainText(
+        "New to ForgeLedger?",
+      );
+      expect(await violations(page)).toEqual([]);
+      await page.getByRole("button", { name: "Load example data" }).click();
+      await expect(page.locator("#startNotice .notice")).toContainText(
+        "example data",
+      );
+      expect(await violations(page)).toEqual([]);
+    });
+
     test("the reward notice has no accessibility violations", async ({
       page,
     }) => {

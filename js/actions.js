@@ -481,6 +481,38 @@ function removePhoto() {
   );
 }
 
+// Example data (demo.js): only offered while the app is empty, so it never
+// replaces anything. Its photos are drawn and stored first; if they can't
+// be stored, the miniatures simply have none.
+async function loadDemo() {
+  if (hasUserData()) return;
+  let data = demoData(),
+    stored = false;
+  if (await photosWork())
+    try {
+      await putPhotos(demoPhotos());
+      stored = true;
+    } catch {}
+  if (!stored) for (let m of data.miniatures) delete m.photos;
+  if (!commit(() => (db = fromBackup(data)))) return;
+  newRewards = [];
+  renderRewardNotice();
+  renderNav();
+  render();
+  toast("Example data loaded");
+}
+// Back to an empty app, with Undo. The example photos are tidied later.
+function clearDemo() {
+  commitWithUndo(
+    () => (db = structuredClone(defaults)),
+    () => "Cleared the example data",
+  );
+}
+// Keep the example data as your own: the notice about it goes away.
+function keepDemo() {
+  if (commit(() => delete db.demo)) render();
+}
+
 // A backup is the data plus the images its photos use (see photos.js).
 async function backupJson(data) {
   let photos = await backupPhotos(data);
