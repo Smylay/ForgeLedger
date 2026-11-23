@@ -146,7 +146,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - The page grid uses `minmax(0, 1fr)`, so wide content can't widen the page.
   - `tests/layout.spec.js` checks that every section fits a 375px screen.
 
-**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`), then dispatches on `data-*` attributes of the clicked `<button>`: `edit`, `del`, `queue`, `up`, `down`, `recovery`, `wish`, `wishall`, `sort` and `scale`.
+**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`), then dispatches on `data-*` attributes of the clicked `<button>`: `edit`, `del`, `queue`, `next`, `plus`, `top`, `up`, `down`, `recovery`, `wish`, `wishall`, `sort` and `scale`.
 
 - **Level buttons (`scale`).** A tap saves the value with `commit()`, then `setScale()` redraws only that table cell and moves focus back to the chosen button. The row doesn't move in a sorted table, and keyboard users keep their place.
 
@@ -162,7 +162,17 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 - **Unlinking on delete.** Deleting a record clears every `link` field and removes the id from every `links` array that points at it. For example: miniatures in a deleted project, queue items for a deleted miniature, or recipes that used a deleted paint.
 - **Undo never reverts later work.** Every `commit()` clears the copy, and so does a change from another tab.
 
-**Completing queue items.** When `submit()` saves a queue item whose stage has just become "Complete" and that links to a miniature, `askComplete()` opens `#completeDialog`. It offers two choices:
+**Queue controls.** `queueItemHtml()` draws each queue item.
+
+- **Next stage.** "Next: <stage>" (`data-next`, `nextStage()`) moves the item to the next of `queueStages()`, with Undo. Reaching Complete opens the completion prompt below.
+- **Progress bar.** `role="progressbar"` with one segment per step after "Not started". `stageIndex()` treats blank or unknown stages as Not started.
+- **+1 painted** (`data-plus`, `paintedPlusOne()`) adds one to the linked miniature's `painted`, with Undo. It's disabled at the model count, and has no limit when the miniature has no model count.
+- **Reordering.** Top, ↑ and ↓ (`data-top`, `data-up`, `data-down`) go through `moveQueueItem(from, to)`. Dragging the handle (pointer events, in `app.js`) does too.
+  - While dragging, the list doesn't change; a `drop-before` or `drop-after` line shows where the item will land, and the move is saved on release. Moving the dragged element would release its pointer capture.
+  - The handle has `touch-action: none`, so a finger can drag it without scrolling the page.
+- **Focus.** After each action, `refocus()` puts keyboard focus back on the same control of the same item.
+
+**Completing queue items.** When a queue item's stage has just become "Complete" (from the form or the Next button) and the item links to a miniature, `askComplete()` opens `#completeDialog`. It offers two choices:
 
 - mark the miniature complete, with painted count equal to its model count;
 - remove the item from the queue.
