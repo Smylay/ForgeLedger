@@ -48,6 +48,10 @@ _(From the bug list.)_
 
 ## Later
 
+- _From the bug list, to be planned next:_
+  - Count each model's build progress (its queue stages) towards its project's percentage, not only finished models.
+  - An example backup file that shows off what ForgeLedger can do.
+  - Reward milestones: set project completion levels (e.g. 50%) that unlock a chosen wishlist item.
 - A currency setting (currently fixed to GBP).
 - Fit the miniatures table on a laptop screen. With nine columns plus its row buttons, it scrolls sideways below about 1400px wide.
 - Count restock purchases in Recorded spend. Bought on a restock sets the paint to Full but doesn't record what the new pot cost, because a paint holds one price.
