@@ -494,7 +494,7 @@ async function loadDemo() {
       stored = true;
     } catch {}
   if (!stored) for (let m of data.miniatures) delete m.photos;
-  if (!commit(() => (db = fromBackup(data)))) return;
+  if (!commit(() => (db = withCurrency(fromBackup(data))))) return;
   newRewards = [];
   renderRewardNotice();
   renderNav();
@@ -504,7 +504,7 @@ async function loadDemo() {
 // Back to an empty app, with Undo. The example photos are tidied later.
 function clearDemo() {
   commitWithUndo(
-    () => (db = structuredClone(defaults)),
+    () => (db = withCurrency(structuredClone(defaults))),
     () => "Cleared the example data",
   );
 }
@@ -513,14 +513,95 @@ function keepDemo() {
   if (commit(() => delete db.demo)) render();
 }
 
-// A backup is the data plus the images its photos use (see photos.js).
+// A backup is the data, the app version that made it, and the images its
+// photos use (see photos.js).
 async function backupJson(data) {
   let photos = await backupPhotos(data);
   return JSON.stringify(
-    Object.keys(photos).length ? { ...data, photos } : data,
+    {
+      appVersion: APP_VERSION,
+      ...data,
+      ...(Object.keys(photos).length ? { photos } : {}),
+    },
     null,
     2,
   );
+}
+
+// Settings: theme, currency, auto-save, shortcuts and erasing everything.
+function openSettings() {
+  renderSettings();
+  document.querySelector("#settingsDialog").showModal();
+}
+function renderSettings() {
+  document.querySelector("#themeSetting").value = themeSetting();
+  let pick = document.querySelector("#currencySetting");
+  if (!pick.options.length)
+    pick.innerHTML = Object.entries(CURRENCIES)
+      .map(
+        ([code, [name, locale]]) =>
+          `<option value="${code}">${name} (${new Intl.NumberFormat(locale, { style: "currency", currency: code }).format(4.5)})</option>`,
+      )
+      .join("");
+  pick.value = currencyCode();
+  document.querySelector("#settingsKeysOn").checked = shortcutsOn();
+  renderAutoSave();
+}
+function themeSetting() {
+  try {
+    let t = localStorage.getItem(THEME_KEY);
+    return THEMES.includes(t) ? t : "dark";
+  } catch {
+    return "dark";
+  }
+}
+function setTheme(t) {
+  if (!THEMES.includes(t)) return;
+  document.documentElement.dataset.theme = t;
+  try {
+    localStorage.setItem(THEME_KEY, t);
+  } catch {}
+}
+// Data replacing the current data keeps the chosen currency, unless it
+// brings its own (a backup made since currencies could be chosen).
+function withCurrency(next) {
+  if (!Object.hasOwn(next, "currency") && db.currency)
+    next.currency = db.currency;
+  return next;
+}
+function setCurrency(code) {
+  if (!Object.hasOwn(CURRENCIES, code)) return;
+  if (!commit(() => (db.currency = code))) return;
+  renderNav();
+  render();
+  toast(`Prices are shown in ${CURRENCIES[code][0]}`);
+}
+// Erase everything: data and photos. A backup downloads first, and
+// auto-saving stops before anything is erased, so its file keeps the data.
+// There's no Undo: the photos are gone.
+async function eraseAll() {
+  if (
+    !confirm(
+      "Erase all your ForgeLedger data and photos in this browser?\n\nA backup downloads first. This can't be undone.",
+    )
+  )
+    return;
+  await stopAutoSave();
+  download(await backupJson(db), `forgeledger-before-erase-${today()}.json`);
+  if (!commit(() => (db = structuredClone(defaults)))) return;
+  try {
+    if (await photosWork())
+      await deletePhotos((await allPhotos()).map((p) => p.id));
+  } catch {}
+  for (let url of photoUrls.values()) URL.revokeObjectURL(url);
+  photoUrls.clear();
+  newRewards = [];
+  renderRewardNotice();
+  document.querySelector("#settingsDialog").close();
+  go("dashboard");
+  renderNav();
+  render();
+  toast("Erased all data. The backup is in your downloads.", 6000);
 }
 async function exportJSON() {
   download(await backupJson(db), `forgeledger-backup-${today()}.json`);
@@ -570,24 +651,30 @@ function importJSON(file) {
       );
     }
     // Store the backup's images first; they never go into localStorage.
+    // Nor does the version that made it.
     let incoming = photosFromBackup(data.photos),
-      stored = 0;
+      stored = 0,
+      made =
+        typeof data.appVersion === "string" ? data.appVersion.slice(0, 20) : "";
     delete data.photos;
+    delete data.appVersion;
     if (incoming.length && (await photosWork()))
       try {
         await putPhotos(incoming);
         stored = incoming.length;
       } catch {}
-    let next = fromBackup(data);
+    let next = withCurrency(fromBackup(data));
     if (!commit(() => (db = next))) return;
     newRewards = []; // rewards in a backup were unlocked elsewhere
     renderRewardNotice();
     go("dashboard");
+    let from =
+      made && made !== APP_VERSION ? ` (made by ForgeLedger ${made})` : "";
     toast(
       stored < incoming.length
-        ? `Backup imported, but its ${incoming.length - stored} photo(s) couldn't be stored in this browser`
-        : "Backup imported",
-      stored < incoming.length ? 6000 : 1800,
+        ? `Backup imported${from}, but its ${incoming.length - stored} photo(s) couldn't be stored in this browser`
+        : `Backup imported${from}`,
+      stored < incoming.length || from ? 6000 : 1800,
     );
   };
   r.readAsText(file);

@@ -41,6 +41,43 @@ const test = base.test.extend({
 async function openApp(page) {
   await page.goto(APP);
 }
+// Open the served copy. "/" is index.html, which forwards to the app; wait
+// for that, or the next step can run on the page being replaced.
+async function openSite(page, hash = "") {
+  await page.goto(SITE + hash);
+  await page.waitForURL(/forgeledger_v2\.html/);
+  await page.waitForLoadState("load");
+}
+
+// Reload the page with exactly the localStorage it has now. Under heavy
+// load, Chromium can drop a write made just before a reload, since the
+// page's saved theme is read the moment the new page starts. So the storage
+// is handed over in window.name, and anything different is written back as
+// the new page starts, before the app reads it. Use this, not page.reload().
+const HANDOVER = "forgeledger-test-storage:";
+const handingOver = new WeakSet();
+async function reload(page) {
+  if (!handingOver.has(page)) {
+    handingOver.add(page);
+    await page.addInitScript((prefix) => {
+      if (!window.name.startsWith(prefix)) return;
+      const items = JSON.parse(window.name.slice(prefix.length));
+      window.name = "";
+      try {
+        for (const k of Object.keys(localStorage))
+          if (!Object.hasOwn(items, k)) localStorage.removeItem(k);
+        for (const [k, v] of Object.entries(items))
+          if (localStorage.getItem(k) !== v) localStorage.setItem(k, v);
+      } catch {} // storage blocked
+    }, HANDOVER);
+  }
+  await page.evaluate((prefix) => {
+    try {
+      window.name = prefix + JSON.stringify({ ...localStorage });
+    } catch {}
+  }, HANDOVER);
+  await page.reload();
+}
 
 // Replace stored data and reload the app with it.
 async function seed(page, data) {
@@ -48,7 +85,7 @@ async function seed(page, data) {
     ([k, d]) => localStorage.setItem(k, JSON.stringify(d)),
     [KEY, data],
   );
-  await page.reload();
+  await reload(page);
 }
 
 function stored(page) {
@@ -132,6 +169,8 @@ module.exports = {
   SITE,
   KEY,
   openApp,
+  openSite,
+  reload,
   seed,
   stored,
   nav,

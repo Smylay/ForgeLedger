@@ -14,7 +14,8 @@ ForgeLedger is an offline-first tracker for miniature wargaming. It keeps your p
 - **Quick edits without the form:** one-tap stock, status, condition and priority; + and − buttons on paint quantities, model counts and painted counts; and a quick-add box on every page: type a name and press Enter.
 - **Keyboard shortcuts:** N to add, Q to quick-add, / to search, and 1 to 8 to change page. Press ? for the list, which also turns them off.
 - **Search, filters and sortable columns** in every list, and Undo for deletes.
-- **JSON backup and restore**, and CSV export of any list.
+- **JSON backup and restore**, CSV export of any list, and auto-save to a backup file in Chrome and Edge.
+- **Settings** for a dark or light theme (or match your device), the currency prices are shown in, auto-save, keyboard shortcuts, and erasing all your data.
 
 ## Quick start
 
@@ -35,6 +36,18 @@ ForgeLedger saves your data automatically in your browser's local storage. Nothi
 - **Importing replaces everything.** ForgeLedger asks first and downloads a copy of your current data before replacing it.
 - **Photos stay on your device too.** They're shrunk to about 1600 pixels and kept in the browser's own storage (IndexedDB), and Export backup includes them, so backups grow by roughly 0.3MB a photo.
 - **Photos work in Chrome, Edge, Firefox and Safari,** whether you double-click the file or host it. They're tested in each browser's engine; a private window may not keep them.
+- **Auto-save to a file (Chrome, Edge and other Chromium-based browsers).** In **Settings**, choose a file once, for example in a folder your cloud storage syncs. After every change, ForgeLedger writes a full backup to it, photos included, and that counts as your latest backup. After you restart the browser it asks for permission again: open Settings and choose **Resume auto-saving**. Firefox and Safari can't save to a file you picked, so use Export backup there.
+- **Erase all data** in Settings deletes everything in this browser, photos included. It downloads a backup first and stops auto-saving, so the auto-save file keeps your data.
+
+## Settings
+
+Open **Settings** at the bottom of the sidebar (top right on phones and tablets).
+
+- **Theme:** Dark, Light, or Match my device. It's kept in this browser only, not in backups.
+- **Currency:** how prices are shown, for example €4.50 or 4,50 kr. Amounts aren't converted. The currency is saved with your data, so it's in your backups.
+- **Auto-save to a file,** **keyboard shortcuts** and **Erase all data,** as described above.
+
+The version (1.0.0) is shown in the sidebar and in Settings. Backups record the version that made them. A backup made by a newer version than yours is refused, so update first. See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
 
 ## Hosting on your own server
 
@@ -97,6 +110,7 @@ Pull requests are welcome. Before you open one:
 - **Make the tests and the format check pass**, and add tests for what you change.
 - **Keep the app runnable by double-clicking `index.html`.** Browsers block ES modules and service workers from local files, so don't introduce modules, a bundler or a service worker.
 - **Keep old data loading.** People restore backups made by older versions, so don't rename or repurpose stored fields. Add new fields as optional.
+- **Add your change to [CHANGELOG.md](CHANGELOG.md)** under Unreleased.
 
 ## Roadmap
 

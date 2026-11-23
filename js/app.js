@@ -10,6 +10,8 @@ let memoryOnly = false, // storage is blocked: changes live in memory only
   editingStages = null, // { qid } while the stage editor is open (null qid: default)
   viewing = null, // { id, index, url } of the miniature whose photos are open
   newRewards = [], // wishlist ids of rewards a change unlocked, until dismissed
+  // Auto-save to a file (autosave.js): off, on, paused or error.
+  autoSave = { handle: null, state: "off", savedAt: 0, error: "" },
   photoDbOpen = null, // the photo database, opened once (photos.js)
   photoCheck = null, // whether photos can be saved here, checked once
   photoUrls = new Map(), // object URLs of photo thumbnails, by id
@@ -133,6 +135,29 @@ document.addEventListener(
   },
   true,
 );
+// Settings.
+document.querySelector("#settingsBtn").onclick = openSettings;
+document.querySelector("#closeSettings").onclick = () =>
+  document.querySelector("#settingsDialog").close();
+document.querySelector("#themeSetting").onchange = (e) =>
+  setTheme(e.target.value);
+document.querySelector("#currencySetting").onchange = (e) =>
+  setCurrency(e.target.value);
+document.querySelector("#settingsKeysOn").onchange = (e) => {
+  try {
+    localStorage.setItem(SHORTCUTS_KEY, e.target.checked ? "on" : "off");
+  } catch {}
+};
+document.querySelector("#settingsKeysList").onclick = () => {
+  document.querySelector("#settingsDialog").close();
+  openKeys();
+};
+document.querySelector("#eraseAll").onclick = eraseAll;
+document.querySelector("#autoSaveChoose").onclick = chooseAutoSave;
+document.querySelector("#autoSaveResume").onclick = resumeAutoSave;
+document.querySelector("#autoSaveStop").onclick = stopAutoSave;
+for (let el of document.querySelectorAll(".appversion"))
+  el.textContent = APP_VERSION;
 // The photo viewer.
 document.querySelector("#closePhotos").onclick = () =>
   document.querySelector("#photosDialog").close();
@@ -321,3 +346,4 @@ show(sectionFromHash());
 renderBackupState();
 renderAlerts();
 tidyPhotos().catch(() => {}); // delete stored photos nothing uses
+loadAutoSave();

@@ -26,9 +26,6 @@ function safeUrl(u) {
   let s = String(u ?? "").trim();
   return /^https?:\/\//i.test(s) ? s : "";
 }
-function money(n) {
-  return "£" + (Number(n) || 0).toFixed(2);
-}
 // Show a short message, optionally with an action button (e.g. "Undo").
 // While a modal dialog is open the rest of the page is inert, so the toast
 // moves into the dialog to keep its button usable; app.js moves it back

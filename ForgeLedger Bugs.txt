@@ -1,4 +1,4 @@
 ForgeLedger Bugs/Suggestions
 
-- Add a light mode
+- Add a light mode (done in PR #18)
 - 

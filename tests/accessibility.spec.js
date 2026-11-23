@@ -1,11 +1,13 @@
 // Automated accessibility checks (axe-core, WCAG 2.1 and 2.2, A and AA) on every
-// section, the add/edit form and the queue completion prompt, with enough
-// data that badges, chips, markers and buttons all appear.
+// section, form and dialog, with enough data that badges, chips, markers and
+// buttons all appear. They run at desktop and phone sizes in the dark theme,
+// and at desktop size in the light theme, which mostly changes contrast.
 const { default: AxeBuilder } = require("@axe-core/playwright");
 const {
   test,
+  reload,
   expect,
-  SITE,
+  openSite,
   seed,
   nav,
   fillForm,
@@ -132,18 +134,28 @@ async function violations(page) {
   );
 }
 
-for (const viewport of [
-  { name: "desktop", size: { width: 1280, height: 800 } },
-  { name: "phone", size: { width: 375, height: 812 } },
+const desktop = { width: 1280, height: 800 };
+for (const run of [
+  { name: "desktop", size: desktop, theme: "dark" },
+  { name: "phone", size: { width: 375, height: 812 }, theme: "dark" },
+  { name: "light theme", size: desktop, theme: "light" },
 ]) {
-  test.describe(`${viewport.name}`, () => {
-    test.use({ viewport: viewport.size });
+  test.describe(`${run.name}`, () => {
+    test.use({ viewport: run.size });
 
     test.beforeEach(async ({ page }) => {
       // Served over HTTP: axe reads the stylesheet, and WebKit blocks a page
       // opened from file:// from reading other local files.
-      await page.goto(SITE);
+      await openSite(page);
+      await page.evaluate(
+        (t) => localStorage.setItem("forgeledger_v2_theme", t),
+        run.theme,
+      );
       await seed(page, data);
+      await expect(page.locator("html")).toHaveAttribute(
+        "data-theme",
+        run.theme,
+      );
     });
 
     for (const section of [
@@ -210,7 +222,7 @@ for (const viewport of [
       page,
     }) => {
       await page.evaluate(() => localStorage.clear());
-      await page.reload();
+      await reload(page);
       await expect(page.locator("#startNotice .notice")).toContainText(
         "New to ForgeLedger?",
       );
@@ -255,8 +267,16 @@ for (const viewport of [
     test("the keyboard shortcuts list has no accessibility violations", async ({
       page,
     }) => {
-      await page.click("#keysBtn");
+      // Through Settings, since the sidebar button is hidden on phones.
+      await page.click("#settingsBtn");
+      await page.click("#settingsKeysList");
       await expect(page.locator("#keysDialog")).toBeVisible();
+      expect(await violations(page)).toEqual([]);
+    });
+
+    test("Settings has no accessibility violations", async ({ page }) => {
+      await page.click("#settingsBtn");
+      await expect(page.locator("#settingsDialog")).toBeVisible();
       expect(await violations(page)).toEqual([]);
     });
   });

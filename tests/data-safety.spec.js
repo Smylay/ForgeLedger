@@ -1,6 +1,7 @@
 const fs = require("fs");
 const {
   test,
+  reload,
   expect,
   APP,
   KEY,
@@ -136,7 +137,7 @@ test.describe("importing", () => {
         `Can't import this file: ${reason}.`,
       );
       expect((await stored(page)).paints[0].name).toBe("Keep");
-      await page.reload(); // reloading keeps the current page (#/paints)
+      await reload(page); // reloading keeps the current page (#/paints)
       await nav(page, "dashboard");
       await expect(page.locator("#metrics .card")).toHaveCount(4);
     });
@@ -206,7 +207,7 @@ test.describe("saved data", () => {
       ([k, raw]) => localStorage.setItem(k, raw),
       [KEY, truncated],
     );
-    await page.reload();
+    await reload(page);
     await expect(page.locator("#alerts")).toContainText("it isn't valid JSON");
 
     await addItem(page, "tools", { name: "New" });
@@ -253,7 +254,7 @@ test.describe("saved data", () => {
       Storage.prototype.getItem = blocked;
       Storage.prototype.setItem = blocked;
     });
-    await page.reload();
+    await reload(page);
     await expect(page.locator("#alerts")).toContainText(
       "This browser is blocking storage",
     );
@@ -295,13 +296,13 @@ test.describe("backup reminder", () => {
   }) => {
     await addItem(page, "paints", { name: "Red" });
     await setLastBackup(page, 20);
-    await page.reload();
+    await reload(page);
     await nav(page, "dashboard");
     await expect(page.locator("#backupNotice")).toContainText(
       "Last backup: 20 days ago",
     );
     await setLastBackup(page, 3);
-    await page.reload();
+    await reload(page);
     await nav(page, "dashboard");
     await expect(page.locator("#backupNotice")).toBeEmpty();
     await expect(page.locator("#backupState")).toHaveText(

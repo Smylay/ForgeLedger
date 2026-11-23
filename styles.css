@@ -1,17 +1,133 @@
 :root {
+  /* Dark is the default theme; Settings can choose light, or match the
+     device. Text colours meet 4.5:1 on the backgrounds they're used on. */
+  color-scheme: dark;
   --bg: #0f1216;
   --panel: #181d23;
   --panel2: #202730;
+  --side: #11151a;
   --text: #edf2f7;
+  --strong: #fff;
   --muted: #9ba8b7;
   --line: #303945;
+  --chip: #303945;
+  --field: #101419;
+  --well: #0c0f12;
   --accent: #db3a34;
   --accent-strong: #c9342e; /* button background: white text is 5.2:1 */
   --gold: #ffc857;
+  --gold-text: #ffc857;
   --green: #629460;
   --blue: #5da9e9;
   --danger: #ef5350;
+  --danger-text: #ffaaa7;
+  --del: #ff7773;
+  --pressed: #2b4a6b;
+  --meter-track: #23364a;
+  --swatch-line: #fff4;
+  --backdrop: #000a;
   --shadow: 0 10px 30px #0004;
+  /* Chosen one-tap levels, with white text. */
+  --tone-good: #2f5a2e;
+  --tone-good-line: #3f7a3d;
+  --tone-mid: #6b5416;
+  --tone-mid-line: #8a6d1d;
+  --tone-bad: #8a2a26;
+  --tone-bad-line: #a8352f;
+  --tone-none: #2b4a6b;
+  --tone-none-line: #3a5f87;
+  /* Pills: background, and text where it differs from --text. */
+  --pill-bad: #4a2323;
+  --pill-good: #1f3d24;
+  --pill-good-text: #b7e4b0;
+  --pill-locked: #2a313b;
+  --pill-soon: #4a3d1c;
+}
+/* Light theme. The same values are in the "system" block below: keep the two
+   in step (tests/settings.spec.js compares them). */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f3f5f8;
+  --panel: #fff;
+  --panel2: #eceff3;
+  --side: #e7ebf0;
+  --text: #1a1f26;
+  --strong: #0d1117;
+  --muted: #58626e;
+  --line: #c9d0d9;
+  --chip: #dde3ea;
+  --field: #fff;
+  --well: #e2e6eb;
+  --accent: #c62f2a;
+  --accent-strong: #b52a25;
+  --gold: #d99a00;
+  --gold-text: #7a5800;
+  --green: #3f7a3d;
+  --blue: #1d64ad;
+  --danger: #c62828;
+  --danger-text: #a8231d;
+  --del: #b3261e;
+  --pressed: #d3e5f7;
+  --meter-track: #c7d6e6;
+  --swatch-line: #0004;
+  --backdrop: #0006;
+  --shadow: 0 10px 30px #0001;
+  --tone-good: #2f6b2d;
+  --tone-good-line: #255a23;
+  --tone-mid: #7d5e10;
+  --tone-mid-line: #6b500c;
+  --tone-bad: #b02a24;
+  --tone-bad-line: #962520;
+  --tone-none: #2b5c8f;
+  --tone-none-line: #234d78;
+  --pill-bad: #fbe3e2;
+  --pill-good: #dcefd9;
+  --pill-good-text: #1f5a22;
+  --pill-locked: #e3e7ec;
+  --pill-soon: #fbefc9;
+}
+@media (prefers-color-scheme: light) {
+  :root[data-theme="system"] {
+    color-scheme: light;
+    --bg: #f3f5f8;
+    --panel: #fff;
+    --panel2: #eceff3;
+    --side: #e7ebf0;
+    --text: #1a1f26;
+    --strong: #0d1117;
+    --muted: #58626e;
+    --line: #c9d0d9;
+    --chip: #dde3ea;
+    --field: #fff;
+    --well: #e2e6eb;
+    --accent: #c62f2a;
+    --accent-strong: #b52a25;
+    --gold: #d99a00;
+    --gold-text: #7a5800;
+    --green: #3f7a3d;
+    --blue: #1d64ad;
+    --danger: #c62828;
+    --danger-text: #a8231d;
+    --del: #b3261e;
+    --pressed: #d3e5f7;
+    --meter-track: #c7d6e6;
+    --swatch-line: #0004;
+    --backdrop: #0006;
+    --shadow: 0 10px 30px #0001;
+    --tone-good: #2f6b2d;
+    --tone-good-line: #255a23;
+    --tone-mid: #7d5e10;
+    --tone-mid-line: #6b500c;
+    --tone-bad: #b02a24;
+    --tone-bad-line: #962520;
+    --tone-none: #2b5c8f;
+    --tone-none-line: #234d78;
+    --pill-bad: #fbe3e2;
+    --pill-good: #dcefd9;
+    --pill-good-text: #1f5a22;
+    --pill-locked: #e3e7ec;
+    --pill-soon: #fbefc9;
+  }
 }
 * {
   box-sizing: border-box;
@@ -41,7 +157,7 @@ button {
   min-height: 100vh;
 }
 .side {
-  background: #11151a;
+  background: var(--side);
   border-right: 1px solid var(--line);
   padding: 20px 14px;
   position: sticky;
@@ -76,11 +192,11 @@ button {
 .nav a:hover,
 .nav a.active {
   background: var(--panel2);
-  color: white;
+  color: var(--strong);
 }
 .nav .count {
   float: right;
-  background: #303945;
+  background: var(--chip);
   padding: 1px 7px;
   border-radius: 20px;
   font-size: 11px;
@@ -131,7 +247,7 @@ button {
   border-color: var(--green);
 }
 .danger {
-  color: #ffaaa7;
+  color: var(--danger-text);
 }
 .grid {
   display: grid;
@@ -157,7 +273,7 @@ button {
 }
 .chart {
   height: 12px;
-  background: #0c0f12;
+  background: var(--well);
   border-radius: 8px;
   overflow: hidden;
   margin-top: 8px;
@@ -208,7 +324,7 @@ kbd {
 .quickadd select {
   flex: 1;
   min-width: 0;
-  background: #101419;
+  background: var(--field);
   color: var(--text);
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -225,7 +341,7 @@ kbd {
 .form input,
 .form select,
 .form textarea {
-  background: #101419;
+  background: var(--field);
   color: var(--text);
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -248,7 +364,7 @@ table {
 }
 th,
 td {
-  padding: 10px;
+  padding: 10px 8px;
   border-bottom: 1px solid var(--line);
   text-align: left;
   vertical-align: middle;
@@ -266,7 +382,7 @@ tr:last-child td {
   display: inline-block;
   padding: 3px 8px;
   border-radius: 20px;
-  background: #303945;
+  background: var(--chip);
   font-size: 12px;
 }
 /* +/- buttons either side of a count. */
@@ -313,7 +429,7 @@ tr:last-child td {
   border: 1px solid var(--line);
   background: transparent;
   color: var(--muted);
-  padding: 4px 8px;
+  padding: 4px 6px;
   min-height: 32px;
   font-size: 12px;
   margin-left: -1px;
@@ -335,20 +451,20 @@ tr:last-child td {
 }
 /* The chosen option's colour comes from the field's `tones`. */
 .scale .tone-good[aria-pressed="true"] {
-  background: #2f5a2e;
-  border-color: #3f7a3d;
+  background: var(--tone-good);
+  border-color: var(--tone-good-line);
 }
 .scale .tone-mid[aria-pressed="true"] {
-  background: #6b5416;
-  border-color: #8a6d1d;
+  background: var(--tone-mid);
+  border-color: var(--tone-mid-line);
 }
 .scale .tone-bad[aria-pressed="true"] {
-  background: #8a2a26;
-  border-color: #a8352f;
+  background: var(--tone-bad);
+  border-color: var(--tone-bad-line);
 }
 .scale .tone-none[aria-pressed="true"] {
-  background: #2b4a6b;
-  border-color: #3a5f87;
+  background: var(--tone-none);
+  border-color: var(--tone-none-line);
 }
 @media (pointer: coarse) {
   .scale button {
@@ -357,18 +473,18 @@ tr:last-child td {
   }
 }
 .pill.overdue {
-  background: #4a2323;
-  color: #ffaaa7;
+  background: var(--pill-bad);
+  color: var(--danger-text);
   padding: 1px 6px;
 }
 /* Wishlist rewards: unlocked (green) and locked (grey). */
 .pill.unlocked {
-  background: #1f3d24;
-  color: #b7e4b0;
+  background: var(--pill-good);
+  color: var(--pill-good-text);
   padding: 1px 6px;
 }
 .pill.locked {
-  background: #2a313b;
+  background: var(--pill-locked);
   color: var(--muted);
   padding: 1px 6px;
 }
@@ -383,8 +499,8 @@ tr:last-child td {
   padding: 4px 0;
 }
 .pill.soon {
-  background: #4a3d1c;
-  color: var(--gold);
+  background: var(--pill-soon);
+  color: var(--gold-text);
   padding: 1px 6px;
 }
 .sortbtn {
@@ -401,14 +517,13 @@ tr:last-child td {
   color: var(--text);
 }
 .pill.warn {
-  background: #4a2323;
-  color: #ffaaa7;
+  background: var(--pill-bad);
+  color: var(--danger-text);
   padding: 1px 6px;
 }
 .chip {
   display: inline-flex;
   align-items: center;
-  white-space: nowrap;
   margin: 2px 6px 2px 0;
 }
 .chip .colour {
@@ -431,7 +546,7 @@ tr:last-child td {
   text-align: right;
 }
 .warnline {
-  color: #ffaaa7;
+  color: var(--danger-text);
   font-size: 13px;
   margin-top: 2px;
 }
@@ -441,7 +556,7 @@ tr:last-child td {
   border-radius: 50%;
   display: inline-block;
   vertical-align: middle;
-  border: 1px solid #fff4;
+  border: 1px solid var(--swatch-line);
   margin-right: 7px;
 }
 /* A paint with no colour: an outline keeps names lined up. */
@@ -449,6 +564,14 @@ tr:last-child td {
   border: 1px dashed var(--muted);
 }
 .rowacts {
+  white-space: nowrap;
+}
+/* In tables, a row's buttons may wrap, so wide tables (miniatures) fit a
+   laptop screen. They stay on one line wherever there's room. */
+td.rowacts {
+  white-space: normal;
+}
+td.rowacts button {
   white-space: nowrap;
 }
 .rowacts button {
@@ -477,7 +600,7 @@ tr:last-child td {
   }
 }
 .rowacts .del {
-  color: #ff7773;
+  color: var(--del);
 }
 .empty {
   text-align: center;
@@ -515,7 +638,7 @@ label.check {
   height: 32px;
   object-fit: cover;
   border-radius: 6px;
-  background: #0c0f12;
+  background: var(--well);
 }
 /* The name wraps beside its thumbnail, not under it. */
 .withthumb {
@@ -532,7 +655,7 @@ label.check {
   max-height: 60vh;
   object-fit: contain;
   border-radius: 8px;
-  background: #0c0f12;
+  background: var(--well);
 }
 .photoview figcaption {
   margin-top: 6px;
@@ -551,7 +674,7 @@ label.check {
   padding: 0;
   border: 2px solid var(--line);
   border-radius: 8px;
-  background: #0c0f12;
+  background: var(--well);
   overflow: hidden;
 }
 .photostrip button[aria-current="true"] {
@@ -609,7 +732,7 @@ dialog {
   box-shadow: var(--shadow);
 }
 dialog::backdrop {
-  background: #000a;
+  background: var(--backdrop);
 }
 .modalhead,
 .modalfoot {
@@ -625,6 +748,42 @@ dialog::backdrop {
 }
 .modalbody {
   padding: 18px;
+}
+/* Settings: one section per setting, divided by lines. */
+.settings section {
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.settings h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+.settings p {
+  margin: 6px 0 0;
+}
+.settings label:not(.check) {
+  display: grid;
+  gap: 5px;
+  max-width: 320px;
+  color: var(--muted);
+}
+.settings select {
+  min-height: 36px;
+  background: var(--field);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 7px;
+}
+.settingbtns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.settingbtns .btn[hidden] {
+  display: none;
 }
 .queue {
   display: grid;
@@ -642,7 +801,7 @@ dialog::backdrop {
 }
 .qnum {
   font-weight: 900;
-  color: var(--gold);
+  color: var(--gold-text);
   font-size: 18px;
 }
 /* Drag handle: the whole height of the item, and no page scrolling while
@@ -679,7 +838,7 @@ dialog::backdrop {
 .stages span {
   height: 6px;
   border-radius: 3px;
-  background: #303945;
+  background: var(--chip);
   overflow: hidden;
 }
 /* The filled part of each step; the current step fills as models are done. */
@@ -715,7 +874,7 @@ dialog::backdrop {
 .stagelist input {
   flex: 1;
   min-width: 0;
-  background: #101419;
+  background: var(--field);
   color: var(--text);
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -755,7 +914,7 @@ dialog::backdrop {
   font-size: 13px;
 }
 .qactions .btn[aria-pressed="true"] {
-  background: #2b4a6b;
+  background: var(--pressed);
   border-color: var(--blue);
 }
 .qactions {
@@ -827,7 +986,7 @@ dialog::backdrop {
 .meter {
   height: 8px;
   border-radius: 4px;
-  background: #23364a;
+  background: var(--meter-track);
   overflow: hidden;
 }
 .meter i {
@@ -863,7 +1022,7 @@ dialog::backdrop {
 }
 .notice {
   padding: 10px 12px;
-  background: #202730;
+  background: var(--panel2);
   border-left: 3px solid var(--gold);
   border-radius: 5px;
   margin-bottom: 14px;
@@ -887,7 +1046,7 @@ dialog::backdrop {
   position: fixed;
   right: 20px;
   bottom: 20px;
-  background: #202730;
+  background: var(--panel2);
   border: 1px solid var(--line);
   padding: 11px 14px;
   border-radius: 7px;
@@ -897,6 +1056,20 @@ dialog::backdrop {
 .toast .btn {
   margin-left: 12px;
   padding: 4px 10px;
+}
+/* Laptops: a narrower sidebar and tighter padding leave the tables more
+   room. */
+@media (max-width: 1440px) {
+  .shell {
+    grid-template-columns: 200px minmax(0, 1fr);
+  }
+  .main {
+    padding: 24px 18px;
+  }
+  th,
+  td {
+    padding: 10px 6px;
+  }
 }
 @media (max-width: 850px) {
   .shell {
@@ -915,8 +1088,9 @@ dialog::backdrop {
   .nav {
     grid-template-columns: repeat(4, 1fr);
   }
-  /* Only the shortcuts button stays, top right beside the brand, so the
-     off switch can still be reached with a tablet or phone keyboard. */
+  /* Only the Settings button stays, top right beside the brand. Settings
+     has the shortcuts' off switch, so it can still be reached with a tablet
+     or phone keyboard. */
   .sidefoot {
     position: absolute;
     top: 20px;
@@ -924,7 +1098,8 @@ dialog::backdrop {
     margin: 0;
     padding: 0;
   }
-  .sideinfo {
+  .sideinfo,
+  #keysBtn {
     display: none;
   }
   .sidefoot .linkbtn {
