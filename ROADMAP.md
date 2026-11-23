@@ -33,20 +33,13 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - **Queue controls (phase 8):** next stage, a progress bar, a +1 counter, Top, and drag to reorder.
 - **Fixes (phase 9):** the queue +1 counts models per stage and moves the item on when they're all done, paint colours show as a swatch, editing keeps fields the form doesn't show, and the sidebar footer no longer overlaps the nav in short windows.
 - **Fewer trips to the edit form (phase 10):** one-tap status fields, +/− buttons on counts, a quick-add row, and keyboard shortcuts with an off switch.
+- **Skills and paint types (phase 11):** a level guide, a library of 20 techniques with a next step for each level, a skill profile, practice suggestions, and Primer and Shade/Wash paint types.
 
-## Phase 11: Skills and paint types (in progress)
-
-- **A level guide:** every level has a name and a meaning, shown on each skill as "4/9 · Competent", with a list of all ten.
-- **A technique library** of 20 techniques to pick from, plus Other for your own. Each technique has a next step for your level, which changes as you improve.
-- **A skill profile:** every skill's level as a bar, highest first. This replaces the planned radar chart. With 10 to 20 skills, a radar's labels overlap and its shape is hard to compare, while aligned bars with the level written beside them stay readable and work with screen readers.
-- **Practice suggestions:** skills not updated in a month come first, then your lowest. Skills now record when their level last changed.
-- **Paint types** include Primer, and Shade is now Shade/Wash. _(From the bug list.)_
-
-## Phase 12: Queue models at different stages
+## Phase 12: Queue models at different stages (in progress)
 
 _(From the bug list.)_
 
-- **A Split option on each queue item.** It shows how many of the item's models are at each stage, such as "Priming 2 · Basecoating 3", with a button to move one model on.
+- **A Split by stage toggle on each queue item.** It shows how many of the item's models are at each stage, such as "Priming 2 · Basecoating 3", with a button to move one model on.
 - **Off by default,** so items work as they do now, with every model at the same stage.
 - **The progress bar shows the mix,** and the item is complete when every model is.
 
