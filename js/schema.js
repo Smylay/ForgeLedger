@@ -6,6 +6,9 @@ const KEY = "forgeledger_v2_data";
 // Bump when stored data changes shape, and add a step to migrate().
 const SCHEMA_VERSION = 2;
 const BACKUP_KEY = "forgeledger_v2_last_backup";
+// "off" when the user has turned single-key shortcuts off (kept outside
+// the data, like the last backup time).
+const SHORTCUTS_KEY = "forgeledger_v2_shortcuts";
 const RECOVERY_PREFIX = "forgeledger_v2_recovered_";
 const BACKUP_REMINDER_DAYS = 14;
 const DUE_SOON_DAYS = 14; // dates this close get a "Due in N days" marker

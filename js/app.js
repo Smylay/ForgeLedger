@@ -181,6 +181,43 @@ document.querySelector("#queueContent").addEventListener("pointerdown", (e) => {
   handle.addEventListener("pointerup", end);
   handle.addEventListener("pointercancel", end);
 });
+// Single-key shortcuts (see #keysDialog). They're ignored while typing, with
+// Ctrl, Alt or Cmd held, or while a dialog is open, and can be turned off
+// (WCAG 2.1.4); the choice is kept outside the data.
+const SECTION_KEYS = ["dashboard", ...Object.keys(defs)]; // keys 1 to 8
+function shortcutsOn() {
+  try {
+    return localStorage.getItem(SHORTCUTS_KEY) !== "off";
+  } catch {
+    return true;
+  }
+}
+function openKeys() {
+  document.querySelector("#keysOn").checked = shortcutsOn();
+  document.querySelector("#keysDialog").showModal();
+}
+document.querySelector("#keysBtn").onclick = openKeys;
+document.querySelector("#keysOn").onchange = (e) => {
+  try {
+    localStorage.setItem(SHORTCUTS_KEY, e.target.checked ? "on" : "off");
+  } catch {}
+};
+document.addEventListener("keydown", (e) => {
+  if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (!shortcutsOn() || document.querySelector("dialog[open]")) return;
+  if (e.target.closest?.("input, textarea, select, [contenteditable]")) return;
+  let k = e.key.toLowerCase(),
+    d = defs[section],
+    view = document.querySelector(".view.active");
+  if (k === "?") openKeys();
+  else if (/^[1-8]$/.test(k)) go(SECTION_KEYS[k - 1]);
+  else if (k === "n" && d) openForm(section);
+  else if (k === "q" && d) view.querySelector(".quickadd input")?.focus();
+  else if (k === "/" && view.id === "listView")
+    document.querySelector("#search").focus();
+  else return;
+  e.preventDefault(); // e.g. so "/" isn't typed into the search box
+});
 // Back, forward, and typed or bookmarked addresses.
 window.addEventListener("hashchange", () => {
   if (sectionFromHash() !== section) show(sectionFromHash());

@@ -166,6 +166,38 @@ button {
   height: 100%;
   background: linear-gradient(90deg, var(--accent), var(--gold));
 }
+/* A button that looks like a link (sidebar "Keyboard shortcuts"). */
+.linkbtn {
+  display: block;
+  margin-top: 8px;
+  padding: 4px 0;
+  min-height: 24px;
+  border: 0;
+  background: none;
+  color: var(--blue);
+  font-size: 12px;
+  text-align: left;
+}
+/* The shortcuts list: key on the left, what it does on the right. */
+.keys {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 16px;
+  margin: 0 0 16px;
+}
+.keys dd {
+  margin: 0;
+}
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel2);
+  font: inherit;
+  text-align: center;
+}
 /* One-line quick add above each list. */
 .quickadd {
   display: flex;
@@ -650,8 +682,21 @@ dialog::backdrop {
   .nav {
     grid-template-columns: repeat(4, 1fr);
   }
+  /* Only the shortcuts button stays, top right beside the brand, so the
+     off switch can still be reached with a tablet or phone keyboard. */
   .sidefoot {
+    position: absolute;
+    top: 20px;
+    right: 14px;
+    margin: 0;
+    padding: 0;
+  }
+  .sideinfo {
     display: none;
+  }
+  .sidefoot .linkbtn {
+    margin: 0;
+    min-height: 32px;
   }
   .main {
     padding: 15px;

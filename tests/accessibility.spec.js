@@ -161,5 +161,13 @@ for (const viewport of [
       await expect(page.locator("#completeDialog")).toBeVisible();
       expect(await violations(page)).toEqual([]);
     });
+
+    test("the keyboard shortcuts list has no accessibility violations", async ({
+      page,
+    }) => {
+      await page.click("#keysBtn");
+      await expect(page.locator("#keysDialog")).toBeVisible();
+      expect(await violations(page)).toEqual([]);
+    });
   });
 }

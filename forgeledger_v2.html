@@ -12,9 +12,12 @@
         <div class="brand"><b>FORGE</b>LEDGER</div>
         <nav class="nav" id="nav"></nav>
         <div class="sidefoot">
-          Offline-first. Data autosaves in this browser.<br /><span id="saveState">Ready</span><br /><span
-            id="backupState"
-          ></span>
+          <div class="sideinfo">
+            Offline-first. Data autosaves in this browser.<br /><span id="saveState">Ready</span><br /><span
+              id="backupState"
+            ></span>
+          </div>
+          <button class="linkbtn" id="keysBtn" type="button">Keyboard shortcuts</button>
         </div>
       </aside>
       <main class="main">
@@ -103,6 +106,34 @@
             <button class="btn" value="cancel" type="button" id="cancelModal">Cancel</button>
             <button class="btn primary" value="default" type="submit">Save</button>
           </div>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="keysDialog" aria-labelledby="keysTitle">
+      <form method="dialog">
+        <div class="modalhead">
+          <strong id="keysTitle">Keyboard shortcuts</strong><button class="btn" value="close">Close</button>
+        </div>
+        <div class="modalbody">
+          <dl class="keys">
+            <dt><kbd>N</kbd></dt>
+            <dd>Add an item in the current section</dd>
+            <dt><kbd>Q</kbd></dt>
+            <dd>Quick add by name</dd>
+            <dt><kbd>/</kbd></dt>
+            <dd>Search the current list</dd>
+            <dt><kbd>1</kbd> to <kbd>8</kbd></dt>
+            <dd>Go to Dashboard, Paints, Tools, Miniatures, Army projects, Painting queue, Skills or Wishlist</dd>
+            <dt><kbd>?</kbd></dt>
+            <dd>Show this list</dd>
+            <dt><kbd>Esc</kbd></dt>
+            <dd>Close a form or dialog</dd>
+          </dl>
+          <label class="check"><input type="checkbox" id="keysOn" />Use single-key shortcuts</label>
+          <p class="muted">
+            Shortcuts don't work while you type in a box. Turn them off if they get in the way, for example with speech
+            input.
+          </p>
         </div>
       </form>
     </dialog>
