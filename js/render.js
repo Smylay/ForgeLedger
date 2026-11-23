@@ -44,10 +44,12 @@ function sortValue(f, x) {
   let numeric = ["count", "money", "percent", "level"].includes(f.type),
     v = f.value ? f.value(x) : x[f.key];
   if (v == null || v === "" || (Array.isArray(v) && !v.length)) return null;
-  // Levels sort by amount: the last option (e.g. Empty) is the lowest.
+  // Levels sort in option order, or reversed when the options run from
+  // most to least (paint stock: Empty sorts first).
   if (f.type === "scale") {
     let i = f.options.indexOf(v);
-    return i < 0 ? null : f.options.length - 1 - i;
+    if (i < 0) return null;
+    return f.highFirst ? f.options.length - 1 - i : i;
   }
   if (numeric) return Number.isNaN(Number(v)) ? null : Number(v);
   return cellText(f, x).toLowerCase();
@@ -255,7 +257,7 @@ function cellHtml(f, x) {
     return `<span class="scale" role="group" aria-label="${esc(f.label)} of ${esc(x.name)}">${f.options
       .map(
         (o, i) =>
-          `<button type="button" class="lvl-${i}" data-scale="${f.key}" data-id="${esc(x.id)}" data-value="${esc(o)}" aria-pressed="${v === o}">${esc(o)}</button>`,
+          `<button type="button" class="tone-${f.tones?.[i] || "none"}" data-scale="${f.key}" data-id="${esc(x.id)}" data-value="${esc(o)}" aria-pressed="${v === o}">${esc(o)}</button>`,
       )
       .join("")}</span>`;
   if (f.type === "url")
@@ -282,6 +284,26 @@ function swatchHtml(colour) {
   let c = safeColour(colour);
   return `<span class="colour${c ? "" : " none"}" style="background:${c || "transparent"}" aria-hidden="true"></span>`;
 }
+// One table row for record `x` of collection `d`.
+function rowHtml(d, x) {
+  let cells = d.columns
+    .map((k) => column(d, k))
+    .map(
+      (c) =>
+        `<td>${c.key === "name" && d.swatch ? swatchHtml(x[d.swatch]) : ""}${cellHtml(c, x)}</td>`,
+    )
+    .join("");
+  return `<tr data-row="${esc(x.id)}">${cells}<td class="rowacts"><button data-edit="${esc(x.id)}">Edit</button><button class="del" data-del="${esc(x.id)}">Delete</button>${section === "miniatures" ? `<button data-queue="${esc(x.id)}">Queue</button>` : ""}</td></tr>`;
+}
+// Redraw one table row after a one-tap change, so the row keeps its place
+// (even in a sorted table), then put focus back on `focus` within it.
+function redrawRow(rec, focus) {
+  let sel = `tr[data-row="${CSS.escape(rec.id)}"]`,
+    row = document.querySelector(sel);
+  if (!row) return;
+  row.outerHTML = rowHtml(defs[section], rec);
+  refocus(`${sel} ${focus}`);
+}
 function renderTable() {
   let d = defs[section],
     cols = d.columns.map((k) => column(d, k)),
@@ -294,12 +316,7 @@ function renderTable() {
       return `<th aria-sort="${aria}"><button class="sortbtn" data-sort="${k}">${esc(cols[i].label)}${on ? (sort.dir > 0 ? " ▲" : " ▼") : ""}</button></th>`;
     })
     .join("");
-  let body = rows
-    .map(
-      (x) =>
-        `<tr>${cols.map((c) => `<td>${c.key === "name" && d.swatch ? swatchHtml(x[d.swatch]) : ""}${cellHtml(c, x)}</td>`).join("")}<td class="rowacts"><button data-edit="${esc(x.id)}">Edit</button><button class="del" data-del="${esc(x.id)}">Delete</button>${section === "miniatures" ? `<button data-queue="${esc(x.id)}">Queue</button>` : ""}</td></tr>`,
-    )
-    .join("");
+  let body = rows.map((x) => rowHtml(d, x)).join("");
   document.querySelector("#content").innerHTML = rows.length
     ? `<div class="tablewrap"><table><thead><tr>${head}<th>Actions</th></tr></thead><tbody>${body}</tbody></table></div>`
     : '<div class="card empty">No matching items.</div>';

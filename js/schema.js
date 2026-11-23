@@ -50,7 +50,8 @@ const defaults = {
 // Field types: text (default), textarea, select (needs `options`), link
 // (stores the id of a record in collection `to`), links (an array of ids),
 // date, url, color, count, money, percent, level, scale (one of `options`,
-// shown in tables as one-tap buttons).
+// shown in tables as one-tap buttons coloured by `tones`: good, mid, bad
+// or none; it sorts in option order, or reversed with `highFirst`).
 const defs = {
   paints: {
     title: "Paints",
@@ -78,7 +79,14 @@ const defs = {
         ],
       },
       { key: "quantity", label: "Quantity", type: "count" },
-      { key: "stock", label: "Stock", type: "scale", options: STOCK_LEVELS },
+      {
+        key: "stock",
+        label: "Stock",
+        type: "scale",
+        options: STOCK_LEVELS,
+        tones: ["good", "good", "mid", "bad", "bad"],
+        highFirst: true, // options run from most to least
+      },
       { key: "price", label: "Cost (£)", type: "money" },
       { key: "notes", label: "Notes", type: "textarea" },
     ],
@@ -110,8 +118,9 @@ const defs = {
       {
         key: "condition",
         label: "Condition",
-        type: "select",
+        type: "scale",
         options: ["New", "Good", "Worn", "Replace soon"],
+        tones: ["good", "good", "mid", "bad"],
       },
       { key: "quantity", label: "Quantity", type: "count" },
       { key: "price", label: "Cost (£)", type: "money" },
@@ -138,8 +147,9 @@ const defs = {
       {
         key: "status",
         label: "Status",
-        type: "select",
+        type: "scale",
         options: ["Unbuilt", "Built", "Primed", "In progress", "Complete"],
+        tones: ["none", "none", "none", "mid", "good"],
       },
       { key: "price", label: "Cost (£)", type: "money" },
       { key: "paints", label: "Recipe paints", type: "links", to: "paints" },
@@ -270,8 +280,9 @@ const defs = {
       {
         key: "priority",
         label: "Priority",
-        type: "select",
+        type: "scale",
         options: ["Low", "Medium", "High"],
+        tones: ["none", "mid", "bad"],
       },
       { key: "paint", label: "Restocks paint", type: "link", to: "paints" },
       { key: "price", label: "Expected cost (£)", type: "money" },
