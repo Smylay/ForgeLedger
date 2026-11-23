@@ -3,7 +3,8 @@
   "private": true,
   "description": "Development tools only. The app itself is a plain HTML file and needs no install.",
   "scripts": {
-    "test": "playwright test",
+    "test": "playwright test --project=chromium",
+    "test:all": "playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
