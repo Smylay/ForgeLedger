@@ -4,7 +4,7 @@
 
 const KEY = "forgeledger_v2_data";
 // Bump when stored data changes shape, and add a step to migrate().
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 const BACKUP_KEY = "forgeledger_v2_last_backup";
 // "off" when the user has turned single-key shortcuts off (kept outside
 // the data, like the last backup time).
@@ -14,6 +14,17 @@ const BACKUP_REMINDER_DAYS = 14;
 const DUE_SOON_DAYS = 14; // dates this close get a "Due in N days" marker
 // Paint stock levels, fullest first. Low and Empty count as low stock.
 const STOCK_LEVELS = ["Full", "Good", "Half", "Low", "Empty"];
+// Painting queue stages between "Not started" and "Complete", which are
+// always first and last. These are the default until it's edited.
+const DEFAULT_STAGES = [
+  "Building",
+  "Priming",
+  "Basecoating",
+  "Detailing",
+  "Basing",
+];
+const MAX_STAGES = 20; // middle stages in one list
+const MAX_STAGE_NAME = 40; // characters
 const COLLECTIONS = [
   "paints",
   "tools",
@@ -238,15 +249,8 @@ const defs = {
         key: "stage",
         label: "Stage",
         type: "select",
-        options: [
-          "Not started",
-          "Building",
-          "Priming",
-          "Basecoating",
-          "Detailing",
-          "Basing",
-          "Complete",
-        ],
+        options: ["Not started", ...DEFAULT_STAGES, "Complete"],
+        optionsFor: (q) => queueStages(q), // the item's own stages
       },
       { key: "models", label: "Model count", type: "count" },
       {
@@ -360,14 +364,42 @@ function projectStats(p) {
   };
 }
 
-// The painting queue's stages in order (the stage field's options).
-function queueStages() {
-  return column(defs.queue, "stage").options;
+// A stored list of middle stages (the default `db.queueStages`, or an
+// item's own `stages`) as usable names: trimmed, non-empty, unique ignoring
+// case, and not "Not started" or "Complete". Null if nothing is usable.
+function cleanStages(list) {
+  if (!Array.isArray(list)) return null;
+  let seen = new Set(["not started", "complete"]),
+    out = [];
+  for (let s of list) {
+    let name = typeof s === "string" ? s.trim().slice(0, MAX_STAGE_NAME) : "";
+    if (!name || seen.has(name.toLowerCase())) continue;
+    seen.add(name.toLowerCase());
+    out.push(name);
+  }
+  return out.length ? out.slice(0, MAX_STAGES) : null;
+}
+// The default middle stages: as edited, else as shipped.
+function defaultStages() {
+  return cleanStages(db.queueStages) || DEFAULT_STAGES;
+}
+// Whether a queue item has stages of its own instead of the default.
+function ownStages(q) {
+  return !!cleanStages(q?.stages);
+}
+// A queue item's stages in order, Not started to Complete: its own, else
+// the default. With no item, the default.
+function queueStages(q) {
+  return [
+    "Not started",
+    ...(cleanStages(q?.stages) || defaultStages()),
+    "Complete",
+  ];
 }
 // How far through the stages a queue item is, from 0 (Not started) to the
 // last stage (Complete). Blank or unknown stages count as Not started.
 function stageIndex(q) {
-  return Math.max(0, queueStages().indexOf(q.stage || "Not started"));
+  return Math.max(0, queueStages(q).indexOf(q.stage || "Not started"));
 }
 // How many models a queue item covers: its own model count, else its
 // miniature's, else 1.
@@ -395,7 +427,7 @@ function isSplit(q) {
 // models start at Not started, and missing ones come off the least
 // advanced stages first.
 function splitCounts(q) {
-  let stages = queueStages(),
+  let stages = queueStages(q),
     total = queueTotal(q),
     counts = stages.map((s) =>
       Object.hasOwn(q.split, s)
@@ -414,7 +446,7 @@ function splitCounts(q) {
 // Counts for an item that isn't split yet: models done in the current
 // stage are already at the next one.
 function splitFrom(q) {
-  let stages = queueStages(),
+  let stages = queueStages(q),
     n = stageIndex(q),
     total = queueTotal(q),
     done = n === 0 || n === stages.length - 1 ? 0 : stageDoneCount(q),
@@ -425,7 +457,7 @@ function splitFrom(q) {
 }
 // Save counts on an item, keeping `stage` and `stageDone` in step.
 function storeSplit(q, counts) {
-  let stages = queueStages(),
+  let stages = queueStages(q),
     n = counts.findIndex((c) => c > 0);
   if (n < 0) n = 0;
   q.split = Object.fromEntries(
@@ -440,7 +472,7 @@ function storeSplit(q, counts) {
 // "Priming 2 · Basecoating 3", the stages that have models.
 function splitText(q) {
   let counts = splitCounts(q);
-  return queueStages()
+  return queueStages(q)
     .map((s, i) => (counts[i] ? `${s} ${counts[i]}` : ""))
     .filter(Boolean)
     .join(" · ");

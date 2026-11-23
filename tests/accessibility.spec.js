@@ -187,6 +187,15 @@ for (const viewport of [
       expect(await violations(page)).toEqual([]);
     });
 
+    test("the stage editor has no accessibility violations", async ({
+      page,
+    }) => {
+      await nav(page, "queue");
+      await page.click("#stagesBtn");
+      await expect(page.locator("#stagesDialog")).toBeVisible();
+      expect(await violations(page)).toEqual([]);
+    });
+
     test("the Bought prompt has no accessibility violations", async ({
       page,
     }) => {

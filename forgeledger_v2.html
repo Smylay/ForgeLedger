@@ -80,6 +80,9 @@
           <form class="quickadd" autocomplete="off">
             <input name="name" required /><button class="btn">Add</button>
           </form>
+          <div class="queuetools">
+            <button class="btn" id="stagesBtn" type="button">Edit default stages</button>
+          </div>
           <div class="queue" id="queueContent"></div>
         </section>
         <section class="view" id="skillsView">
@@ -190,6 +193,26 @@
           <div>
             <button class="btn" value="cancel">Cancel</button>
             <button class="btn primary" value="apply">Apply</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="stagesDialog" aria-labelledby="stagesTitle">
+      <form method="dialog" id="stagesForm">
+        <div class="modalhead"><strong id="stagesTitle">Default stages</strong></div>
+        <div class="modalbody">
+          <p class="muted" id="stagesHint"></p>
+          <ol class="stagelist" id="stageList"></ol>
+          <div class="stagetools">
+            <button class="btn" id="addStage" type="button">Add a stage</button
+            ><button class="btn" id="resetStages" type="button" hidden>Use the default stages</button>
+          </div>
+        </div>
+        <div class="modalfoot">
+          <span></span>
+          <div>
+            <button class="btn" value="cancel" formnovalidate>Cancel</button>
+            <button class="btn primary" value="save">Save</button>
           </div>
         </div>
       </form>
