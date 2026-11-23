@@ -124,6 +124,7 @@ const defs = {
         type: "scale",
         options: ["New", "Good", "Worn", "Replace soon"],
         tones: ["good", "good", "mid", "bad"],
+        highFirst: true, // best first, like paint stock
       },
       { key: "quantity", label: "Quantity", type: "count" },
       { key: "price", label: "Cost (£)", type: "money" },

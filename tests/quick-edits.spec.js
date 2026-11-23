@@ -75,6 +75,27 @@ test.describe("one-tap status fields", () => {
     expect(names).toEqual(["Squad", "Hero"]); // Built before Primed
   });
 
+  test("tool condition sorts worst first, like paint stock", async ({
+    page,
+  }) => {
+    await seed(page, {
+      ...data,
+      tools: [
+        ...data.tools,
+        { id: "t2", name: "Knife", condition: "Replace soon" },
+        { id: "t3", name: "Sponge", condition: "New" },
+      ],
+    });
+    await nav(page, "tools");
+    await page
+      .locator("#content thead button", { hasText: "Condition" })
+      .click();
+    const names = await tableRows(page).evaluateAll((rows) =>
+      rows.map((r) => r.cells[0].textContent),
+    );
+    expect(names).toEqual(["Knife", "Brush", "Sponge"]);
+  });
+
   test("the status filter still works", async ({ page }) => {
     await nav(page, "miniatures");
     await page.selectOption("#filter", "Built");
