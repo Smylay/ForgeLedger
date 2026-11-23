@@ -78,7 +78,7 @@ const defs = {
           "Other",
         ],
       },
-      { key: "quantity", label: "Quantity", type: "count" },
+      { key: "quantity", label: "Quantity", type: "count", stepper: true },
       {
         key: "stock",
         label: "Stock",
@@ -137,12 +137,13 @@ const defs = {
       { key: "name", label: "Miniature / unit", required: true },
       { key: "faction", label: "Faction" },
       { key: "project", label: "Army project", type: "link", to: "projects" },
-      { key: "quantity", label: "Model count", type: "count" },
+      { key: "quantity", label: "Model count", type: "count", stepper: true },
       {
         key: "painted",
         label: "Painted count",
         type: "count",
         atMost: "quantity",
+        stepper: true,
       },
       {
         key: "status",

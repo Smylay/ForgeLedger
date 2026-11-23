@@ -221,6 +221,41 @@ tr:last-child td {
   background: #303945;
   font-size: 12px;
 }
+/* +/- buttons either side of a count. */
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  /* Contains the absolutely positioned screen-reader text, which would
+     otherwise be placed against the page and widen it on phones. */
+  position: relative;
+}
+.stepper button {
+  min-width: 32px;
+  min-height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+}
+.stepper button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.stepval {
+  min-width: 2ch;
+  text-align: center;
+}
+/* Text for screen readers only. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
 /* One-tap level buttons (paint stock): a joined row of small buttons. */
 .scale {
   display: inline-flex;
@@ -364,6 +399,7 @@ tr:last-child td {
 @media (pointer: coarse) {
   .rowacts button,
   .qactions .btn,
+  .stepper button,
   .sortbtn {
     min-width: 44px;
     min-height: 44px;

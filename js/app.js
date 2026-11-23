@@ -42,6 +42,7 @@ document.addEventListener("click", (e) => {
     renderTable();
   }
   if (b.dataset.scale) setScale(b);
+  if (b.dataset.step) stepCount(b);
   if (b.dataset.wish)
     addToWishlist(db.paints.filter((p) => p.id === b.dataset.wish));
   if (b.dataset.wishall !== undefined) {

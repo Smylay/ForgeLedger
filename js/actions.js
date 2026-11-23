@@ -227,3 +227,21 @@ function plusOneDone(qid) {
   );
   if (advance && to === "Complete") askComplete(q);
 }
+
+// One tap on - or +: change a count by one within its limits, then redraw
+// the row (its other counts may have new limits) and keep focus on the
+// button, or on the other one if this one is now at its limit.
+function stepCount(b) {
+  let d = defs[section],
+    f = column(d, b.dataset.key),
+    rec = db[section].find((x) => x.id === b.dataset.id),
+    delta = Number(b.dataset.step);
+  if (!rec || !f?.stepper || Math.abs(delta) !== 1) return;
+  let blank = rec[f.key] === "" || rec[f.key] == null,
+    next = (Number(rec[f.key]) || 0) + delta,
+    { lo, hi } = stepRange(d, f, rec);
+  if ((blank && delta < 0) || next < lo || (hi !== null && next > hi)) return;
+  if (!commit(() => (rec[f.key] = String(next)))) return;
+  let btn = (step) => `[data-key="${f.key}"][data-step="${step}"]`;
+  redrawRow(rec, btn(delta), btn(-delta));
+}

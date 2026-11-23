@@ -14,9 +14,19 @@ const day = (offset) => {
   d.setDate(d.getDate() + offset);
   return d.toLocaleDateString("en-CA");
 };
+// A column's values as shown; for a count with +/- buttons, just the
+// number ("" when it isn't set).
 const column = (page, i) =>
   tableRows(page).evaluateAll(
-    (rows, i) => rows.map((r) => r.cells[i].textContent),
+    (rows, i) =>
+      rows.map((r) => {
+        let v = r.cells[i].querySelector(".stepval");
+        return v
+          ? v.querySelector(".sr-only")
+            ? ""
+            : v.textContent
+          : r.cells[i].textContent;
+      }),
     i,
   );
 const header = (page, label) =>
