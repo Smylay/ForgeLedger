@@ -58,6 +58,9 @@ function migrate(data) {
   // 3 -> 4: queue stages can be edited (`queueStages`, and a queue item's
   // own `stages`). Both are new and optional, so nothing is converted; the
   // version stops older copies of the app mangling custom stage names.
+  // 4 -> 5: miniatures can have `photos`, and backups carry the images in a
+  // top-level `photos`. Nothing is converted; the version stops older
+  // copies from loading a backup's images into localStorage.
   data.schemaVersion = SCHEMA_VERSION;
   return data;
 }

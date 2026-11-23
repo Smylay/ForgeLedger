@@ -322,10 +322,23 @@ function rowHtml(d, x) {
     .map((k) => column(d, k))
     .map(
       (c) =>
-        `<td>${c.key === "name" && d.swatch ? swatchHtml(x[d.swatch]) : ""}${cellHtml(c, x)}</td>`,
+        `<td>${c.key === "name" && d.swatch ? swatchHtml(x[d.swatch]) : ""}${c.key === "name" && d.photos && photoIds(x).length ? `<span class="withthumb">${coverHtml(x)}<span>${cellHtml(c, x)}</span></span>` : cellHtml(c, x)}</td>`,
     )
     .join("");
-  return `<tr data-row="${esc(x.id)}">${cells}<td class="rowacts">${section === "wishlist" ? `<button data-bought="${esc(x.id)}" aria-label="Bought: ${esc(x.name)}">Bought</button>` : ""}<button data-edit="${esc(x.id)}">Edit</button><button class="del" data-del="${esc(x.id)}">Delete</button>${section === "miniatures" ? `<button data-queue="${esc(x.id)}">Queue</button>` : ""}</td></tr>`;
+  return `<tr data-row="${esc(x.id)}">${cells}<td class="rowacts">${section === "wishlist" ? `<button data-bought="${esc(x.id)}" aria-label="Bought: ${esc(x.name)}">Bought</button>` : ""}<button data-edit="${esc(x.id)}">Edit</button><button class="del" data-del="${esc(x.id)}">Delete</button>${section === "miniatures" ? `<button data-queue="${esc(x.id)}">Queue</button>` : ""}${d.photos ? photosButtonHtml(x) : ""}</td></tr>`;
+}
+// A miniature's cover photo (its first) as a small thumbnail; the picture
+// itself is filled in afterwards by fillPhotos(), from IndexedDB.
+function coverHtml(x) {
+  let ids = photoIds(x);
+  return ids.length
+    ? `<img class="thumb" data-photo="${esc(ids[0])}" alt="" width="32" height="32">`
+    : "";
+}
+function photosButtonHtml(x) {
+  let n = photoIds(x).length,
+    label = n ? `Photos (${n})` : "Photos";
+  return `<button data-photos="${esc(x.id)}" aria-label="${label}: ${esc(x.name)}">${label}</button>`;
 }
 // Redraw one table row after a one-tap change, so the row keeps its place
 // (even in a sorted table), then put focus back on the first of `focus`
@@ -336,6 +349,7 @@ function redrawRow(rec, ...focus) {
   if (!row) return;
   row.outerHTML = rowHtml(defs[section], rec);
   refocus(...focus.map((f) => `${sel} ${f}`));
+  fillPhotos(document.querySelector(sel) || document);
 }
 function renderTable() {
   let d = defs[section],
@@ -353,6 +367,7 @@ function renderTable() {
   document.querySelector("#content").innerHTML = rows.length
     ? `<div class="tablewrap"><table><thead><tr>${head}<th>Actions</th></tr></thead><tbody>${body}</tbody></table></div>`
     : '<div class="card empty">No matching items.</div>';
+  fillPhotos(document.querySelector("#content"));
 }
 // One queue item: drag handle, position, details with a stage progress
 // bar, then its actions. Buttons carry the item id (next, plus) or its

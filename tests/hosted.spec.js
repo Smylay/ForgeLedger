@@ -1,5 +1,15 @@
 // The app served over HTTP, as on a home server, rather than from file://.
-const { test, expect, SITE, stored, addItem, nav } = require("./helpers");
+const {
+  test,
+  expect,
+  SITE,
+  seed,
+  stored,
+  addItem,
+  nav,
+  tableRows,
+  imageFile,
+} = require("./helpers");
 
 test("the site root opens the app on the dashboard", async ({ page }) => {
   await page.goto(SITE);
@@ -38,4 +48,27 @@ test("two tabs on the server copy stay in sync", async ({ page, context }) => {
     "From tab A",
     "From tab B",
   ]);
+});
+
+// Served, photos work in every browser, Safari's WebKit included (which
+// can't store them from file://).
+test("photos can be added when hosted", async ({ page }) => {
+  await page.goto(SITE);
+  await seed(page, {
+    schemaVersion: 5,
+    miniatures: [{ id: "m", name: "Squad" }],
+  });
+  await nav(page, "miniatures");
+  await page.getByRole("button", { name: "Photos: Squad" }).click();
+  await expect(page.locator("#photosUnavailable")).toBeHidden();
+  await page
+    .locator("#photoFile")
+    .setInputFiles([await imageFile(page, "a.png", 400, 300)]);
+  await expect(page.locator("#photoView img")).toHaveAttribute("src", /^blob:/);
+  expect((await stored(page)).miniatures[0].photos).toHaveLength(1);
+  await page.click("#closePhotos");
+  await expect(tableRows(page).first().locator("img.thumb")).toHaveAttribute(
+    "src",
+    /^blob:/,
+  );
 });

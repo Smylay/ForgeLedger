@@ -56,6 +56,7 @@ _(From the bug list.)_
 ## Later
 
 - A currency setting (currently fixed to GBP).
+- Fit the miniatures table on a laptop screen. With nine columns plus its row buttons, it scrolls sideways below about 1400px wide.
 - Count restock purchases in Recorded spend. Bought on a restock sets the paint to Full but doesn't record what the new pot cost, because a paint holds one price.
 - Optional automatic saving to a JSON file you choose (Chromium-based browsers only).
 - Installing as an app when hosted over HTTPS.

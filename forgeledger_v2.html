@@ -217,6 +217,30 @@
         </div>
       </form>
     </dialog>
+    <dialog id="photosDialog" aria-labelledby="photosTitle">
+      <div class="modalhead">
+        <strong id="photosTitle">Photos</strong><button class="btn" id="closePhotos" type="button">Close</button>
+      </div>
+      <div class="modalbody">
+        <p class="notice warn" id="photosUnavailable" hidden>
+          This browser can't keep photos for ForgeLedger opened as a file. Use Chrome, Edge or Firefox, or open
+          ForgeLedger from a server (see the README).
+        </p>
+        <figure class="photoview" id="photoView"></figure>
+        <div class="photostrip" id="photoStrip"></div>
+        <div class="phototools">
+          <button class="btn primary" id="addPhotos" type="button">Add photos</button
+          ><input type="file" id="photoFile" accept="image/*" multiple hidden /><button
+            class="btn"
+            id="coverPhoto"
+            type="button"
+          >
+            Make cover photo</button
+          ><button class="btn" id="removePhoto" type="button">Remove photo</button>
+        </div>
+        <p class="muted" id="photoStatus" role="status"></p>
+      </div>
+    </dialog>
     <div class="toast" id="toast" aria-live="polite">
       <span id="toastText"></span><button class="btn" id="toastAction" type="button" hidden></button>
     </div>
@@ -225,6 +249,7 @@
     <script src="js/schema.js"></script>
     <script src="js/skillguide.js"></script>
     <script src="js/storage.js"></script>
+    <script src="js/photos.js"></script>
     <script src="js/render.js"></script>
     <script src="js/forms.js"></script>
     <script src="js/actions.js"></script>

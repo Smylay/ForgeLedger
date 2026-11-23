@@ -75,6 +75,15 @@ test("the keyboard shortcuts button is still there, beside the brand", async ({
   await expect(page.locator("#keysDialog")).toBeVisible();
 });
 
+test("the photo viewer fits the screen", async ({ page }) => {
+  await nav(page, "miniatures");
+  await page.locator("button[data-photos]").first().click();
+  const overflow = await page
+    .locator("#photosDialog")
+    .evaluate((d) => d.scrollWidth - d.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+});
+
 test("the stage editor's rows fit the screen", async ({ page }) => {
   await nav(page, "queue");
   await page.click("#stagesBtn");

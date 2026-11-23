@@ -8,6 +8,10 @@ let memoryOnly = false, // storage is blocked: changes live in memory only
   completing = null, // id of the queue item the completion prompt is about
   buying = null, // { id, row } of the wishlist item the Bought prompt is about
   editingStages = null, // { qid } while the stage editor is open (null qid: default)
+  viewing = null, // { id, index, url } of the miniature whose photos are open
+  photoDbOpen = null, // the photo database, opened once (photos.js)
+  photoCheck = null, // whether photos can be saved here, checked once
+  photoUrls = new Map(), // object URLs of photo thumbnails, by id
   sort = { key: "", dir: 1 }, // table sort for the current section
   upgraded = false, // load() upgraded saved data from an older schema
   toastTimer;
@@ -52,6 +56,7 @@ document.addEventListener("click", (e) => {
     addToWishlist(db.paints.filter((p) => isLow(p) && !wanted.has(p.id)));
   }
   if (b.dataset.bought) bought(b);
+  if (b.dataset.photos) openPhotos(b.dataset.photos);
   if (b.dataset.stages) openStages(b.dataset.stages);
   if (b.dataset.queue) {
     let m = db.miniatures.find((x) => x.id === b.dataset.queue);
@@ -109,6 +114,38 @@ document.querySelector("#itemForm").oninput = (e) => {
 // Runs as the button is clicked; the dialog closes itself afterwards.
 document.querySelector("#completeForm").onsubmit = (e) => {
   if (e.submitter?.value === "apply") applyComplete();
+};
+// A toast shown inside a dialog (see toast()) goes back to the page when
+// the dialog closes. "close" doesn't bubble, so listen while capturing.
+document.addEventListener(
+  "close",
+  (e) => {
+    let t = document.querySelector("#toast");
+    if (e.target.contains(t)) document.body.append(t);
+  },
+  true,
+);
+// The photo viewer.
+document.querySelector("#closePhotos").onclick = () =>
+  document.querySelector("#photosDialog").close();
+document.querySelector("#addPhotos").onclick = () =>
+  document.querySelector("#photoFile").click();
+document.querySelector("#photoFile").onchange = (e) => {
+  let files = [...e.target.files];
+  e.target.value = ""; // so picking the same file again still works
+  addPhotoFiles(files);
+};
+document.querySelector("#photoStrip").onclick = (e) => {
+  let b = e.target.closest("button[data-pick]");
+  if (b) showPhoto(Number(b.dataset.pick));
+};
+document.querySelector("#coverPhoto").onclick = makeCover;
+document.querySelector("#removePhoto").onclick = removePhoto;
+document.querySelector("#photosDialog").onclose = () => {
+  let mid = viewing?.id;
+  if (viewing?.url) URL.revokeObjectURL(viewing.url);
+  viewing = null;
+  if (mid) refocus(`[data-photos="${CSS.escape(mid)}"]`);
 };
 // The stage editor.
 document.querySelector("#stagesBtn").onclick = () => openStages(null);
@@ -275,3 +312,4 @@ window.addEventListener("hashchange", () => {
 show(sectionFromHash());
 renderBackupState();
 renderAlerts();
+tidyPhotos().catch(() => {}); // delete stored photos nothing uses

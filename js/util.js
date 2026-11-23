@@ -30,9 +30,14 @@ function money(n) {
   return "£" + (Number(n) || 0).toFixed(2);
 }
 // Show a short message, optionally with an action button (e.g. "Undo").
+// While a modal dialog is open the rest of the page is inert, so the toast
+// moves into the dialog to keep its button usable; app.js moves it back
+// when the dialog closes.
 function toast(s, ms = 1800, action = "") {
   let e = document.querySelector("#toast"),
-    btn = document.querySelector("#toastAction");
+    btn = document.querySelector("#toastAction"),
+    host = document.querySelector("dialog[open]") || document.body;
+  if (e.parentElement !== host) host.append(e);
   document.querySelector("#toastText").textContent = s;
   btn.textContent = action;
   btn.hidden = !action;

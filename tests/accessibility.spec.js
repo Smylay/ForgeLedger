@@ -10,6 +10,7 @@ const {
   nav,
   fillForm,
   submitForm,
+  imageFile,
 } = require("./helpers");
 
 const day = (offset) => {
@@ -184,6 +185,21 @@ for (const viewport of [
       await page.click(".levelguide summary");
       await page.selectOption("#skillAdd select", "other");
       await expect(page.locator("#skillAdd input")).toBeVisible();
+      expect(await violations(page)).toEqual([]);
+    });
+
+    test("the photo viewer has no accessibility violations", async ({
+      page,
+    }) => {
+      await nav(page, "miniatures");
+      await page.locator("button[data-photos]").first().click();
+      await page
+        .locator("#photoFile")
+        .setInputFiles([
+          await imageFile(page, "a.png", 400, 300),
+          await imageFile(page, "b.png", 300, 400),
+        ]);
+      await expect(page.locator("#photoStrip button")).toHaveCount(2);
       expect(await violations(page)).toEqual([]);
     });
 
