@@ -66,21 +66,42 @@ test("an address without the slash still works", async ({ page }) => {
   await expect(page.locator("#title")).toHaveText("Paints");
 });
 
-test("a modified click on a nav link is left to the browser", async ({
+test("modified clicks on nav links are left to the browser", async ({
   page,
 }) => {
   await openApp(page);
-  // Ctrl/Cmd-click opens a new tab; the current page must not navigate.
-  await page.evaluate(() =>
-    document.querySelector('#nav a[data-sec="paints"]').dispatchEvent(
-      new MouseEvent("click", {
-        bubbles: true,
-        cancelable: true,
-        ctrlKey: true,
-      }),
+  // Whether the app took over each click (cancelled it). A window listener
+  // runs after the app's document listener, records that, then cancels the
+  // browser's own navigation so every engine behaves the same: browsers
+  // treat synthetic Ctrl-clicks differently from real ones.
+  const handled = await page.evaluate(() =>
+    [{}, { ctrlKey: true }, { metaKey: true }, { shiftKey: true }].map(
+      (keys) => {
+        let cancelled;
+        window.addEventListener(
+          "click",
+          (e) => {
+            cancelled = e.defaultPrevented;
+            e.preventDefault();
+          },
+          { once: true },
+        );
+        document
+          .querySelector('#nav a[data-sec="paints"]')
+          .dispatchEvent(
+            new MouseEvent("click", {
+              bubbles: true,
+              cancelable: true,
+              ...keys,
+            }),
+          );
+        return cancelled;
+      },
     ),
   );
-  await expect(page.locator("#title")).toHaveText("Dashboard");
+  // Only the plain click is handled in place (it navigates to Paints).
+  expect(handled).toEqual([true, false, false, false]);
+  await expect(page.locator("#title")).toHaveText("Paints");
 });
 
 test("index.html opens the app, keeping the address and saved data", async ({
