@@ -86,15 +86,13 @@ test("modified clicks on nav links are left to the browser", async ({
           },
           { once: true },
         );
-        document
-          .querySelector('#nav a[data-sec="paints"]')
-          .dispatchEvent(
-            new MouseEvent("click", {
-              bubbles: true,
-              cancelable: true,
-              ...keys,
-            }),
-          );
+        document.querySelector('#nav a[data-sec="paints"]').dispatchEvent(
+          new MouseEvent("click", {
+            bubbles: true,
+            cancelable: true,
+            ...keys,
+          }),
+        );
         return cancelled;
       },
     ),
