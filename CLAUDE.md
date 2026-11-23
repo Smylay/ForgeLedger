@@ -130,6 +130,18 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 `tests/security.spec.js` tries each known injection route. Add a case there when you render a new field.
 
+**Accessibility and layout.**
+
+- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the add/edit form and the completion prompt, at desktop and phone sizes. New UI must pass it; seed its data so the new elements appear.
+- **Red backgrounds.** Text on a red background uses `--accent-strong`, not `--accent`. White on `--accent` is under the 4.5:1 contrast minimum.
+- **Icon-only buttons** need an `aria-label`, like the queue's "Move … up" arrows.
+- **Button sizes.** Row buttons are at least 32px, and 44px on touch screens (`pointer: coarse`).
+- **Focus.** `:focus-visible` gives every control one blue focus ring. Don't remove outlines.
+- **Phones (≤520px):**
+  - The nav is a single scrolling row, and `show()` scrolls the current link into view.
+  - The page grid uses `minmax(0, 1fr)`, so wide content can't widen the page.
+  - `tests/layout.spec.js` checks that every section fits a 375px screen.
+
 **Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`), then dispatches on `data-*` attributes of the clicked `<button>`: `edit`, `del`, `queue`, `up`, `down`, `recovery`, `wish`, `wishall` and `sort`.
 
 - `edit` and `del` work in every section because they act on the current section.

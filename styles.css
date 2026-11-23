@@ -6,6 +6,7 @@
   --muted: #9ba8b7;
   --line: #303945;
   --accent: #db3a34;
+  --accent-strong: #c9342e; /* button background: white text is 5.2:1 */
   --gold: #ffc857;
   --green: #629460;
   --blue: #5da9e9;
@@ -118,8 +119,9 @@ button {
   filter: brightness(1.15);
 }
 .primary {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: #fff;
 }
 .good {
   background: var(--green);
@@ -290,7 +292,25 @@ tr:last-child td {
   border: 0;
   background: transparent;
   color: var(--blue);
-  padding: 4px;
+  padding: 4px 6px;
+  min-width: 32px;
+  min-height: 32px;
+}
+/* Keyboard focus: one clear ring everywhere, on the dark background. */
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+/* Touch screens: fingers need bigger targets than a mouse pointer. */
+@media (pointer: coarse) {
+  .rowacts button,
+  .sortbtn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .nav a {
+    padding: 12px 14px;
+  }
 }
 .rowacts .del {
   color: #ff7773;
@@ -447,7 +467,10 @@ dialog::backdrop {
 }
 @media (max-width: 850px) {
   .shell {
-    grid-template-columns: 1fr;
+    /* minmax(0, ...) stops wide content (the nav row, tables) widening the
+       page; spare height goes to the content row, not the header. */
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
   }
   .side {
     position: relative;
@@ -472,11 +495,43 @@ dialog::backdrop {
   }
 }
 @media (max-width: 520px) {
+  /* One scrolling row of sections instead of a block of four rows. */
   .nav {
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    overflow-x: auto;
+    gap: 6px;
+    margin: 0 -14px;
+    padding: 0 14px 4px;
+  }
+  .nav a {
+    flex: none;
+    white-space: nowrap;
+  }
+  .nav .count {
+    float: none;
+    margin-left: 6px;
+  }
+  .brand {
+    margin-bottom: 12px;
+  }
+  .side {
+    padding-bottom: 10px;
   }
   .grid {
     grid-template-columns: 1fr;
+  }
+  #metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  /* Queue buttons get their own line under the item's details. */
+  .qitem {
+    grid-template-columns: 28px 1fr;
+  }
+  .qitem .rowacts {
+    grid-column: 2;
+  }
+  .metric .v {
+    font-size: 22px;
   }
   .wide {
     grid-column: auto;

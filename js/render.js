@@ -95,6 +95,10 @@ function show(k) {
   document.querySelector("#filter").innerHTML = ""; // resets the filter
   sort = { key: "", dir: 1 };
   renderNav();
+  // On phones the nav is one scrolling row; keep the current page in view.
+  document
+    .querySelector("#nav .active")
+    .scrollIntoView({ block: "nearest", inline: "nearest" });
   document
     .querySelectorAll(".view")
     .forEach((x) => x.classList.remove("active"));
@@ -292,7 +296,7 @@ function renderQueue() {
               : lowRecipePaints(
                   linked(column(defs.queue, "miniature"), q.miniature),
                 );
-          return `<div class="qitem"><div class="qnum">${i + 1}</div><div><b>${esc(q.name)}</b><div class="muted">${esc(q.stage || "Not started")} · ${esc(q.models || 1)} model(s)${q.due ? " · due " + esc(q.due) + " " + dueBadge(q.due, q.stage === "Complete") : ""}</div>${low.length ? `<div class="warnline">Low paint: ${low.map((p) => `${esc(p.name)} (${Number(p.remaining)}%)`).join(", ")}</div>` : ""}</div><div class="rowacts"><button data-up="${i}">↑</button><button data-down="${i}">↓</button><button data-edit="${esc(q.id)}">Edit</button><button class="del" data-del="${esc(q.id)}">Delete</button></div></div>`;
+          return `<div class="qitem"><div class="qnum">${i + 1}</div><div><b>${esc(q.name)}</b><div class="muted">${esc(q.stage || "Not started")} · ${esc(q.models || 1)} model(s)${q.due ? " · due " + esc(q.due) + " " + dueBadge(q.due, q.stage === "Complete") : ""}</div>${low.length ? `<div class="warnline">Low paint: ${low.map((p) => `${esc(p.name)} (${Number(p.remaining)}%)`).join(", ")}</div>` : ""}</div><div class="rowacts"><button data-up="${i}" aria-label="Move ${esc(q.name)} up">↑</button><button data-down="${i}" aria-label="Move ${esc(q.name)} down">↓</button><button data-edit="${esc(q.id)}">Edit</button><button class="del" data-del="${esc(q.id)}">Delete</button></div></div>`;
         })
         .join("")
     : '<div class="card empty">Painting queue is empty.</div>';
