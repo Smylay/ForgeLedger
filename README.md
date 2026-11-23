@@ -23,6 +23,8 @@ ForgeLedger is an offline-first tracker for miniature wargaming. It keeps your p
 
 You don't need to install anything, build anything, or be online.
 
+**Want a tour first?** On the empty dashboard, choose **Load example data**. It fills every section with made-up paints, miniatures, projects, a painting queue, skills and a wishlist, so you can try every feature. Clear it with **Clear it and start fresh** when you're ready to add your own. The same data is in `examples/forgeledger-example.json`, which you can load with **Import** at any time.
+
 ## Your data
 
 ForgeLedger saves your data automatically in your browser's local storage. Nothing is sent anywhere.
