@@ -4,7 +4,7 @@ const {
   test,
   reload,
   expect,
-  SITE,
+  openSite,
   openApp,
   seed,
   stored,
@@ -60,7 +60,7 @@ test.describe("theme", () => {
     page,
   }) => {
     // Served over HTTP: browsers don't let a file:// page read its rules.
-    await page.goto(SITE);
+    await openSite(page);
     const blocks = await page.evaluate(() => {
       const props = (rule) =>
         Object.fromEntries(
@@ -350,7 +350,7 @@ test.describe("auto-save to a file", () => {
         };
       });
       // Served over HTTP: the private file system needs a secure origin.
-      await page.goto(SITE);
+      await openSite(page);
     });
 
     // The saved file's data, or null before it's first written. (A poll

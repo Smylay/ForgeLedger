@@ -27,6 +27,7 @@ Keep it runnable from `file://`. Browsers refuse to load ES module scripts from 
   - **Reload with `reload(page)` from `helpers.js`, never `page.reload()`.** Under load, Chromium can drop a `localStorage` write made just before a reload, because the theme script reads storage the moment the new page starts. `reload()` hands the storage over in `window.name` and writes back any difference before the app reads it. `seed()` uses it, and `tests/code.spec.js` fails if a test calls `page.reload()`.
   - The auto `pageErrors` fixture in `tests/helpers.js` fails any test where the page throws an uncaught error.
   - Most tests open the app from `file://`. `tests/hosted.spec.js` opens it over HTTP from `tests/serve.js`, a minimal static server that Playwright starts on port 4173.
+  - Open the served copy with `openSite(page)`, not `page.goto(SITE)`. `/` is `index.html`, which forwards to the app, and `openSite()` waits for that; otherwise the next step can run on the page being replaced.
   - `npm test` runs Chromium only. `npm run test:all` adds Firefox and WebKit; install them first with `npx playwright install firefox webkit`. CI runs all three.
   - Import `test` and `expect` from `./helpers`, not from `@playwright/test`, so the fixtures apply. `helpers.js` also has helpers for seeding data, filling forms, downloads, and imports.
 - **Example data:** `npm run example` rewrites `examples/forgeledger-example.json` from `js/demo.js` (see Example data). Run it after changing `demo.js`; `tests/demo.spec.js` fails while the file is out of date.

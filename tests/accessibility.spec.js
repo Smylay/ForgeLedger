@@ -7,7 +7,7 @@ const {
   test,
   reload,
   expect,
-  SITE,
+  openSite,
   seed,
   nav,
   fillForm,
@@ -146,7 +146,7 @@ for (const run of [
     test.beforeEach(async ({ page }) => {
       // Served over HTTP: axe reads the stylesheet, and WebKit blocks a page
       // opened from file:// from reading other local files.
-      await page.goto(SITE);
+      await openSite(page);
       await page.evaluate(
         (t) => localStorage.setItem("forgeledger_v2_theme", t),
         run.theme,

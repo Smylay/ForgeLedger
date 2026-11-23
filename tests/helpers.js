@@ -41,6 +41,13 @@ const test = base.test.extend({
 async function openApp(page) {
   await page.goto(APP);
 }
+// Open the served copy. "/" is index.html, which forwards to the app; wait
+// for that, or the next step can run on the page being replaced.
+async function openSite(page, hash = "") {
+  await page.goto(SITE + hash);
+  await page.waitForURL(/forgeledger_v2\.html/);
+  await page.waitForLoadState("load");
+}
 
 // Reload the page with exactly the localStorage it has now. Under heavy
 // load, Chromium can drop a write made just before a reload, since the
@@ -162,6 +169,7 @@ module.exports = {
   SITE,
   KEY,
   openApp,
+  openSite,
   reload,
   seed,
   stored,
