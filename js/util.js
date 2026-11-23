@@ -47,4 +47,9 @@ function download(text, name, type = "application/json") {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
-const today = () => new Date().toISOString().slice(0, 10);
+// Today's date as YYYY-MM-DD in local time, the format date inputs use.
+function today() {
+  let d = new Date(),
+    p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}

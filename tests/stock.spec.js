@@ -49,7 +49,7 @@ test.describe("migration from Remaining %", () => {
     await seed(page, { paints: [...paints, { id: "n", name: "None" }] });
     expect(await stockOf(page)).toEqual({ ...expected, None: "" });
     const data = await stored(page);
-    expect(data.schemaVersion).toBe(2);
+    expect(data.schemaVersion).toBe(3);
     // The old field stays in the record so nothing is lost.
     expect(data.paints[1].remaining).toBe("5");
   });
@@ -76,6 +76,43 @@ test.describe("migration from Remaining %", () => {
       paints: [{ id: "a", name: "Cleared", stock: "", remaining: "5" }],
     });
     expect(await stockOf(page)).toEqual({ Cleared: "" });
+  });
+});
+
+test.describe("paint types", () => {
+  const typeOf = async (page) =>
+    Object.fromEntries(
+      (await stored(page)).paints.map((p) => [p.name, p.type]),
+    );
+  const paints = [
+    { id: "a", name: "Old shade", type: "Shade" },
+    { id: "b", name: "Layer", type: "Layer" },
+    { id: "c", name: "Untyped" },
+  ];
+
+  test("Shade becomes Shade/Wash in saved data", async ({ page }) => {
+    await seed(page, { schemaVersion: 2, paints });
+    expect(await typeOf(page)).toEqual({
+      "Old shade": "Shade/Wash",
+      Layer: "Layer",
+      Untyped: undefined,
+    });
+    expect((await stored(page)).schemaVersion).toBe(3);
+  });
+
+  test("and in an imported backup", async ({ page }, testInfo) => {
+    await importBackup(page, { schemaVersion: 2, paints }, testInfo);
+    await expect(page.locator("#toast")).toHaveText("Backup imported");
+    expect((await typeOf(page))["Old shade"]).toBe("Shade/Wash");
+  });
+
+  test("Primer and Shade/Wash can be chosen and filtered", async ({ page }) => {
+    await seed(page, { schemaVersion: 2, paints });
+    await addItem(page, "paints", { name: "Grey", type: "Primer" });
+    expect((await typeOf(page)).Grey).toBe("Primer");
+    await page.selectOption("#filter", "Shade/Wash");
+    await expect(tableRows(page)).toHaveCount(1);
+    await expect(tableRows(page).first()).toContainText("Old shade");
   });
 });
 

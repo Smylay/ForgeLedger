@@ -249,6 +249,32 @@ function stepCount(b) {
 // Quick add: a new record in the current section with just a name, with
 // Undo. Search and filter are cleared so the new record is visible, and
 // the box is emptied (keeping focus) for the next one.
+// The skill picker: a technique from the library, or "Other" with a name.
+function addSkill(form) {
+  let { pick, name: input } = form.elements,
+    name = (pick.value === "other" ? input.value : pick.value).trim();
+  if (!name) return;
+  if (db.skills.some((s) => sameName(s.name, name)))
+    return toast(`"${name}" is already in your skills`);
+  let added = commitWithUndo(
+    () =>
+      db.skills.push({
+        id: id(),
+        name,
+        level: 0,
+        notes: "",
+        goal: "",
+        changed: today(),
+      }),
+    () => `Added "${name}"`,
+  );
+  if (!added) return;
+  input.value = "";
+  input.hidden = true;
+  input.required = false;
+  pick.value = "";
+  pick.focus();
+}
 function quickAdd(form) {
   let input = form.elements.name,
     name = input.value.trim();

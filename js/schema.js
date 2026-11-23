@@ -4,7 +4,7 @@
 
 const KEY = "forgeledger_v2_data";
 // Bump when stored data changes shape, and add a step to migrate().
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const BACKUP_KEY = "forgeledger_v2_last_backup";
 // "off" when the user has turned single-key shortcuts off (kept outside
 // the data, like the last backup time).
@@ -70,9 +70,10 @@ const defs = {
         label: "Type",
         type: "select",
         options: [
+          "Primer",
           "Base",
           "Layer",
-          "Shade",
+          "Shade/Wash",
           "Contrast/Speedpaint",
           "Metallic",
           "Technical",

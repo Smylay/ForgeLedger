@@ -193,7 +193,7 @@ test.describe("skills", () => {
           .textContent,
       };
     });
-    expect(result).toEqual({ sameElement: true, label: "6/9" });
+    expect(result).toEqual({ sameElement: true, label: "6/9 · Skilled" });
     expect((await stored(page)).skills[0].level).toBe(6);
   });
 

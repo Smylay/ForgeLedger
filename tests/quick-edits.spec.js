@@ -204,9 +204,10 @@ test.describe("quick add", () => {
     await box(page).fill("Terrain");
     await box(page).press("Enter");
     await expect(page.locator("#queueContent .qitem")).toHaveCount(1);
+    // Skills pick from the technique library instead (tests/skills.spec.js).
     await nav(page, "skills");
-    await box(page).fill("Freehand");
-    await box(page).press("Enter");
+    await page.selectOption("#skillAdd select", "Freehand");
+    await page.click("#skillAdd button");
     await expect(page.locator(".skill").last()).toContainText("Freehand");
     await expect(page.locator(".skill").last()).toContainText("0/9");
   });

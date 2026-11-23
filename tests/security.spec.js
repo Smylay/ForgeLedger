@@ -40,8 +40,16 @@ test("values from an imported backup can't run script", async ({
       queue: [
         { id: attack("queueId"), name: "Queued", miniature: attack("miniId") },
       ],
+      // A level of 0 and no library match put this skill in the profile,
+      // the practice suggestions (with its goal) and its card.
       skills: [
-        { id: attack("skillId"), name: "Skill", level: attack("level") },
+        {
+          id: attack("skillId"),
+          name: attack("skillName"),
+          level: attack("level"),
+          goal: attack("goal"),
+          changed: attack("changed"),
+        },
       ],
       wishlist: [{ id: "w", name: "Link", url: attack("url") }],
     },
@@ -72,7 +80,10 @@ test("values from an imported backup can't run script", async ({
       "projectId",
       "queueId",
       "skillId",
+      "skillName",
       "level",
+      "goal",
+      "changed",
       "url",
       "stock",
     ].filter((f) => window[f]),
@@ -105,7 +116,7 @@ test("a skill level that isn't a number shows as 0", async ({
     testInfo,
   );
   await nav(page, "skills");
-  await expect(page.locator(".skilltop strong")).toHaveText("0/9");
+  await expect(page.locator(".skilltop strong")).toHaveText("0/9 · Not tried");
 });
 
 test.describe("wishlist links", () => {

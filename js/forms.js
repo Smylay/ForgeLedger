@@ -79,6 +79,9 @@ function submit(e) {
   let prev = db[section].find((x) => x.id === o.id);
   // A queue item moved to another stage starts that stage's count again.
   if (section === "queue" && prev && prev.stage !== o.stage) o.stageDone = 0;
+  // Skills record when their level last changed, for practice suggestions.
+  if (section === "skills" && (!prev || skillLevel(prev) !== o.level))
+    o.changed = today();
   let saved = commit(() => {
     let arr = db[section],
       i = arr.findIndex((x) => x.id === o.id);
