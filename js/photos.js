@@ -1,6 +1,7 @@
 // Miniature photos. The data (localStorage) holds each miniature's photo
 // ids in `photos`; the images themselves live in IndexedDB, which has room
-// for them. Images are stored as bytes (ArrayBuffer) with their type, and
+// for them. Images are stored as bytes (ArrayBuffer) with their type, not
+// as Blobs, which WebKit (Safari) can't store from a file:// page. They're
 // shrunk before saving: PHOTO_SIZE pixels on the long edge, plus a
 // THUMB_SIZE thumbnail.
 
@@ -14,7 +15,7 @@ const PHOTO_KEEP_MS = 864e5;
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 // Open (once) the photo database. Rejects where IndexedDB is unavailable,
-// e.g. Safari with the app opened as a file, or a blocked private window.
+// e.g. a private window or blocked site data.
 function photoDb() {
   photoDbOpen ??= new Promise((res, rej) => {
     let q;

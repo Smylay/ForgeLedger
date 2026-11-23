@@ -50,8 +50,7 @@ test("two tabs on the server copy stay in sync", async ({ page, context }) => {
   ]);
 });
 
-// Served, photos work in every browser, Safari's WebKit included (which
-// can't store them from file://).
+// Photos work when served too, as on a home server.
 test("photos can be added when hosted", async ({ page }) => {
   await page.goto(SITE);
   await seed(page, {

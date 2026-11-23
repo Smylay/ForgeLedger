@@ -32,7 +32,7 @@ async function addPhotos(page, files) {
   await expect(page.locator("#photoStatus")).toHaveText("");
 }
 
-test.beforeEach(async ({ page, browserName }) => {
+test.beforeEach(async ({ page }) => {
   await openApp(page);
   await seed(page, {
     schemaVersion: 5,
@@ -41,14 +41,9 @@ test.beforeEach(async ({ page, browserName }) => {
       { id: "m2", name: "Hero", quantity: "1" },
     ],
   });
-  // WebKit can't use IndexedDB from a file:// page (tests/hosted.spec.js
-  // checks photos over HTTP there). Everywhere else it must work.
-  const works = await page.evaluate(() => photosWork());
-  test.skip(
-    browserName === "webkit" && !works,
-    "WebKit can't store photos from file://",
-  );
-  expect(works).toBe(true);
+  // Photos must work from file:// in every browser. (WebKit can't store
+  // Blobs in IndexedDB there, which is why photos are stored as bytes.)
+  expect(await page.evaluate(() => photosWork())).toBe(true);
   await nav(page, "miniatures");
 });
 

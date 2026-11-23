@@ -32,7 +32,7 @@ ForgeLedger saves your data automatically in your browser's local storage. Nothi
 - **Back up regularly with Export backup.** It downloads a JSON file that you can restore with **Import** in any browser. The dashboard reminds you when your last backup is more than 14 days old.
 - **Importing replaces everything.** ForgeLedger asks first and downloads a copy of your current data before replacing it.
 - **Photos stay on your device too.** They're shrunk to about 1600 pixels and kept in the browser's own storage (IndexedDB), and Export backup includes them, so backups grow by roughly 0.3MB a photo.
-- **Safari can't keep photos for a double-clicked file.** Use Chrome, Edge or Firefox, or open ForgeLedger from a server (below), where photos work in Safari too.
+- **Photos work in Chrome, Edge, Firefox and Safari,** whether you double-click the file or host it. They're tested in each browser's engine; a private window may not keep them.
 
 ## Hosting on your own server
 

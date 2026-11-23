@@ -231,8 +231,9 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - Each record is `{ id, type, full, thumb, width, height, added }`. `full` and `thumb` are ArrayBuffers, not Blobs.
   - The miniature's `photos` field holds the ids, in order; the first is the cover. Read it with `photoIds()`, which drops anything that isn't a non-empty string.
 - **Where it works.** `photosWork()` checks once, by writing and reading back a tiny record.
-  - IndexedDB works from `file://` in Chromium and Firefox, but not WebKit (Safari).
-  - Where it fails, the viewer shows `#photosUnavailable` and disables Add. Served over HTTP, photos work in every browser; `tests/hosted.spec.js` checks this.
+  - It works from `file://` and over HTTP in Chromium, Firefox and WebKit. `tests/photos.spec.js` requires it to, and `tests/hosted.spec.js` checks the served copy.
+  - Images are ArrayBuffers because WebKit can't store Blobs in IndexedDB from `file://`. A CI probe showed that.
+  - Where it fails anyway, for example in a private window or with site data blocked, the viewer shows `#photosUnavailable` and disables Add.
 - **Adding.** `photoFromFile()` decodes the file through an `<img>`, which applies EXIF rotation.
   - It shrinks the image to `PHOTO_SIZE` (1600) and `THUMB_SIZE` (320) pixels on the long edge, as JPEG on white.
   - `addPhotoFiles()` stores the images first, then adds the ids with `commitWithUndo`.

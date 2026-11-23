@@ -44,7 +44,7 @@ _(From the bug list.)_
 
 - **Add photos to a miniature,** from a file or a phone's camera. They're shrunk and kept in the browser's own storage (IndexedDB), so they stay on your device.
 - **Export backup includes them,** so one file still moves everything.
-- **Works opened as a file** in Chrome, Edge and Firefox. Safari can't use the browser's image storage from a double-clicked file, so it needs the app served, for example from your home server.
+- **Works opened as a file or hosted,** in Chrome, Edge, Firefox and Safari.
 
 ## Later
 
