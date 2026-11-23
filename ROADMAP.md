@@ -1,6 +1,6 @@
 # Roadmap
 
-ForgeLedger keeps the base solid before adding features. Each phase ships as its own pull request.
+ForgeLedger keeps the base solid before adding features. Each phase ships as its own pull request. Bugs and ideas found while using the app are collected in `ForgeLedger Bugs.txt` and added here.
 
 ## Principles
 
@@ -32,35 +32,25 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - **Paint levels (phase 7):** stock is Full / Good / Half / Low / Empty, set with one tap.
 - **Queue controls (phase 8):** next stage, a progress bar, a +1 counter, Top, and drag to reorder.
 - **Fixes (phase 9):** the queue +1 counts models per stage and moves the item on when they're all done, paint colours show as a swatch, editing keeps fields the form doesn't show, and the sidebar footer no longer overlaps the nav in short windows.
+- **Fewer trips to the edit form (phase 10):** one-tap status fields, +/− buttons on counts, a quick-add row, and keyboard shortcuts with an off switch.
 
-## Phase 10: Fewer trips to the edit form (in progress)
+## Phase 11: Skills and paint types (in progress)
 
-- **One-tap status fields,** like paint stock: miniature status, wishlist priority and tool condition.
-- **+/− buttons** on paint quantity, model count and painted count. Painted can't go above the model count.
-- **A quick-add row** at the top of each list: type a name and press Enter.
-- **Keyboard shortcuts:** N to add, Q to quick-add, / to search, 1 to 8 to jump between sections, Esc to close, and a list of them on "?" or from the sidebar. A setting in that list turns them off, as WCAG 2.1.4 requires for single-key shortcuts.
+- **A level guide:** every level has a name and a meaning, shown on each skill as "4/9 · Competent", with a list of all ten.
+- **A technique library** of 20 techniques to pick from, plus Other for your own. Each technique has a next step for your level, which changes as you improve.
+- **A skill profile:** every skill's level as a bar, highest first. This replaces the planned radar chart. With 10 to 20 skills, a radar's labels overlap and its shape is hard to compare, while aligned bars with the level written beside them stay readable and work with screen readers.
+- **Practice suggestions:** skills not updated in a month come first, then your lowest. Skills now record when their level last changed.
+- **Paint types** include Primer, and Shade is now Shade/Wash. _(From the bug list.)_
 
-## Phase 11: Skills
+## Phase 12: Queue models at different stages
 
-- **A level guide,** shown next to each skill, e.g. "4/9 · Competent":
+_(From the bug list.)_
 
-  | Level | Meaning    |
-  | ----- | ---------- |
-  | 0     | Not tried  |
-  | 1     | Tried once |
-  | 2     | Learning   |
-  | 3     | Basic      |
-  | 4     | Competent  |
-  | 5     | Confident  |
-  | 6     | Skilled    |
-  | 7     | Advanced   |
-  | 8     | Expert     |
-  | 9     | Mastery    |
+- **A Split option on each queue item.** It shows how many of the item's models are at each stage, such as "Priming 2 · Basecoating 3", with a button to move one model on.
+- **Off by default,** so items work as they do now, with every model at the same stage.
+- **The progress bar shows the mix,** and the item is complete when every model is.
 
-- **A radar chart** of the whole skill profile, drawn in the page so it works offline, with a plain list for screen readers.
-- **Practice suggestions:** the lowest skills, and skills not updated in a while. This needs a "last changed" date on each skill, which starts recording in this phase.
-
-## Phase 12: Wishlist "Bought" button
+## Phase 13: Wishlist "Bought" button
 
 - **Paint, Tool and Miniature items** move into that list with their name, price and notes.
 - **Restock items linked to a paint** set that paint back to Full instead of creating a duplicate.

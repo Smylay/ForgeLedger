@@ -8,6 +8,14 @@ ForgeLedger is an offline-first, single-page tracker for miniature wargaming: pa
 
 Keep it runnable from `file://`. Browsers refuse to load ES module scripts from `file://`, and service workers don't work there, so don't introduce modules, a bundler, or a service worker unless the project moves to hosting.
 
+## Bug and idea list
+
+`ForgeLedger Bugs.txt`, at the repository root, is the owner's list of bugs and ideas found while using the app. It's grouped by section.
+
+- **At the start of each phase,** read it and put any new items into `ROADMAP.md`, in a phase or under Later.
+- **When a pull request fixes an item,** add `(done in PR #N)` to the end of that item's line, in the same pull request.
+- **Don't reword, reorder or remove** the owner's lines.
+
 ## Running and verifying
 
 - **Run:** open `index.html` in a browser. It forwards to `forgeledger_v2.html`, which is the app itself. It works over `file://`. You can also serve the folder with `python3 -m http.server` and open `/`.
@@ -26,15 +34,16 @@ Keep it runnable from `file://`. Browsers refuse to load ES module scripts from 
 
 The code lives in plain `<script>` files that share the global scope. They aren't ES modules, which can't load from `file://`. `forgeledger_v2.html` loads them in this order:
 
-| File         | Contents                                                                                                    |
-| ------------ | ----------------------------------------------------------------------------------------------------------- |
-| `util.js`    | helpers with no app state: `id()`, `esc()`, `safeColour()`, `safeUrl()`, `money()`, `toast()`, `download()` |
-| `schema.js`  | storage keys, `defaults`, `defs`, `column()`, link helpers, `projectStats()`                                |
-| `storage.js` | load, validate, repair, migrate, `save()`, `commit()`, `commitWithUndo()`, backup age                       |
-| `render.js`  | nav and page switching, dashboard, tables, queue, skills, sorting, deadline markers                         |
-| `forms.js`   | `inputAttrs`, `fieldHtml()`, `openForm()`, `submit()`                                                       |
-| `actions.js` | delete, add to wishlist, the queue completion prompt, JSON export/import, CSV                               |
-| `app.js`     | mutable state, `db = load()`, event wiring, start-up                                                        |
+| File            | Contents                                                                                                               |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `util.js`       | helpers with no app state: `id()`, `esc()`, `safeColour()`, `safeUrl()`, `money()`, `toast()`, `download()`, `today()` |
+| `schema.js`     | storage keys, `defaults`, `defs`, `column()`, link helpers, `projectStats()`                                           |
+| `skillguide.js` | `LEVELS`, the `TECHNIQUES` library, `nextStep()`, `practiceNext()` and other skill helpers                             |
+| `storage.js`    | load, validate, repair, migrate, `save()`, `commit()`, `commitWithUndo()`, backup age                                  |
+| `render.js`     | nav and page switching, dashboard, tables, queue, skills, sorting, deadline markers                                    |
+| `forms.js`      | `inputAttrs`, `fieldHtml()`, `openForm()`, `submit()`                                                                  |
+| `actions.js`    | delete, add to wishlist, the queue completion prompt, JSON export/import, CSV                                          |
+| `app.js`        | mutable state, `db = load()`, event wiring, start-up                                                                   |
 
 - **Only `app.js` runs code at load.** The other files only declare functions and constants, so a function can call anything in any file. Top-level code must only use what earlier files define; for example, `defaults` in `schema.js` calls `id()` from `util.js`.
 - **Every top-level name is global,** so two files can't declare the same `let` or `const` name. Declaring one twice is a `SyntaxError` that stops the app loading.
@@ -62,9 +71,10 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
   - An import with a problem is rejected whole.
   - Saved data with a problem is repaired with `repair()`. The original string is copied to a `forgeledger_v2_recovered_<ISO time>` key first, and `#alerts` offers a download.
 - **Replacing data on import.** When the app already has data, the user must confirm, and the current data is downloaded first.
-- **Schema version.** `schemaVersion` is stored with the data. It's currently 2. When stored fields change shape, bump `SCHEMA_VERSION` and add a step to `migrate()`; each step checks the version it starts from. Backups from a newer version are refused.
+- **Schema version.** `schemaVersion` is stored with the data. It's currently 3. When stored fields change shape, bump `SCHEMA_VERSION` and add a step to `migrate()`; each step checks the version it starts from. Backups from a newer version are refused.
   - 0 → 1: the version field was added.
   - 1 → 2: each paint's `stock` level is set from its old `remaining` percentage by `stockFromPercent()`. The old `remaining` field stays in the record but is no longer read.
+  - 2 → 3: the paint type "Shade" becomes "Shade/Wash".
 - **Saving an upgrade.** When `load()` upgrades saved data from an older schema, it sets `upgraded`, and `app.js` saves once at start-up so storage holds the current schema. Repaired data is not saved until the user changes something, so the damaged original is never replaced first.
 - **Missing fields.** Existing records are never rewritten field by field, so every reader must tolerate missing or blank fields.
 - **Untrusted values.** Field values in imported data are not checked. Treat them as untrusted.
@@ -133,7 +143,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 - Escape every stored value with `esc()`, including ids in `data-*` attributes and `<option value>`.
 - Put a colour into `style` only through `safeColour()`, which accepts hex codes only.
 - Render a link only from `safeUrl()`, which accepts http(s) only.
-- Turn numbers into numbers before printing them, e.g. skill levels are clamped with `Number()`.
+- Turn numbers into numbers before printing them, e.g. skill levels go through `skillLevel()`.
 - CSV export puts `'` in front of any cell that starts with `=`, `+`, `-` or `@` (plain numbers excepted), so spreadsheets don't run it as a formula.
 
 `tests/security.spec.js` tries each known injection route. Add a case there when you render a new field.
@@ -165,13 +175,37 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - A button at its limit is disabled. When a press reaches the limit, focus moves to the other button.
   - A blank count shows "–", and + starts it at 1.
 - **Redrawing one row.** Both use `redrawRow(record, ...selectors)`. Table rows carry `data-row="<id>"`; `redrawRow` replaces that row and focuses the first selector that matches an enabled control in it. The row doesn't move in a sorted table, and keyboard users keep their place.
-- **Quick add.** Each list, the queue and skills have a `.quickadd` form above them: type a name and press Enter. `quickAdd()` clears search and filter so the new record is visible, adds `{ id, name }` with `commitWithUndo`, and keeps focus in the box. `show()` sets the box's placeholder and `aria-label` from the section's `noun`.
+- **Quick add.** Each list and the queue have a `.quickadd` form above them: type a name and press Enter. Skills use a picker instead (see Skills). `quickAdd()` clears search and filter so the new record is visible, adds `{ id, name }` with `commitWithUndo`, and keeps focus in the box. `show()` sets the box's placeholder and `aria-label` from the section's `noun`.
 
-**Keyboard shortcuts.** A `keydown` listener in `app.js` handles single keys: N opens the add form, Q focuses quick add, / focuses search, 1 to 8 go to the sections in nav order (`SECTION_KEYS`), and ? opens `#keysDialog`, which lists them.
+**Keyboard shortcuts.** A `keydown` listener in `app.js` handles single keys: N opens the add form, Q focuses quick add (the picker on the skills page), / focuses search, 1 to 8 go to the sections in nav order (`SECTION_KEYS`), and ? opens `#keysDialog`, which lists them.
 
 - They're ignored while a box has focus, with Ctrl, Alt or Cmd, or while any dialog is open.
 - WCAG 2.1.4 requires a way to turn single-key shortcuts off. The checkbox in `#keysDialog` does that; the sidebar's "Keyboard shortcuts" button opens the dialog even while they're off.
 - The setting is kept in `localStorage["forgeledger_v2_shortcuts"]` (`SHORTCUTS_KEY`), outside the data, so it isn't in backups. Missing means on.
+
+**Skills.** The skills view has its own renderer, `renderSkills()`. Its data and rules are in `skillguide.js`.
+
+- **Levels.** Each level from 0 to 9 has a name and a meaning in `LEVELS`, e.g. 4 is "Competent". Cards show "4/9 · Competent", and the slider's `aria-valuetext` says the same. "What the levels mean" lists them all.
+- **Reading levels.** Read a level with `skillLevel()`, which clamps it to 0–9 and treats junk as 0.
+- **The technique library.** `TECHNIQUES` has 20 entries. Each has a `name`, an `about` line, and four `next` steps, one per level band: 0–2, 3–4, 5–6 and 7–9.
+  - The first ten match the skills a new install starts with.
+  - A skill gets its technique by name, ignoring case and outer spaces (`technique()`). Nothing is stored, so renaming a skill unlinks it.
+  - `nextStep(skill)` returns the step for the skill's level, or `""` for a skill of your own.
+- **Adding skills.** The skills view's quick add is a picker (`#skillAdd`, `addSkill()`). It lists the library techniques you haven't added, plus "Other", which shows a name box.
+  - A name you already have, compared like `technique()`, is refused with a toast.
+- **The changed date.** `changed` holds the date the level last changed, as `YYYY-MM-DD`.
+  - It's set when the slider moves, when the form saves a different level, and when a skill is added.
+  - Older skills have no date. Imported dates may be junk. `daysSinceChanged()` returns `NaN` for both, and cards show no date.
+- **Moving a slider** commits on every `input` event, then `updateSkillCard()` updates that card's label, next step and date in place. Replacing the card would interrupt the drag.
+- **Skill profile.** A meter list: each skill's name, a bar, and its level as text, highest first.
+  - The bar is decorative (`aria-hidden`); the text carries the value.
+  - The fill is `--blue` on a darker blue track, at 4.9:1.
+  - On phones, the bar moves under the name.
+- **Practice next.** `practiceNext()` picks up to three skills:
+  - skills unchanged for `STALE_DAYS` (30) come first, oldest first;
+  - then the lowest levels, in list order;
+  - skills at 9 are left out.
+  - Each pick shows its reason, plus its next step or, for a skill of your own, your goal.
 
 **Mutation pattern.** Never change `db` and call `save()` directly. Use `commit(() => { /* change db */ })`: it snapshots `db`, applies the change, and saves. If saving fails, it restores the snapshot, shows an error, and returns `false`. Afterwards, call `renderNav()` (nav badges show item counts) and the renderer for the affected view.
 
@@ -216,6 +250,7 @@ The form handler `submit()` writes to `db[section]`, so `openForm(sec, obj)` set
   - `queue.miniature` points at a miniature. It's set when a miniature is queued from its row; items queued before this field existed have none.
   - `queue.stageDone` is not a link: it's the number of models done in the item's current stage (see Queue controls). It's optional, and missing means 0.
   - `miniatures.paints` is a `links` array of the paints in its recipe. The older free-text `recipe` field is still there, labelled "Recipe steps".
+  - `skills.changed` is not a link: it's the date the skill's level last changed (see Skills). It's optional.
   - `wishlist.paint` points at the paint a wishlist item restocks. `addToWishlist()` sets it when a low paint is added from the dashboard, and the dashboard uses it to show "On wishlist".
 
   Older data can still hold links to deleted records; these display blank, and saving the record clears them. Imported `links` values may not be arrays; `asList()` treats anything else as empty.
