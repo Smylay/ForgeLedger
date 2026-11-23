@@ -60,16 +60,15 @@ button {
   display: grid;
   gap: 6px;
 }
-.nav button {
-  border: 0;
+.nav a {
+  display: block;
   color: var(--muted);
-  background: transparent;
-  text-align: left;
+  text-decoration: none;
   padding: 10px 12px;
   border-radius: 7px;
 }
-.nav button:hover,
-.nav button.active {
+.nav a:hover,
+.nav a.active {
   background: var(--panel2);
   color: white;
 }

@@ -62,7 +62,7 @@ test.describe("list collections", () => {
       await addItem(page, section, { name: "First" });
       expect((await stored(page))[section]).toHaveLength(1);
       await expect(
-        page.locator(`#nav button[data-sec="${section}"] .count`),
+        page.locator(`#nav a[data-sec="${section}"] .count`),
       ).toHaveText("1");
 
       await page.click("button[data-edit]");
@@ -146,9 +146,9 @@ test.describe("painting queue", () => {
     const queue = (await stored(page)).queue;
     expect(queue).toHaveLength(1);
     expect(queue[0]).toMatchObject({ name: "Squad", models: "5" });
-    await expect(
-      page.locator('#nav button[data-sec="queue"] .count'),
-    ).toHaveText("1");
+    await expect(page.locator('#nav a[data-sec="queue"] .count')).toHaveText(
+      "1",
+    );
   });
 
   test("add, edit, reorder and delete queue items", async ({ page }) => {
@@ -169,9 +169,9 @@ test.describe("painting queue", () => {
 
     await page.click(".qitem:nth-child(1) button[data-del]");
     expect(await names()).toEqual(["A"]);
-    await expect(
-      page.locator('#nav button[data-sec="queue"] .count'),
-    ).toHaveText("1");
+    await expect(page.locator('#nav a[data-sec="queue"] .count')).toHaveText(
+      "1",
+    );
   });
 });
 
@@ -200,9 +200,9 @@ test.describe("skills", () => {
   test("deleting a skill updates the count", async ({ page }) => {
     await nav(page, "skills");
     await page.click("button[data-del]");
-    await expect(
-      page.locator('#nav button[data-sec="skills"] .count'),
-    ).toHaveText("9");
+    await expect(page.locator('#nav a[data-sec="skills"] .count')).toHaveText(
+      "9",
+    );
   });
 });
 

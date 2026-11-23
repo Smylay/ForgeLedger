@@ -136,7 +136,8 @@ test.describe("importing", () => {
         `Can't import this file: ${reason}.`,
       );
       expect((await stored(page)).paints[0].name).toBe("Keep");
-      await page.reload();
+      await page.reload(); // reloading keeps the current page (#/paints)
+      await nav(page, "dashboard");
       await expect(page.locator("#metrics .card")).toHaveCount(4);
     });
   }
@@ -295,11 +296,13 @@ test.describe("backup reminder", () => {
     await addItem(page, "paints", { name: "Red" });
     await setLastBackup(page, 20);
     await page.reload();
+    await nav(page, "dashboard");
     await expect(page.locator("#backupNotice")).toContainText(
       "Last backup: 20 days ago",
     );
     await setLastBackup(page, 3);
     await page.reload();
+    await nav(page, "dashboard");
     await expect(page.locator("#backupNotice")).toBeEmpty();
     await expect(page.locator("#backupState")).toHaveText(
       "Last backup: 3 days ago",

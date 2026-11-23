@@ -10,7 +10,7 @@ Keep it runnable from `file://`. Browsers refuse to load ES module scripts from 
 
 ## Running and verifying
 
-- **Run:** open `forgeledger_v2.html` in a browser. It works over `file://`. You can also serve it with `python3 -m http.server` and open `/forgeledger_v2.html`.
+- **Run:** open `index.html` in a browser. It forwards to `forgeledger_v2.html`, which is the app itself. It works over `file://`. You can also serve the folder with `python3 -m http.server` and open `/`.
 - **localStorage is scoped to the origin.** Data saved under `file://` does not appear under `http://localhost:8000`, and data saved under one port does not appear under another. If saved data seems to be missing, check the origin first.
 - **Setup:** `npm install`, then `npx playwright install chromium` once. Only the tests and formatter need this; the app doesn't.
 - **Tests:** `npm test` runs the Playwright suite in `tests/` against the `file://` page.
@@ -39,6 +39,18 @@ The code lives in plain `<script>` files that share the global scope. They aren'
 - **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `completing` and `toastTimer`.
 
 To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
+
+**Pages and addresses.** Each section has an address: `#/dashboard`, `#/paints`, and so on.
+
+- **The nav** is `<a href="#/key" data-sec="key">` links, with `aria-current="page"` on the current one.
+- **`go(k)`** moves to a section. It sets `location.hash`, which adds a history entry, then calls `show(k)`.
+- **`show(k)`** draws a section. It closes open dialogs, resets search, filter and sort, and sets the page title.
+- **Back, forward and typed addresses** fire `hashchange`, which calls `show()` for the section in `sectionFromHash()`.
+  - Unknown names fall back to the dashboard. `Object.hasOwn` stops names like `toString` from matching.
+  - The slash is optional: `#paints` works too.
+- **Reloading** keeps the current section.
+- **Clicks on nav links.** The click listener handles plain left-clicks itself. Ctrl, Cmd and Shift clicks are left to the browser, so they open a new tab or window.
+- **`index.html` only forwards** to `forgeledger_v2.html`, keeping the hash. The app file keeps its old name, so data saved by earlier versions stays at the same `file://` location.
 
 **Persistence.** `save()` serializes the whole `db` to `localStorage["forgeledger_v2_data"]`.
 
@@ -116,7 +128,11 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 `tests/security.spec.js` tries each known injection route. Add a case there when you render a new field.
 
-**Events.** A single delegated `click` listener on `document` dispatches on `data-*` attributes of the clicked `<button>`: `sec`, `edit`, `del`, `queue`, `up`, `down`, `recovery`, `wish`, `wishall` and `sort`. `edit` and `del` work in every section because they act on the current section. To add a new row action, render a button with a new `data-*` attribute and add a branch to this listener. Other controls are wired directly at the bottom of the IIFE.
+**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`), then dispatches on `data-*` attributes of the clicked `<button>`: `edit`, `del`, `queue`, `up`, `down`, `recovery`, `wish`, `wishall` and `sort`.
+
+- `edit` and `del` work in every section because they act on the current section.
+- To add a new row action, render a button with a new `data-*` attribute and add a branch to this listener.
+- Other controls are wired directly in `app.js`.
 
 **Mutation pattern.** Never change `db` and call `save()` directly. Use `commit(() => { /* change db */ })`: it snapshots `db`, applies the change, and saves. If saving fails, it restores the snapshot, shows an error, and returns `false`. Afterwards, call `renderNav()` (nav badges show item counts) and the renderer for the affected view.
 

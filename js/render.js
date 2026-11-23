@@ -68,13 +68,27 @@ function renderNav() {
   document.querySelector("#nav").innerHTML = items
     .map(
       ([k, n]) =>
-        `<button data-sec="${k}" class="${section === k ? "active" : ""}">${n}${k === "dashboard" ? "" : `<span class="count">${db[k].length}</span>`}</button>`,
+        `<a href="#/${k}" data-sec="${k}"${section === k ? ' class="active" aria-current="page"' : ""}>${n}${k === "dashboard" ? "" : `<span class="count">${db[k].length}</span>`}</a>`,
     )
     .join("");
 }
-// Show a section: "dashboard" or a key of `defs`.
+// The section named by the page address (#/paints), or "dashboard" for
+// anything else. hasOwn stops names like "toString" from matching.
+function sectionFromHash() {
+  let k = location.hash.replace(/^#\/?/, "");
+  return Object.hasOwn(defs, k) ? k : "dashboard";
+}
+// Go to a section: update the address (adding a history entry) and show it.
+// The hashchange this causes finds the section already showing.
 function go(k) {
+  if (!Object.hasOwn(defs, k)) k = "dashboard";
+  if (location.hash !== "#/" + k) location.hash = "#/" + k;
+  show(k);
+}
+// Draw a section: "dashboard" or a key of `defs`.
+function show(k) {
   let d = defs[k];
+  for (let dialog of document.querySelectorAll("dialog[open]")) dialog.close();
   section = k;
   editId = null;
   document.querySelector("#search").value = "";
@@ -85,6 +99,7 @@ function go(k) {
     .querySelectorAll(".view")
     .forEach((x) => x.classList.remove("active"));
   document.querySelector("#title").textContent = d ? d.title : "Dashboard";
+  document.title = `${d ? d.title : "Dashboard"} · ForgeLedger`;
   document.querySelector("#subtitle").textContent = d
     ? d.sub
     : "Your hobby at a glance";

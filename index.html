@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ForgeLedger</title>
+    <!--
+      The app lives in forgeledger_v2.html. This page only forwards to it, so
+      both a double-clicked index.html and a server's "/" open the app, and
+      data saved by earlier versions (opened as forgeledger_v2.html) stays
+      reachable. The page address (e.g. #/paints) is kept.
+    -->
+    <script>
+      location.replace("forgeledger_v2.html" + location.hash);
+    </script>
+    <meta http-equiv="refresh" content="0; url=forgeledger_v2.html" />
+    <style>
+      body {
+        background: #0f1216;
+        color: #edf2f7;
+        font:
+          16px system-ui,
+          sans-serif;
+        padding: 24px;
+      }
+      a {
+        color: #5da9e9;
+      }
+    </style>
+  </head>
+  <body>
+    <p><a href="forgeledger_v2.html">Open ForgeLedger</a></p>
+  </body>
+</html>

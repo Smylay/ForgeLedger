@@ -54,7 +54,7 @@ function stored(page) {
 }
 
 function nav(page, section) {
-  return page.click(`#nav button[data-sec="${section}"]`);
+  return page.click(`#nav a[data-sec="${section}"]`);
 }
 
 async function fillForm(page, values) {

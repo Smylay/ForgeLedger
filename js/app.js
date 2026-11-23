@@ -12,9 +12,14 @@ let db = load(),
   section = "dashboard",
   editId = null;
 document.addEventListener("click", (e) => {
+  let link = e.target.closest("a[data-sec]");
+  if (link && e.button === 0 && !(e.ctrlKey || e.metaKey || e.shiftKey)) {
+    e.preventDefault();
+    go(link.dataset.sec);
+    return;
+  }
   let b = e.target.closest("button");
   if (!b) return;
-  if (b.dataset.sec) go(b.dataset.sec);
   if (b.dataset.edit)
     openForm(
       section,
@@ -121,6 +126,10 @@ window.addEventListener("storage", (e) => {
   renderAlerts();
   toast("Updated with changes from another tab");
 });
-go("dashboard");
+// Back, forward, and typed or bookmarked addresses.
+window.addEventListener("hashchange", () => {
+  if (sectionFromHash() !== section) show(sectionFromHash());
+});
+show(sectionFromHash());
 renderBackupState();
 renderAlerts();
