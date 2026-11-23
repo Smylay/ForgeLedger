@@ -38,8 +38,8 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - CI that runs the tests in Chromium, Firefox and WebKit, plus a format check.
 - `main.js` split into plain script files.
 - Pages with their own addresses (`#/paints`, and so on), so back, forward and bookmarks work.
-- A hosting guide for running it on a home server.
-- A mobile and accessibility pass.
+- A hosting guide for running it on a home server, with tests that run the app over HTTP as well as from a local file.
+- A mobile and accessibility pass, with automated WCAG 2.2 AA checks (axe) on every page at desktop and phone sizes.
 
 ## Phase 7: Paint levels
 
