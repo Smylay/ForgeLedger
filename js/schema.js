@@ -204,6 +204,11 @@ const defs = {
       { key: "notes", label: "Notes", type: "textarea" },
     ],
     computed: {
+      progress: {
+        label: "Progress",
+        type: "percent",
+        value: (p) => projectStats(p).percent,
+      },
       painted: {
         label: "Painted",
         type: "count",
@@ -224,6 +229,7 @@ const defs = {
       "name",
       "faction",
       "system",
+      "progress",
       "painted",
       "models",
       "target",
@@ -296,11 +302,26 @@ const defs = {
         tones: ["none", "mid", "bad"],
       },
       { key: "paint", label: "Restocks paint", type: "link", to: "paints" },
+      {
+        key: "rewardFor",
+        label: "Reward for project",
+        type: "link",
+        to: "projects",
+      },
+      { key: "rewardAt", label: "Unlocks at project % done", type: "percent" },
       { key: "price", label: "Expected cost (£)", type: "money" },
       { key: "url", label: "Product URL", type: "url" },
       { key: "notes", label: "Notes", type: "textarea" },
     ],
-    columns: ["name", "category", "priority", "price", "url"],
+    computed: {
+      reward: {
+        label: "Reward",
+        type: "text",
+        value: (w) => rewardText(w),
+        html: (w) => rewardHtml(w),
+      },
+    },
+    columns: ["name", "category", "priority", "reward", "price", "url"],
     filter: "priority",
   },
 };
@@ -349,20 +370,82 @@ function optionLabel(r) {
   return r.brand ? `${r.name} (${r.brand})` : String(r.name ?? "");
 }
 
-// A project is done once its painted count reaches its target (or, with
-// no target, every model it owns).
+// A project is done once its progress reaches its target (or, with no
+// target, every model it owns).
 function projectDone(p) {
-  let st = projectStats(p),
-    goal = Number(p.target) || st.models;
-  return goal > 0 && st.painted >= goal;
+  let st = projectStats(p);
+  return st.goal > 0 && st.progress >= st.goal;
 }
+//
+// `progress` counts work in progress too, in models: each model is worth
+// its queue item's stage share (Basecoating, step 3 of 6, is half a model;
+// Complete is a whole one). A miniature counts the more of its painted
+// count and its queue work, up to its model count, so nothing is counted
+// twice. Queue items linked to the project but to no miniature add their
+// work too. `percent` is progress out of the goal (target, else models
+// owned), rounded down, so 100% means really done.
 function projectStats(p) {
-  let minis = db.miniatures.filter((m) => m.project === p.id);
+  let minis = db.miniatures.filter((m) => m.project === p.id),
+    work = new Map(),
+    loose = 0;
+  for (let q of db.queue) {
+    let m = linked(column(defs.queue, "miniature"), q.miniature);
+    if (m?.project === p.id)
+      work.set(m.id, (work.get(m.id) || 0) + queueWork(q));
+    else if (!m && q.project === p.id) loose += queueWork(q);
+  }
+  let models = minis.reduce((a, m) => a + (Number(m.quantity) || 1), 0),
+    progress =
+      loose +
+      minis.reduce((a, m) => {
+        let size = Number(m.quantity) || 1,
+          painted = Math.min(size, Number(m.painted) || 0);
+        return a + Math.min(size, Math.max(painted, work.get(m.id) || 0));
+      }, 0),
+    goal = Number(p.target) || models;
   return {
-    models: minis.reduce((a, m) => a + Number(m.quantity || 1), 0),
+    models,
     painted: minis.reduce((a, m) => a + Number(m.painted || 0), 0),
     spent: minis.reduce((a, m) => a + Number(m.price || 0), 0),
+    goal,
+    progress,
+    percent: goal > 0 ? Math.min(100, Math.floor((100 * progress) / goal)) : 0,
   };
+}
+// A queue item's work so far, in models: each model counts its stage's
+// share of the item's stages (Not started 0, Complete 1). Models done in
+// the current stage count at the next one.
+function queueWork(q) {
+  let last = queueStages(q).length - 1;
+  if (isSplit(q))
+    return splitCounts(q).reduce((a, c, i) => a + (c * i) / last, 0);
+  let n = stageIndex(q),
+    total = queueTotal(q),
+    done = n === 0 || n === last ? 0 : stageDoneCount(q);
+  return ((total - done) * n + done * (n + 1)) / last;
+}
+
+// Wishlist rewards: an item with `rewardFor` (a project) unlocks when that
+// project's progress reaches `rewardAt` percent (blank means 100). Null
+// for items that aren't rewards, or whose project is gone.
+function reward(w) {
+  let p = linked(column(defs.wishlist, "rewardFor"), w.rewardFor);
+  if (!p) return null;
+  let at = w.rewardAt === "" || w.rewardAt == null ? 100 : Number(w.rewardAt);
+  at = Number.isFinite(at) ? Math.max(0, Math.min(100, Math.round(at))) : 100;
+  let st = projectStats(p),
+    reached = st.goal > 0 ? (100 * st.progress) / st.goal : 0;
+  return { project: p, at, percent: st.percent, unlocked: reached >= at };
+}
+function unlockedRewards() {
+  return db.wishlist.filter((w) => reward(w)?.unlocked).map((w) => w.id);
+}
+function rewardText(w) {
+  let r = reward(w);
+  if (!r) return "";
+  return r.unlocked
+    ? `Unlocked: ${r.project.name} reached ${r.at}%`
+    : `Locked: ${r.project.name} ${r.percent}% of ${r.at}%`;
 }
 
 // A stored list of middle stages (the default `db.queueStages`, or an

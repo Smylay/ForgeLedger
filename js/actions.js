@@ -548,6 +548,8 @@ function importJSON(file) {
       } catch {}
     let next = fromBackup(data);
     if (!commit(() => (db = next))) return;
+    newRewards = []; // rewards in a backup were unlocked elsewhere
+    renderRewardNotice();
     go("dashboard");
     toast(
       stored < incoming.length

@@ -361,6 +361,27 @@ tr:last-child td {
   color: #ffaaa7;
   padding: 1px 6px;
 }
+/* Wishlist rewards: unlocked (green) and locked (grey). */
+.pill.unlocked {
+  background: #1f3d24;
+  color: #b7e4b0;
+  padding: 1px 6px;
+}
+.pill.locked {
+  background: #2a313b;
+  color: var(--muted);
+  padding: 1px 6px;
+}
+.notice.reward {
+  border-left-color: var(--green);
+}
+.rewardline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+}
 .pill.soon {
   background: #4a3d1c;
   color: var(--gold);

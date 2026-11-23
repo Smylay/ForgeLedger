@@ -51,7 +51,7 @@ The code lives in plain `<script>` files that share the global scope. They aren'
   - Declaring a `let` or `const` name twice is a `SyntaxError` that stops the app loading.
   - A second `function` with a name already used is worse: it silently replaces the first.
   - `tests/code.spec.js` fails if two files declare the same top-level name.
-- **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `upgraded`, `completing`, `buying`, `editingStages`, `viewing`, `photoDbOpen`, `photoCheck`, `photoUrls` and `toastTimer`.
+- **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `upgraded`, `completing`, `buying`, `editingStages`, `viewing`, `newRewards`, `photoDbOpen`, `photoCheck`, `photoUrls` and `toastTimer`.
 
 To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 
@@ -120,7 +120,7 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
   | `scale`          | dropdown of `options`       | in tables, one-tap buttons (`setScale()`)             |
 
 - `columns`: the field keys the table shows.
-- `computed`: read-only columns calculated from other data, such as `projectStats()` for projects. A computed column is `{ label, type, value(record) }`, and `column(d, key)` resolves keys from both `fields` and `computed`.
+- `computed`: read-only columns calculated from other data, such as `projectStats()` for projects. A computed column is `{ label, type, value(record), html(record) }`, and `column(d, key)` resolves keys from both `fields` and `computed`. `html` is optional: the table shows it instead of `value`, which search, sorting and CSV still use.
 - `filter`: the key of the field the filter dropdown filters on.
   - The dropdown lists the field's `options`. A field without options gets the values currently in use, e.g. project game systems.
   - The choice survives saves and resets when you change section.
@@ -157,7 +157,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 **Accessibility and layout.**
 
-- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the add/edit form, the completion prompt, the Bought prompt, the stage editor, the photo viewer and the keyboard shortcuts list, at desktop and phone sizes. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
+- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the add/edit form, the completion prompt, the Bought prompt, the reward notice, the stage editor, the photo viewer and the keyboard shortcuts list, at desktop and phone sizes. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
 - **Red backgrounds.** Text on a red background uses `--accent-strong`, not `--accent`. White on `--accent` is under the 4.5:1 contrast minimum.
 - **Icon-only buttons** need an `aria-label`, like the queue's "Move … up" arrows.
 - **Button sizes.** Row buttons are at least 32px, and 44px on touch screens (`pointer: coarse`). A `pointer: coarse` rule must come after the rule it overrides in `styles.css`: the two selectors are usually equally specific, so the later one wins.
@@ -168,7 +168,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - The page grid uses `minmax(0, 1fr)`, so wide content can't widen the page.
   - `tests/layout.spec.js` checks that every section fits a 375px screen.
 
-**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`), then dispatches on `data-*` attributes of the clicked `<button>`: `edit`, `del`, `queue`, `next`, `plus`, `top`, `up`, `down`, `recovery`, `wish`, `wishall`, `bought`, `stages`, `photos`, `sort`, `scale`, `step`, `split` and `adv`.
+**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`), then dispatches on `data-*` attributes of the clicked `<button>`: `edit`, `del`, `queue`, `next`, `plus`, `top`, `up`, `down`, `recovery`, `wish`, `wishall`, `bought`, `unreward`, `stages`, `photos`, `sort`, `scale`, `step`, `split` and `adv`.
 
 - `edit` and `del` work in every section because they act on the current section.
 - To add a new row action, render a button with a new `data-*` attribute and add a branch to this listener.
@@ -332,6 +332,7 @@ The form handler `submit()` writes to `db[section]`, so `openForm(sec, obj)` set
   - `miniatures.photos` is not a link: it's an array of photo ids in IndexedDB, cover first (see Photos). It's optional.
   - `miniatures.paints` is a `links` array of the paints in its recipe. The older free-text `recipe` field is still there, labelled "Recipe steps".
   - `skills.changed` is not a link: it's the date the skill's level last changed (see Skills). It's optional.
+  - `wishlist.rewardFor` points at the project a reward belongs to, and `wishlist.rewardAt` is the percent it unlocks at (see Rewards).
   - `wishlist.paint` points at the paint a wishlist item restocks. `addToWishlist()` sets it when a low paint is added from the dashboard, and the dashboard uses it to show "On wishlist".
 
   Older data can still hold links to deleted records; these display blank, and saving the record clears them. Imported `links` values may not be arrays; `asList()` treats anything else as empty.
@@ -342,6 +343,19 @@ The form handler `submit()` writes to `db[section]`, so `openForm(sec, obj)` set
   - queue items that aren't complete;
   - the dashboard's stock warnings, which say how many queued miniatures need each low paint.
 
-- `projectStats(p)` calculates a project's `models`, `painted`, and `spent` from the miniatures linked to it. Only `target` and `budget` are entered by hand. If `target` is blank, progress is measured against models owned. Older records may still contain hand-entered `complete` and `spent` fields; these are ignored.
+- `projectStats(p)` calculates a project's `models`, `painted`, `spent`, `goal`, `progress` and `percent` from the miniatures and queue items linked to it. Only `target` and `budget` are entered by hand. Older records may still contain hand-entered `complete` and `spent` fields; these are ignored.
+  - `goal` is `target`, or the models owned when `target` is blank.
+  - `progress` is counted in models, and includes work in progress:
+    - `queueWork(q)` gives a queue item's models each their stage's share of the item's own stages. Not started is 0 and Complete is 1. Models done in the current stage count at the next one, and split items count each model at its stage.
+    - A miniature counts the larger of its painted count and its queue items' work, up to its model count, so nothing is counted twice.
+    - Queue items linked to the project but to no existing miniature add their work.
+  - `percent` is `progress` out of `goal`, rounded down and capped at 100, so 100% means done. The projects table's Progress column and the dashboard bar show it.
+  - `projectDone()` is `progress` reaching `goal`.
+- **Rewards.** A wishlist item with `rewardFor` (a project link) is a reward. It unlocks when that project's progress reaches `rewardAt` percent; a blank `rewardAt` means 100.
+  - `reward(w)` gives `{ project, at, percent, unlocked }`, or null for an item that isn't a reward or whose project is gone. Unlocking compares the exact progress, not the rounded `percent`.
+  - The wishlist's Reward column is computed: `rewardText()` for search and sorting, and `rewardHtml()` for the Locked or Unlocked pill.
+  - `commit()` notes which rewards are unlocked before a change and after it (`noteRewards()`). Newly unlocked ones join `newRewards`; ones locked again (for example by Undo) leave it.
+  - `#rewardNotice` shows `newRewards` on every page, each with Bought (the wishlist's `data-bought`) and Dismiss (`data-unreward`). The list lasts for the session only. Import clears it, since a backup's rewards weren't unlocked just now.
+  - The dashboard's Rewards card lists every reward, unlocked first, with Bought on unlocked ones.
 - The dashboard's "Recorded spend" adds up `price` across paints, tools, and miniatures. Each `price` is added as entered; it is not multiplied by `quantity`.
 - Currency is hardcoded to GBP (`money()` and the "(£)" field labels).
