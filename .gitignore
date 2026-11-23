@@ -1,3 +1,22 @@
+# Node dependencies and test output
 node_modules/
 test-results/
 playwright-report/
+
+# Python virtual environments and caches
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+
+# Local secrets and logs
+.env
+*.log
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
