@@ -37,21 +37,23 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - **Queue models at different stages (phase 12):** split a queue item by stage, with a count and a Move 1 button for each stage. _(From the bug list.)_
 - **Wishlist Bought button (phase 13):** restocks set the paint back to Full; paints, tools and miniatures move into their lists; anything else asks where it goes.
 - **Editable queue stages (phase 14):** edit the default stages, or give one queue item its own; items follow renames and move on from deleted stages. _(From the bug list.)_
+- **Miniature photos (phase 15):** add photos from files or a phone camera, kept on your device in the browser's own storage and included in backups. _(From the bug list.)_
 
-## Phase 15: Miniature photos (in progress)
+## Phase 16: Progress and rewards (in progress)
 
 _(From the bug list.)_
 
-- **Add photos to a miniature,** from a file or a phone's camera. They're shrunk and kept in the browser's own storage (IndexedDB), so they stay on your device.
-- **Export backup includes them,** so one file still moves everything.
-- **Works opened as a file or hosted,** in Chrome, Edge, Firefox and Safari.
+- **Work in progress counts toward a project's percentage.** Each model counts its queue stage's share, so a model halfway through its stages is half done.
+- **Wishlist rewards.** A wishlist item can unlock when a project reaches a percentage you choose. You're told when it unlocks, with a Bought button.
+
+## Phase 17: Example data
+
+_(From the bug list.)_
+
+- **A "Try the example data" button** on an empty dashboard, and the same data as a backup file in the repository, to show what ForgeLedger can do.
 
 ## Later
 
-- _From the bug list, to be planned next:_
-  - Count each model's build progress (its queue stages) towards its project's percentage, not only finished models.
-  - An example backup file that shows off what ForgeLedger can do.
-  - Reward milestones: set project completion levels (e.g. 50%) that unlock a chosen wishlist item.
 - A currency setting (currently fixed to GBP).
 - Fit the miniatures table on a laptop screen. With nine columns plus its row buttons, it scrolls sideways below about 1400px wide.
 - Count restock purchases in Recorded spend. Bought on a restock sets the paint to Full but doesn't record what the new pot cost, because a paint holds one price.
