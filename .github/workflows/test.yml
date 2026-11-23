@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
 
+# A new push to the same branch cancels the run it replaces.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     # Pushes cover branches in this repository; pull_request runs only add
