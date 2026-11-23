@@ -20,9 +20,25 @@ Keep it runnable from `file://`. Browsers refuse to load ES module scripts from 
   - Import `test` and `expect` from `./helpers`, not from `@playwright/test`, so the fixtures apply. `helpers.js` also has helpers for seeding data, filling forms, downloads, and imports.
 - **Formatting:** Prettier, configured in `.prettierrc`: 2-space indent, 80-column lines, and 120 columns for HTML. Run `npm run format` to format or `npm run format:check` to check. Format before committing.
 
-## Architecture (`main.js`)
+## Architecture (`js/`)
 
-All code is inside one IIFE. There are no modules and no exports. Mutable state is held in three variables: `db` (all user data), `section` (current nav key), and `editId` (the record open in the modal, if any).
+The code lives in plain `<script>` files that share the global scope. They aren't ES modules, which can't load from `file://`. `forgeledger_v2.html` loads them in this order:
+
+| File         | Contents                                                                                                    |
+| ------------ | ----------------------------------------------------------------------------------------------------------- |
+| `util.js`    | helpers with no app state: `id()`, `esc()`, `safeColour()`, `safeUrl()`, `money()`, `toast()`, `download()` |
+| `schema.js`  | storage keys, `defaults`, `defs`, `column()`, link helpers, `projectStats()`                                |
+| `storage.js` | load, validate, repair, migrate, `save()`, `commit()`, `commitWithUndo()`, backup age                       |
+| `render.js`  | nav and page switching, dashboard, tables, queue, skills, sorting, deadline markers                         |
+| `forms.js`   | `inputAttrs`, `fieldHtml()`, `openForm()`, `submit()`                                                       |
+| `actions.js` | delete, add to wishlist, the queue completion prompt, JSON export/import, CSV                               |
+| `app.js`     | mutable state, `db = load()`, event wiring, start-up                                                        |
+
+- **Only `app.js` runs code at load.** The other files only declare functions and constants, so a function can call anything in any file. Top-level code must only use what earlier files define; for example, `defaults` in `schema.js` calls `id()` from `util.js`.
+- **Every top-level name is global,** so two files can't declare the same `let` or `const` name. Declaring one twice is a `SyntaxError` that stops the app loading.
+- **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `completing` and `toastTimer`.
+
+To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 
 **Persistence.** `save()` serializes the whole `db` to `localStorage["forgeledger_v2_data"]`.
 
@@ -88,7 +104,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 `daysUntil()` reads `YYYY-MM-DD` as a local date, and ignores anything else.
 
-`COLLECTIONS` (used by loading and validation) repeats the collection keys because `load()` runs before `defs` exists. Keep the two in step.
+`COLLECTIONS` (used by loading and validation) repeats the collection keys that are in `defs`, so storage code doesn't depend on UI config. Keep the two in step.
 
 **Rendering.** Every renderer rebuilds its container with template-literal `innerHTML`. Imported backups can contain arbitrary strings, so:
 
@@ -118,9 +134,6 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 Apply runs on the dialog form's `submit`, not its `close`, so the change happens during the click.
 
 The form handler `submit()` writes to `db[section]`, so `openForm(sec, obj)` sets `section` before the modal opens. If saving fails, the form stays open so nothing typed is lost.
-
-Functions that `load()` calls must be function declarations, not `const` arrows: `load()` runs while `db` is being initialised, before later `const` lines have run.
-
 **Data semantics:**
 
 - `FormData` returns strings, so numbers are stored as strings. Consumers wrap them in `Number(...)`. Only `level` fields are converted (and clamped to 0–9) on save.
