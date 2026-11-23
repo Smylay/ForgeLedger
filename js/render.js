@@ -468,7 +468,7 @@ function renderSkillOverview() {
     ? byLevel
         .map((s) => {
           let level = skillLevel(s);
-          return `<li><span class="mname">${esc(s.name)}</span><span class="meter" aria-hidden="true"><i style="width:${(level / 9) * 100}%"></i></span><span class="mval">${level} · ${levelName(level)}</span></li>`;
+          return `<li><span class="mname">${esc(s.name)}</span><span class="meter" aria-hidden="true"><i style="width:${Math.round((level / 9) * 1000) / 10}%"></i></span><span class="mval">${level} · ${levelName(level)}</span></li>`;
         })
         .join("")
     : '<li class="muted">No skills yet. Add one above.</li>';

@@ -267,10 +267,10 @@ test.describe("profile and practice suggestions", () => {
   test("the profile lists every skill, highest first", async ({ page }) => {
     expect(await profile(page)).toEqual([
       ["Glazing", "9 · Mastery", "100%"],
-      ["Freehand", "6 · Skilled", "66.6667%"],
-      ["Weathering", "5 · Confident", "55.5556%"],
-      ["Layering", "4 · Competent", "44.4444%"],
-      ["Sculpting", "2 · Learning", "22.2222%"],
+      ["Freehand", "6 · Skilled", "66.7%"],
+      ["Weathering", "5 · Confident", "55.6%"],
+      ["Layering", "4 · Competent", "44.4%"],
+      ["Sculpting", "2 · Learning", "22.2%"],
       ["Basing", "0 · Not tried", "0%"],
     ]);
   });
@@ -309,11 +309,7 @@ test.describe("profile and practice suggestions", () => {
     page,
   }) => {
     await setSlider(page, "Basing", 8);
-    expect((await profile(page))[1]).toEqual([
-      "Basing",
-      "8 · Expert",
-      "88.8889%",
-    ]);
+    expect((await profile(page))[1]).toEqual(["Basing", "8 · Expert", "88.9%"]);
     expect(await practice(page)).not.toContain("Basing · Not tried yet");
   });
 
