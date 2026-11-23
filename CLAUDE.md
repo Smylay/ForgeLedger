@@ -24,6 +24,7 @@ Keep it runnable from `file://`. Browsers refuse to load ES module scripts from 
 - **Tests:** `npm test` runs the Playwright suite in `tests/` against the `file://` page.
   - One file: `npx playwright test tests/app.spec.js`. One test by name: `npx playwright test -g "low-stock"`.
   - Each test gets a fresh browser context, so `localStorage` starts empty.
+  - **Reload with `reload(page)` from `helpers.js`, never `page.reload()`.** Under load, Chromium can drop a `localStorage` write made just before a reload, because the theme script reads storage the moment the new page starts. `reload()` hands the storage over in `window.name` and writes back any difference before the app reads it. `seed()` uses it, and `tests/code.spec.js` fails if a test calls `page.reload()`.
   - The auto `pageErrors` fixture in `tests/helpers.js` fails any test where the page throws an uncaught error.
   - Most tests open the app from `file://`. `tests/hosted.spec.js` opens it over HTTP from `tests/serve.js`, a minimal static server that Playwright starts on port 4173.
   - `npm test` runs Chromium only. `npm run test:all` adds Firefox and WebKit; install them first with `npx playwright install firefox webkit`. CI runs all three.
@@ -35,25 +36,27 @@ Keep it runnable from `file://`. Browsers refuse to load ES module scripts from 
 
 The code lives in plain `<script>` files that share the global scope. They aren't ES modules, which can't load from `file://`. `forgeledger_v2.html` loads them in this order:
 
-| File            | Contents                                                                                                               |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `util.js`       | helpers with no app state: `id()`, `esc()`, `safeColour()`, `safeUrl()`, `money()`, `toast()`, `download()`, `today()` |
-| `schema.js`     | storage keys, `defaults`, `defs`, `column()`, link helpers, `projectStats()`                                           |
-| `skillguide.js` | `LEVELS`, the `TECHNIQUES` library, `nextStep()`, `practiceNext()` and other skill helpers                             |
-| `demo.js`       | the example data: `demoData()`, `demoPhotos()`, `DEMO_FILE_DATE`                                                       |
-| `storage.js`    | load, validate, repair, migrate, `save()`, `commit()`, `commitWithUndo()`, backup age                                  |
-| `photos.js`     | miniature photos in IndexedDB: open, store, shrink, show, tidy, and their part of backups                              |
-| `render.js`     | nav and page switching, dashboard, tables, queue, skills, sorting, deadline markers                                    |
-| `forms.js`      | `inputAttrs`, `fieldHtml()`, `openForm()`, `submit()`                                                                  |
-| `actions.js`    | delete, add to wishlist, the queue completion prompt, JSON export/import, CSV                                          |
-| `app.js`        | mutable state, `db = load()`, event wiring, start-up                                                                   |
+| File            | Contents                                                                                                             |
+| --------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `util.js`       | helpers with no app state: `id()`, `esc()`, `safeColour()`, `safeUrl()`, `toast()`, `download()`, `today()`          |
+| `schema.js`     | `APP_VERSION`, storage keys, `CURRENCIES`, `money()`, `defaults`, `defs`, `column()`, link helpers, `projectStats()` |
+| `skillguide.js` | `LEVELS`, the `TECHNIQUES` library, `nextStep()`, `practiceNext()` and other skill helpers                           |
+| `demo.js`       | the example data: `demoData()`, `demoPhotos()`, `DEMO_FILE_DATE`                                                     |
+| `storage.js`    | load, validate, repair, migrate, `save()`, `commit()`, `commitWithUndo()`, backup age                                |
+| `photos.js`     | miniature photos in IndexedDB: open, store, shrink, show, tidy, and their part of backups                            |
+| `autosave.js`   | auto-save to a file the user picked: the remembered handle, writes after each save, its status                       |
+| `render.js`     | nav and page switching, dashboard, tables, queue, skills, sorting, deadline markers                                  |
+| `forms.js`      | `inputAttrs`, `fieldHtml()`, `openForm()`, `submit()`                                                                |
+| `actions.js`    | delete, add to wishlist, the queue completion prompt, JSON export/import, CSV, Settings, Erase all data              |
+| `app.js`        | mutable state, `db = load()`, event wiring, start-up                                                                 |
 
 - **Only `app.js` runs code at load.** The other files only declare functions and constants, so a function can call anything in any file. Top-level code must only use what earlier files define; for example, `defaults` in `schema.js` calls `id()` from `util.js`.
+  - The one exception is a small inline script in `forgeledger_v2.html`'s `<head>`. It sets `<html data-theme>` from the saved theme before the page draws, so a light theme doesn't flash dark. It repeats the key `forgeledger_v2_theme` (`THEME_KEY`), since no other file has loaded yet.
 - **Every top-level name is global.**
   - Declaring a `let` or `const` name twice is a `SyntaxError` that stops the app loading.
   - A second `function` with a name already used is worse: it silently replaces the first.
   - `tests/code.spec.js` fails if two files declare the same top-level name.
-- **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `upgraded`, `completing`, `buying`, `editingStages`, `viewing`, `newRewards`, `photoDbOpen`, `photoCheck`, `photoUrls` and `toastTimer`.
+- **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `upgraded`, `completing`, `buying`, `editingStages`, `viewing`, `newRewards`, `photoDbOpen`, `photoCheck`, `photoUrls`, `autoSave` and `toastTimer`.
 
 To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 
@@ -89,7 +92,8 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 - **Blocked storage.** If storage is blocked, `memoryOnly` is set: the app works in memory and says nothing is saved.
 - **Two tabs.** A `storage` event listener reloads `db` when another tab saves, so two open tabs don't overwrite each other.
 - **Photos live in IndexedDB,** not in `db` (see Photos). `localStorage` holds only each miniature's photo ids.
-- **Settings outside the data.** The keyboard shortcuts setting is in `localStorage["forgeledger_v2_shortcuts"]`, not in `db` or backups.
+- **Settings outside the data.** The keyboard shortcuts setting (`forgeledger_v2_shortcuts`) and the theme (`forgeledger_v2_theme`) are separate `localStorage` keys, not in `db` or backups. The currency is in the data (see Settings).
+- **The keys keep `v2` in their names,** as does `forgeledger_v2.html`. It was never a version number, and renaming any of them would strand saved data. A `file://` page's storage may be kept per file in some browsers, so renaming the HTML file could too. The version is `APP_VERSION` (see Versions).
 - **Backup reminder.** The last export time is kept in `localStorage["forgeledger_v2_last_backup"]`, outside the data. The dashboard warns when there's no backup or the last one is `BACKUP_REMINDER_DAYS` (14) or more days old.
 
 **Backward compatibility.** Users keep and move their data with Export backup and Import, which write and read JSON files. ForgeLedger is open source and runs from a local file, so old backups and existing `localStorage` data must keep loading after any change. Don't rename or repurpose stored fields. Add new fields as optional. A field that is no longer used can stay in old records, as long as nothing reads it.
@@ -159,12 +163,15 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 **Accessibility and layout.**
 
-- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the empty dashboard's example data offer and notice, the add/edit form, the completion prompt, the Bought prompt, the reward notice, the stage editor, the photo viewer and the keyboard shortcuts list, at desktop and phone sizes. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
+- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the empty dashboard's example data offer and notice, the add/edit form, the completion prompt, the Bought prompt, the reward notice, the stage editor, the photo viewer, the keyboard shortcuts list and Settings. It runs at desktop and phone sizes in the dark theme, and at desktop size in the light theme. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
+- **Colours are tokens.** Every colour in `styles.css` is a custom property on `:root` (the dark theme), except white text on strong backgrounds. The light theme sets every token again in `:root[data-theme="light"]`, and the same values again for `:root[data-theme="system"]` inside `@media (prefers-color-scheme: light)`. CSS can't share one block between the two, so `tests/settings.spec.js` checks that the light blocks match each other and set every token the dark one does.
+  - A new colour needs a token, with a light value that keeps text at 4.5:1 on the backgrounds it's used on. Text colours have their own tokens where a fill colour would be too light, such as `--gold-text` and `--danger-text`.
 - **Red backgrounds.** Text on a red background uses `--accent-strong`, not `--accent`. White on `--accent` is under the 4.5:1 contrast minimum.
 - **Icon-only buttons** need an `aria-label`, like the queue's "Move … up" arrows.
 - **Button sizes.** Row buttons are at least 32px, and 44px on touch screens (`pointer: coarse`). A `pointer: coarse` rule must come after the rule it overrides in `styles.css`: the two selectors are usually equally specific, so the later one wins.
 - **Focus.** `:focus-visible` gives every control one blue focus ring. Don't remove outlines.
-- **Narrow screens (≤850px):** the sidebar footer's text is hidden, but the "Keyboard shortcuts" button stays, top right beside the brand, so the off switch can be reached with a tablet keyboard.
+- **Laptops (≤1440px):** the sidebar is 200px instead of 245px. Row buttons in tables (`td.rowacts`) may wrap, so the browser only stacks them when a table needs the room. `tests/layout.spec.js` checks, with the example data, that no table scrolls sideways at 1280px.
+- **Narrow screens (≤850px):** the sidebar footer's text and the "Keyboard shortcuts" button are hidden. The Settings button stays, top right beside the brand. Settings has the shortcuts' off switch and a link to the list, so both can be reached with a tablet keyboard.
 - **Phones (≤520px):**
   - The nav is a single scrolling row, and `show()` scrolls the current link into view.
   - The page grid uses `minmax(0, 1fr)`, so wide content can't widen the page.
@@ -189,7 +196,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 **Keyboard shortcuts.** A `keydown` listener in `app.js` handles single keys: N opens the add form, Q focuses quick add (the picker on the skills page), / focuses search, 1 to 8 go to the sections in nav order (`SECTION_KEYS`), and ? opens `#keysDialog`, which lists them.
 
 - They're ignored while a box has focus, with Ctrl, Alt or Cmd, or while any dialog is open.
-- WCAG 2.1.4 requires a way to turn single-key shortcuts off. The checkbox in `#keysDialog` does that; the sidebar's "Keyboard shortcuts" button opens the dialog even while they're off.
+- WCAG 2.1.4 requires a way to turn single-key shortcuts off. The checkboxes in `#keysDialog` and Settings do that. The sidebar's "Keyboard shortcuts" button, or "Show the shortcuts" in Settings, opens the list even while they're off.
 - The setting is kept in `localStorage["forgeledger_v2_shortcuts"]` (`SHORTCUTS_KEY`), outside the data, so it isn't in backups. Missing means on.
 
 **Skills.** The skills view has its own renderer, `renderSkills()`. Its data and rules are in `skillguide.js`.
@@ -263,6 +270,30 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - "Keep it" (`keepDemo()`): removes the flag.
 - **The example file.** `examples/forgeledger-example.json` is the same data as a backup, photos included. Its dates are fixed at `DEMO_FILE_DATE`. `scripts/make-example.js` (`npm run example`) writes it from the app's own code in Chromium, formatted with Prettier.
 - **Encoding.** Images are encoded with `canvas.toDataURL`, not `toBlob`. `toBlob`'s callback can stall in headless browsers, and it once hung the example photos in tests.
+
+**Settings.** `#settingsDialog` opens from the sidebar's Settings button (`openSettings()`, `renderSettings()` in `actions.js`). Each control is wired directly in `app.js`.
+
+- **Theme.** `setTheme()` sets `<html data-theme>` to `dark`, `light` or `system` and saves it under `THEME_KEY`. Missing or junk means dark. `system` follows `prefers-color-scheme`.
+- **Currency.** `db.currency` is an optional top-level field holding a code from `CURRENCIES` (12 of them, each with a name and a fixed locale for formatting). Read it with `currencyCode()`, which treats a missing or unknown code as GBP.
+  - `money()` formats with `Intl.NumberFormat` in that currency's locale, e.g. "€4.50" or "4,50 kr". Amounts are never converted.
+  - Money fields' labels are getters (`get label()`) that call `priced()`, e.g. "Cost (€)", so they follow the setting.
+  - `setCurrency()` saves it with `commit()` and redraws. Since it's part of the data, it goes into backups.
+  - `withCurrency(next)` keeps the current choice when data is replaced by something without one: an older backup, the example data, or clearing the example data. Erase all data doesn't keep it.
+- **Auto-save to a file** (`autosave.js`). It uses the File System Access API (`showSaveFilePicker`), which only Chromium-based browsers have; elsewhere `#autoSaveStatus` says so and Choose is hidden.
+  - The picked file's handle is kept in IndexedDB: database `forgeledger_files`, store `handles`, key `autosave`.
+  - `autoSave.state` is `off`, `on`, `paused` (the browser wants permission again, as it does after a restart; Resume asks) or `error`.
+  - `save()` calls `scheduleAutoSave()`. Once changes stop for `AUTOSAVE_DELAY` (1.5s), `writeAutoSave()` writes `backupJson(db)`, photos included. Only one write runs at a time; a change during a write writes again afterwards.
+  - A successful write sets the last backup time, like Export backup.
+  - The status shows in Settings and in the sidebar (`#autoSaveState`).
+  - `tests/settings.spec.js` tests it in Chromium by replacing the picker with a file in the origin private file system, over HTTP.
+- **Erase all data** (`eraseAll()`) asks first, stops auto-save (so its file keeps the data), downloads a backup, then resets `db` to `defaults` and deletes every stored photo. There's no Undo.
+
+**Versions.** `APP_VERSION` in `schema.js` is the app's version, e.g. "1.0.0". It must match `version` in `package.json`; `tests/settings.spec.js` checks. It's shown in the sidebar and Settings (`.appversion`).
+
+- **Releasing a version:** bump both, move the Unreleased notes in `CHANGELOG.md` under the new version, and tag the merge commit `v<version>`.
+- **Backups record it.** `backupJson()` puts `appVersion` first. Import takes it out before `fromBackup()`, so it never reaches `localStorage`, and the toast names it when it isn't this version. A backup refused for a newer schema names its version too. Both cut it to 20 characters, and toasts are text, not HTML.
+- **It's separate from `SCHEMA_VERSION`,** which only changes when stored fields change shape. A currency, for example, is a new optional field, so it didn't need a schema change.
+- `examples/forgeledger-example.json` has no `appVersion`, so it doesn't change with every release.
 
 **Mutation pattern.** Never change `db` and call `save()` directly. Use `commit(() => { /* change db */ })`: it snapshots `db`, applies the change, and saves. If saving fails, it restores the snapshot, shows an error, and returns `false`. Afterwards, call `renderNav()` (nav badges show item counts) and the renderer for the affected view.
 
@@ -372,4 +403,4 @@ The form handler `submit()` writes to `db[section]`, so `openForm(sec, obj)` set
   - `#rewardNotice` shows `newRewards` on every page, each with Bought (the wishlist's `data-bought`) and Dismiss (`data-unreward`). The list lasts for the session only. Import clears it, since a backup's rewards weren't unlocked just now.
   - The dashboard's Rewards card lists every reward, unlocked first, with Bought on unlocked ones.
 - The dashboard's "Recorded spend" adds up `price` across paints, tools, and miniatures. Each `price` is added as entered; it is not multiplied by `quantity`.
-- Currency is hardcoded to GBP (`money()` and the "(£)" field labels).
+- Prices are shown in the currency chosen in Settings (see Settings), GBP by default.

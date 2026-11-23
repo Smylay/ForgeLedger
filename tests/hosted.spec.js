@@ -1,6 +1,7 @@
 // The app served over HTTP, as on a home server, rather than from file://.
 const {
   test,
+  reload,
   expect,
   SITE,
   seed,
@@ -21,7 +22,7 @@ test("the site root opens the app on the dashboard", async ({ page }) => {
 test("data saved on the server copy survives a reload", async ({ page }) => {
   await page.goto(SITE);
   await addItem(page, "paints", { name: "Hosted paint" });
-  await page.reload();
+  await reload(page);
   await expect(page.locator("#content")).toContainText("Hosted paint");
   expect((await stored(page)).paints[0].name).toBe("Hosted paint");
 });

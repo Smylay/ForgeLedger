@@ -4,6 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>ForgeLedger</title>
+    <script>
+      // The saved theme (Settings), applied before the page draws so it doesn't flash. The one script that runs
+      // outside app.js.
+      try {
+        document.documentElement.dataset.theme = localStorage.getItem("forgeledger_v2_theme") || "dark";
+      } catch {
+        document.documentElement.dataset.theme = "dark";
+      }
+    </script>
     <link rel="stylesheet" type="text/css" href="styles.css" />
   </head>
   <body>
@@ -13,11 +22,13 @@
         <nav class="nav" id="nav"></nav>
         <div class="sidefoot">
           <div class="sideinfo">
-            Offline-first. Data autosaves in this browser.<br /><span id="saveState">Ready</span><br /><span
-              id="backupState"
-            ></span>
+            ForgeLedger <span class="appversion"></span>. Offline-first. Data autosaves in this browser.<br /><span
+              id="saveState"
+              >Ready</span
+            ><br /><span id="backupState"></span><br /><span id="autoSaveState"></span>
           </div>
-          <button class="linkbtn" id="keysBtn" type="button">Keyboard shortcuts</button>
+          <button class="linkbtn" id="settingsBtn" type="button">Settings</button
+          ><button class="linkbtn" id="keysBtn" type="button">Keyboard shortcuts</button>
         </div>
       </aside>
       <main class="main">
@@ -247,6 +258,56 @@
         <p class="muted" id="photoStatus" role="status"></p>
       </div>
     </dialog>
+    <dialog id="settingsDialog" aria-labelledby="settingsTitle">
+      <div class="modalhead">
+        <strong id="settingsTitle">Settings</strong><button class="btn" id="closeSettings" type="button">Close</button>
+      </div>
+      <div class="modalbody settings">
+        <section>
+          <h3>Theme</h3>
+          <label
+            >Colours
+            <select id="themeSetting">
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+              <option value="system">Match my device</option>
+            </select></label
+          >
+          <p class="muted">Kept for this browser only, not in backups.</p>
+        </section>
+        <section>
+          <h3>Currency</h3>
+          <label
+            >Currency
+            <select id="currencySetting"></select
+          ></label>
+          <p class="muted">Changes how prices are shown. Amounts aren't converted.</p>
+        </section>
+        <section>
+          <h3>Auto-save to a file</h3>
+          <p id="autoSaveStatus"></p>
+          <div class="settingbtns">
+            <button class="btn" id="autoSaveChoose" type="button">Choose a file…</button
+            ><button class="btn" id="autoSaveResume" type="button" hidden>Resume auto-saving</button
+            ><button class="btn" id="autoSaveStop" type="button" hidden>Stop auto-saving</button>
+          </div>
+        </section>
+        <section>
+          <h3>Keyboard shortcuts</h3>
+          <label class="check"><input type="checkbox" id="settingsKeysOn" />Use single-key shortcuts</label>
+          <button class="linkbtn" id="settingsKeysList" type="button">Show the shortcuts</button>
+        </section>
+        <section>
+          <h3>Erase all data</h3>
+          <p class="muted">
+            Deletes everything ForgeLedger keeps in this browser, photos included. A backup downloads first, and
+            auto-saving stops so the backup file isn't emptied.
+          </p>
+          <button class="btn danger" id="eraseAll" type="button">Erase all data…</button>
+        </section>
+        <p class="muted">ForgeLedger <span class="appversion"></span></p>
+      </div>
+    </dialog>
     <div class="toast" id="toast" aria-live="polite">
       <span id="toastText"></span><button class="btn" id="toastAction" type="button" hidden></button>
     </div>
@@ -257,6 +318,7 @@
     <script src="js/demo.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/photos.js"></script>
+    <script src="js/autosave.js"></script>
     <script src="js/render.js"></script>
     <script src="js/forms.js"></script>
     <script src="js/actions.js"></script>

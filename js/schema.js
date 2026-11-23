@@ -5,15 +5,39 @@
 const KEY = "forgeledger_v2_data";
 // Bump when stored data changes shape, and add a step to migrate().
 const SCHEMA_VERSION = 5;
+// The app's version, shown in Settings and the sidebar, and written into
+// backups (as `appVersion`).
+const APP_VERSION = "1.0.0";
 const BACKUP_KEY = "forgeledger_v2_last_backup";
 // "off" when the user has turned single-key shortcuts off (kept outside
 // the data, like the last backup time).
 const SHORTCUTS_KEY = "forgeledger_v2_shortcuts";
+// The theme (dark, light or system), kept per browser like the shortcuts
+// setting. The <head> of forgeledger_v2.html reads it too, before drawing.
+const THEME_KEY = "forgeledger_v2_theme";
+const THEMES = ["dark", "light", "system"];
 const RECOVERY_PREFIX = "forgeledger_v2_recovered_";
 const BACKUP_REMINDER_DAYS = 14;
 const DUE_SOON_DAYS = 14; // dates this close get a "Due in N days" marker
 // Paint stock levels, fullest first. Low and Empty count as low stock.
 const STOCK_LEVELS = ["Full", "Good", "Half", "Low", "Empty"];
+// Currencies to choose from in Settings: name, and the locale that sets
+// how amounts look (e.g. "£4.50", "4,50 kr"). Stored as `db.currency`;
+// missing means GBP. Changing it changes the symbol, not the amounts.
+const CURRENCIES = {
+  GBP: ["Pound sterling", "en-GB"],
+  EUR: ["Euro", "en-IE"],
+  USD: ["US dollar", "en-US"],
+  CAD: ["Canadian dollar", "en-CA"],
+  AUD: ["Australian dollar", "en-AU"],
+  NZD: ["New Zealand dollar", "en-NZ"],
+  JPY: ["Japanese yen", "ja-JP"],
+  CHF: ["Swiss franc", "de-CH"],
+  SEK: ["Swedish krona", "sv-SE"],
+  NOK: ["Norwegian krone", "nb-NO"],
+  DKK: ["Danish krone", "da-DK"],
+  PLN: ["Polish złoty", "pl-PL"],
+};
 // Painting queue stages between "Not started" and "Complete", which are
 // always first and last. These are the default until it's edited.
 const DEFAULT_STAGES = [
@@ -102,7 +126,13 @@ const defs = {
         tones: ["good", "good", "mid", "bad", "bad"],
         highFirst: true, // options run from most to least
       },
-      { key: "price", label: "Cost (£)", type: "money" },
+      {
+        key: "price",
+        get label() {
+          return priced("Cost");
+        },
+        type: "money",
+      },
       { key: "notes", label: "Notes", type: "textarea" },
     ],
     columns: ["name", "brand", "range", "type", "quantity", "stock"],
@@ -139,7 +169,13 @@ const defs = {
         highFirst: true, // best first, like paint stock
       },
       { key: "quantity", label: "Quantity", type: "count" },
-      { key: "price", label: "Cost (£)", type: "money" },
+      {
+        key: "price",
+        get label() {
+          return priced("Cost");
+        },
+        type: "money",
+      },
       { key: "notes", label: "Notes", type: "textarea" },
     ],
     columns: ["name", "category", "condition", "quantity", "price"],
@@ -169,7 +205,13 @@ const defs = {
         options: ["Unbuilt", "Built", "Primed", "In progress", "Complete"],
         tones: ["none", "none", "none", "mid", "good"],
       },
-      { key: "price", label: "Cost (£)", type: "money" },
+      {
+        key: "price",
+        get label() {
+          return priced("Cost");
+        },
+        type: "money",
+      },
       { key: "paints", label: "Recipe paints", type: "links", to: "paints" },
       { key: "recipe", label: "Recipe steps", type: "textarea" },
       { key: "notes", label: "Notes", type: "textarea" },
@@ -194,7 +236,13 @@ const defs = {
       { key: "faction", label: "Faction" },
       { key: "system", label: "Game system" },
       { key: "target", label: "Target model count", type: "count" },
-      { key: "budget", label: "Budget (£)", type: "money" },
+      {
+        key: "budget",
+        get label() {
+          return priced("Budget");
+        },
+        type: "money",
+      },
       {
         key: "deadline",
         label: "Target date",
@@ -309,7 +357,13 @@ const defs = {
         to: "projects",
       },
       { key: "rewardAt", label: "Unlocks at project % done", type: "percent" },
-      { key: "price", label: "Expected cost (£)", type: "money" },
+      {
+        key: "price",
+        get label() {
+          return priced("Expected cost");
+        },
+        type: "money",
+      },
       { key: "url", label: "Product URL", type: "url" },
       { key: "notes", label: "Notes", type: "textarea" },
     ],
@@ -560,4 +614,29 @@ function splitText(q) {
     .map((s, i) => (counts[i] ? `${s} ${counts[i]}` : ""))
     .filter(Boolean)
     .join(" · ");
+}
+
+// The chosen currency's code; anything unknown counts as GBP.
+function currencyCode() {
+  return Object.hasOwn(CURRENCIES, db?.currency) ? db.currency : "GBP";
+}
+function moneyFormat() {
+  let code = currencyCode();
+  return new Intl.NumberFormat(CURRENCIES[code][1], {
+    style: "currency",
+    currency: code,
+  });
+}
+// An amount in the chosen currency, e.g. "£4.50". Blank or junk is 0.
+function money(n) {
+  return moneyFormat().format(Number(n) || 0);
+}
+function currencySymbol() {
+  return moneyFormat()
+    .formatToParts(0)
+    .find((p) => p.type === "currency").value;
+}
+// A money field's label with the currency symbol, e.g. "Cost (£)".
+function priced(label) {
+  return `${label} (${currencySymbol()})`;
 }

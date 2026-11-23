@@ -12,7 +12,7 @@ function problemWith(data) {
   if (!COLLECTIONS.some((k) => k in data))
     return "it has no ForgeLedger data in it";
   if (Number(data.schemaVersion) > SCHEMA_VERSION)
-    return "it was made by a newer version of ForgeLedger";
+    return `it was made by a newer version of ForgeLedger${typeof data.appVersion === "string" ? ` (${data.appVersion.slice(0, 20)})` : ""}`;
   let bad = COLLECTIONS.find(
     (k) => k in data && !(Array.isArray(data[k]) && data[k].every(isRecord)),
   );
@@ -124,6 +124,7 @@ function save() {
         minute: "2-digit",
       }),
   );
+  scheduleAutoSave(); // autosave.js: writes the file too, if it's on
   return true;
 }
 

@@ -20,3 +20,15 @@ test("no two script files declare the same top-level name", () => {
   }
   expect(repeats).toEqual([]);
 });
+
+// A write just before page.reload() can be lost under load (see reload() in
+// helpers.js), which makes tests fail at random.
+test("tests reload with the helper, not page.reload()", () => {
+  const found = fs
+    .readdirSync(__dirname)
+    .filter((f) => f.endsWith(".spec.js") && f !== "code.spec.js")
+    .filter((f) =>
+      /page\.reload\(/.test(fs.readFileSync(path.join(__dirname, f), "utf8")),
+    );
+  expect(found).toEqual([]);
+});

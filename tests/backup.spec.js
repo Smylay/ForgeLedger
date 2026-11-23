@@ -1,5 +1,6 @@
 const {
   test,
+  reload,
   expect,
   openApp,
   stored,
@@ -14,8 +15,13 @@ test.beforeEach(async ({ page }) => openApp(page));
 test("exported backup matches stored data", async ({ page }) => {
   await addItem(page, "paints", { name: "Red", stock: "Half" });
   await addItem(page, "tools", { name: "Knife" });
-  const backup = JSON.parse(await downloadText(page, "#backupBtn"));
+  const { appVersion, ...backup } = JSON.parse(
+    await downloadText(page, "#backupBtn"),
+  );
   expect(backup).toEqual(await stored(page));
+  // Backups say which version made them; the data itself doesn't.
+  expect(appVersion).toBe(await page.evaluate(() => APP_VERSION));
+  expect(await stored(page)).not.toHaveProperty("appVersion");
 });
 
 test("export then import restores the same data", async ({
@@ -24,7 +30,7 @@ test("export then import restores the same data", async ({
   await addItem(page, "miniatures", { name: "Squad", quantity: "5" });
   const backup = JSON.parse(await downloadText(page, "#backupBtn"));
   await page.evaluate(() => localStorage.clear());
-  await page.reload();
+  await reload(page);
   await importBackup(page, backup, testInfo);
   await expect(page.locator("#toast")).toHaveText("Backup imported");
   expect((await stored(page)).miniatures).toEqual(backup.miniatures);

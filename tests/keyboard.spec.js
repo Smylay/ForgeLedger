@@ -1,6 +1,7 @@
 // Single-key shortcuts and the switch that turns them off.
 const {
   test,
+  reload,
   expect,
   openApp,
   seed,
@@ -92,7 +93,7 @@ test("they can be turned off, and stay off after a reload", async ({
   await page.keyboard.press("?");
   await page.locator("#keysOn").uncheck();
   await page.keyboard.press("Escape");
-  await page.reload();
+  await reload(page);
   await page.keyboard.press("2");
   await expect(title(page)).toHaveText("Dashboard");
   await page.keyboard.press("?");

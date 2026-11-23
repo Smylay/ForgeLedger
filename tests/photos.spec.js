@@ -2,6 +2,7 @@
 // a cover thumbnail and in a viewer, and carried in backups.
 const {
   test,
+  reload,
   expect,
   openApp,
   seed,
@@ -157,7 +158,7 @@ test("a file that isn't an image is named, and nothing is added", async ({
 test("photos are still there after a reload", async ({ page }) => {
   await photosButton(page, "Squad").click();
   await addPhotos(page, [await imageFile(page, "a.png", 200, 200)]);
-  await page.reload();
+  await reload(page);
   await nav(page, "miniatures");
   await expect(tableRows(page).first().locator("img.thumb")).toHaveAttribute(
     "src",
