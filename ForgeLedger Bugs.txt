@@ -1,4 +1,4 @@
 ForgeLedger Bugs/Suggestions
 
-- Add pictures per miniature
+- Add pictures per miniature (done in PR #15)
 - Add a feature to modify and reorder the queue stages (done in PR #14)
