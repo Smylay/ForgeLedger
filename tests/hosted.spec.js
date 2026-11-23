@@ -1,7 +1,5 @@
 // The app served over HTTP, as on a home server, rather than from file://.
-const { test, expect, stored, addItem, nav } = require("./helpers");
-
-const SITE = "http://127.0.0.1:4173/";
+const { test, expect, SITE, stored, addItem, nav } = require("./helpers");
 
 test("the site root opens the app on the dashboard", async ({ page }) => {
   await page.goto(SITE);

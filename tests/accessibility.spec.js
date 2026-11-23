@@ -1,11 +1,11 @@
-// Automated accessibility checks (axe-core, WCAG 2.1 A and AA) on every
+// Automated accessibility checks (axe-core, WCAG 2.1 and 2.2, A and AA) on every
 // section, the add/edit form and the queue completion prompt, with enough
 // data that badges, chips, markers and buttons all appear.
 const { default: AxeBuilder } = require("@axe-core/playwright");
 const {
   test,
   expect,
-  openApp,
+  SITE,
   seed,
   nav,
   fillForm,
@@ -121,7 +121,9 @@ for (const viewport of [
     test.use({ viewport: viewport.size });
 
     test.beforeEach(async ({ page }) => {
-      await openApp(page);
+      // Served over HTTP: axe reads the stylesheet, and WebKit blocks a page
+      // opened from file:// from reading other local files.
+      await page.goto(SITE);
       await seed(page, data);
     });
 
