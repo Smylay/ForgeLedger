@@ -6,7 +6,8 @@
     "test": "playwright test --project=chromium",
     "test:all": "playwright test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "example": "node scripts/make-example.js"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",

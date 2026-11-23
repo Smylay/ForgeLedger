@@ -28,6 +28,7 @@ Keep it runnable from `file://`. Browsers refuse to load ES module scripts from 
   - Most tests open the app from `file://`. `tests/hosted.spec.js` opens it over HTTP from `tests/serve.js`, a minimal static server that Playwright starts on port 4173.
   - `npm test` runs Chromium only. `npm run test:all` adds Firefox and WebKit; install them first with `npx playwright install firefox webkit`. CI runs all three.
   - Import `test` and `expect` from `./helpers`, not from `@playwright/test`, so the fixtures apply. `helpers.js` also has helpers for seeding data, filling forms, downloads, and imports.
+- **Example data:** `npm run example` rewrites `examples/forgeledger-example.json` from `js/demo.js` (see Example data). Run it after changing `demo.js`; `tests/demo.spec.js` fails while the file is out of date.
 - **Formatting:** Prettier, configured in `.prettierrc`: 2-space indent, 80-column lines, and 120 columns for HTML. Run `npm run format` to format or `npm run format:check` to check. Format before committing.
 
 ## Architecture (`js/`)
@@ -39,6 +40,7 @@ The code lives in plain `<script>` files that share the global scope. They aren'
 | `util.js`       | helpers with no app state: `id()`, `esc()`, `safeColour()`, `safeUrl()`, `money()`, `toast()`, `download()`, `today()` |
 | `schema.js`     | storage keys, `defaults`, `defs`, `column()`, link helpers, `projectStats()`                                           |
 | `skillguide.js` | `LEVELS`, the `TECHNIQUES` library, `nextStep()`, `practiceNext()` and other skill helpers                             |
+| `demo.js`       | the example data: `demoData()`, `demoPhotos()`, `DEMO_FILE_DATE`                                                       |
 | `storage.js`    | load, validate, repair, migrate, `save()`, `commit()`, `commitWithUndo()`, backup age                                  |
 | `photos.js`     | miniature photos in IndexedDB: open, store, shrink, show, tidy, and their part of backups                              |
 | `render.js`     | nav and page switching, dashboard, tables, queue, skills, sorting, deadline markers                                    |
@@ -157,7 +159,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 **Accessibility and layout.**
 
-- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the add/edit form, the completion prompt, the Bought prompt, the reward notice, the stage editor, the photo viewer and the keyboard shortcuts list, at desktop and phone sizes. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
+- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the empty dashboard's example data offer and notice, the add/edit form, the completion prompt, the Bought prompt, the reward notice, the stage editor, the photo viewer and the keyboard shortcuts list, at desktop and phone sizes. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
 - **Red backgrounds.** Text on a red background uses `--accent-strong`, not `--accent`. White on `--accent` is under the 4.5:1 contrast minimum.
 - **Icon-only buttons** need an `aria-label`, like the queue's "Move … up" arrows.
 - **Button sizes.** Row buttons are at least 32px, and 44px on touch screens (`pointer: coarse`). A `pointer: coarse` rule must come after the rule it overrides in `styles.css`: the two selectors are usually equally specific, so the later one wins.
@@ -168,7 +170,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - The page grid uses `minmax(0, 1fr)`, so wide content can't widen the page.
   - `tests/layout.spec.js` checks that every section fits a 375px screen.
 
-**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`), then dispatches on `data-*` attributes of the clicked `<button>`: `edit`, `del`, `queue`, `next`, `plus`, `top`, `up`, `down`, `recovery`, `wish`, `wishall`, `bought`, `unreward`, `stages`, `photos`, `sort`, `scale`, `step`, `split` and `adv`.
+**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`), then dispatches on `data-*` attributes of the clicked `<button>`: `edit`, `del`, `queue`, `next`, `plus`, `top`, `up`, `down`, `recovery`, `wish`, `wishall`, `bought`, `unreward`, `demo`, `stages`, `photos`, `sort`, `scale`, `step`, `split` and `adv`.
 
 - `edit` and `del` work in every section because they act on the current section.
 - To add a new row action, render a button with a new `data-*` attribute and add a branch to this listener.
@@ -250,6 +252,17 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - `photosFromBackup()` skips entries with a type outside `PHOTO_TYPES` or bad base64.
   - If IndexedDB can't be used, the data still imports, and the toast says how many photos couldn't be stored.
 - **Toasts in dialogs.** A modal dialog makes the rest of the page inert. So `toast()` moves `#toast` into the open dialog, and a capturing `close` listener in `app.js` moves it back. That's how the viewer's Undo stays clickable.
+
+**Example data.** `demo.js` holds made-up data that shows off every feature. The names are invented, so no real brands appear.
+
+- **The offer.** While the app is empty (`!hasUserData()`), the dashboard's `#startNotice` offers "Load example data" (`data-demo="load"`, `loadDemo()`). It's only offered into an empty app, so it never replaces anything.
+- **`demoData(base)`** builds the data. Dates count from `base`, so markers like "Due in 5 days" show whenever it's loaded. It sets a top-level `demo: true`.
+- **`demoPhotos()`** draws the two example photos on a canvas, as the same records `photoFromFile()` makes, so the repository needs no image files. They're stored before the data is committed. If they can't be stored, the miniatures get no photos.
+- **While `db.demo` is set,** `#startNotice` offers:
+  - "Clear it and start fresh" (`clearDemo()`): back to `defaults`, with Undo;
+  - "Keep it" (`keepDemo()`): removes the flag.
+- **The example file.** `examples/forgeledger-example.json` is the same data as a backup, photos included. Its dates are fixed at `DEMO_FILE_DATE`. `scripts/make-example.js` (`npm run example`) writes it from the app's own code in Chromium, formatted with Prettier.
+- **Encoding.** Images are encoded with `canvas.toDataURL`, not `toBlob`. `toBlob`'s callback can stall in headless browsers, and it once hung the example photos in tests.
 
 **Mutation pattern.** Never change `db` and call `save()` directly. Use `commit(() => { /* change db */ })`: it snapshots `db`, applies the change, and saves. If saving fails, it restores the snapshot, shows an error, and returns `false`. Afterwards, call `renderNav()` (nav badges show item counts) and the renderer for the affected view.
 
@@ -333,6 +346,7 @@ The form handler `submit()` writes to `db[section]`, so `openForm(sec, obj)` set
   - `miniatures.paints` is a `links` array of the paints in its recipe. The older free-text `recipe` field is still there, labelled "Recipe steps".
   - `skills.changed` is not a link: it's the date the skill's level last changed (see Skills). It's optional.
   - `wishlist.rewardFor` points at the project a reward belongs to, and `wishlist.rewardAt` is the percent it unlocks at (see Rewards).
+  - The top-level `demo` is `true` while example data is loaded (see Example data). It's optional.
   - `wishlist.paint` points at the paint a wishlist item restocks. `addToWishlist()` sets it when a low paint is added from the dashboard, and the dashboard uses it to show "On wishlist".
 
   Older data can still hold links to deleted records; these display blank, and saving the record clears them. Imported `links` values may not be arrays; `asList()` treats anything else as empty.

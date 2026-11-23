@@ -38,15 +38,9 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - **Wishlist Bought button (phase 13):** restocks set the paint back to Full; paints, tools and miniatures move into their lists; anything else asks where it goes.
 - **Editable queue stages (phase 14):** edit the default stages, or give one queue item its own; items follow renames and move on from deleted stages. _(From the bug list.)_
 - **Miniature photos (phase 15):** add photos from files or a phone camera, kept on your device in the browser's own storage and included in backups. _(From the bug list.)_
+- **Progress and rewards (phase 16):** work in progress counts toward a project's percentage, and wishlist items can unlock as rewards at a project %. _(From the bug list.)_
 
-## Phase 16: Progress and rewards (in progress)
-
-_(From the bug list.)_
-
-- **Work in progress counts toward a project's percentage.** Each model counts its queue stage's share, so a model halfway through its stages is half done.
-- **Wishlist rewards.** A wishlist item can unlock when a project reaches a percentage you choose. You're told when it unlocks, with a Bought button.
-
-## Phase 17: Example data
+## Phase 17: Example data (in progress)
 
 _(From the bug list.)_
 

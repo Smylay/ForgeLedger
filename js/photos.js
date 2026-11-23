@@ -118,10 +118,12 @@ async function shrinkImage(file, size) {
     g.fillStyle = "#fff"; // transparent PNGs get a white background
     g.fillRect(0, 0, c.width, c.height);
     g.drawImage(img, 0, 0, c.width, c.height);
-    let blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.85));
-    if (!blob) throw new Error("couldn't encode");
+    // toDataURL, not toBlob, whose callback can stall in some headless
+    // browsers; encoding one photo this way takes a few tens of ms.
+    let jpeg = c.toDataURL("image/jpeg", 0.85);
+    if (!jpeg.startsWith("data:image/jpeg")) throw new Error("couldn't encode");
     return {
-      bytes: await blob.arrayBuffer(),
+      bytes: fromBase64(jpeg.split(",")[1]),
       width: c.width,
       height: c.height,
     };

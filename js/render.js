@@ -29,6 +29,15 @@ function renderRewardNotice() {
     })
     .join("");
 }
+// Top of the dashboard: an offer of example data while the app is empty,
+// and a note while example data is loaded.
+function renderStartNotice() {
+  document.querySelector("#startNotice").innerHTML = !hasUserData()
+    ? '<div class="notice">New to ForgeLedger? <button class="btn" data-demo="load">Load example data</button> to see what it can do. You can clear it again afterwards.</div>'
+    : db.demo
+      ? '<div class="notice">You\'re looking at example data. <button class="btn" data-demo="clear">Clear it and start fresh</button> <button class="btn" data-demo="keep">Keep it</button></div>'
+      : "";
+}
 function renderAlerts() {
   let notes = [];
   if (memoryOnly)
@@ -159,6 +168,7 @@ function render() {
   else renderList();
 }
 function renderDashboard() {
+  renderStartNotice();
   let modelCount = db.miniatures.reduce(
       (a, x) => a + Number(x.quantity || 1),
       0,
