@@ -6,6 +6,9 @@ const KEY = "forgeledger_v2_data";
 // Bump when stored data changes shape, and add a step to migrate().
 const SCHEMA_VERSION = 2;
 const BACKUP_KEY = "forgeledger_v2_last_backup";
+// "off" when the user has turned single-key shortcuts off (kept outside
+// the data, like the last backup time).
+const SHORTCUTS_KEY = "forgeledger_v2_shortcuts";
 const RECOVERY_PREFIX = "forgeledger_v2_recovered_";
 const BACKUP_REMINDER_DAYS = 14;
 const DUE_SOON_DAYS = 14; // dates this close get a "Due in N days" marker
@@ -50,7 +53,8 @@ const defaults = {
 // Field types: text (default), textarea, select (needs `options`), link
 // (stores the id of a record in collection `to`), links (an array of ids),
 // date, url, color, count, money, percent, level, scale (one of `options`,
-// shown in tables as one-tap buttons).
+// shown in tables as one-tap buttons coloured by `tones`: good, mid, bad
+// or none; it sorts in option order, or reversed with `highFirst`).
 const defs = {
   paints: {
     title: "Paints",
@@ -77,8 +81,15 @@ const defs = {
           "Other",
         ],
       },
-      { key: "quantity", label: "Quantity", type: "count" },
-      { key: "stock", label: "Stock", type: "scale", options: STOCK_LEVELS },
+      { key: "quantity", label: "Quantity", type: "count", stepper: true },
+      {
+        key: "stock",
+        label: "Stock",
+        type: "scale",
+        options: STOCK_LEVELS,
+        tones: ["good", "good", "mid", "bad", "bad"],
+        highFirst: true, // options run from most to least
+      },
       { key: "price", label: "Cost (£)", type: "money" },
       { key: "notes", label: "Notes", type: "textarea" },
     ],
@@ -110,8 +121,10 @@ const defs = {
       {
         key: "condition",
         label: "Condition",
-        type: "select",
+        type: "scale",
         options: ["New", "Good", "Worn", "Replace soon"],
+        tones: ["good", "good", "mid", "bad"],
+        highFirst: true, // best first, like paint stock
       },
       { key: "quantity", label: "Quantity", type: "count" },
       { key: "price", label: "Cost (£)", type: "money" },
@@ -128,18 +141,20 @@ const defs = {
       { key: "name", label: "Miniature / unit", required: true },
       { key: "faction", label: "Faction" },
       { key: "project", label: "Army project", type: "link", to: "projects" },
-      { key: "quantity", label: "Model count", type: "count" },
+      { key: "quantity", label: "Model count", type: "count", stepper: true },
       {
         key: "painted",
         label: "Painted count",
         type: "count",
         atMost: "quantity",
+        stepper: true,
       },
       {
         key: "status",
         label: "Status",
-        type: "select",
+        type: "scale",
         options: ["Unbuilt", "Built", "Primed", "In progress", "Complete"],
+        tones: ["none", "none", "none", "mid", "good"],
       },
       { key: "price", label: "Cost (£)", type: "money" },
       { key: "paints", label: "Recipe paints", type: "links", to: "paints" },
@@ -270,8 +285,9 @@ const defs = {
       {
         key: "priority",
         label: "Priority",
-        type: "select",
+        type: "scale",
         options: ["Low", "Medium", "High"],
+        tones: ["none", "mid", "bad"],
       },
       { key: "paint", label: "Restocks paint", type: "link", to: "paints" },
       { key: "price", label: "Expected cost (£)", type: "money" },

@@ -70,6 +70,7 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 - **Untrusted values.** Field values in imported data are not checked. Treat them as untrusted.
 - **Blocked storage.** If storage is blocked, `memoryOnly` is set: the app works in memory and says nothing is saved.
 - **Two tabs.** A `storage` event listener reloads `db` when another tab saves, so two open tabs don't overwrite each other.
+- **Settings outside the data.** The keyboard shortcuts setting is in `localStorage["forgeledger_v2_shortcuts"]`, not in `db` or backups.
 - **Backup reminder.** The last export time is kept in `localStorage["forgeledger_v2_last_backup"]`, outside the data. The dashboard warns when there's no backup or the last one is `BACKUP_REMINDER_DAYS` (14) or more days old.
 
 **Backward compatibility.** Users keep and move their data with Export backup and Import, which write and read JSON files. ForgeLedger is open source and runs from a local file, so old backups and existing `localStorage` data must keep loading after any change. Don't rename or repurpose stored fields. Add new fields as optional. A field that is no longer used can stay in old records, as long as nothing reads it.
@@ -78,10 +79,12 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 
 - `title` and `sub` for the page heading, `nav` if the nav label differs from the title, and `noun` for the form title ("Add paint").
 - `swatch` (optional): the key of a colour field to show as a dot beside each record's name in the table, e.g. paints' `colour`. No colour or an invalid one shows a hollow dot.
-- `fields`: `{ key, label, type, required, options, atMost, doneWhen }` objects.
+- `fields`: `{ key, label, type, required, options, atMost, doneWhen, stepper, tones, highFirst }` objects.
 
   - `atMost` names another field this one can't exceed; for example, painted count can't exceed model count. `submit()` checks it with `setCustomValidity`.
   - `doneWhen(record)` on a `date` field turns on deadline markers for that date (see below). Markers stop once `doneWhen` returns true.
+  - `stepper: true` on a `count` field shows it in the table with − and + buttons (see Quick edits).
+  - `tones` on a `scale` field colours each option's button when chosen: `good`, `mid`, `bad` or `none`, one per option. `highFirst: true` means the options run from most to least, like paint stock, so sorting reverses them.
   - Each type maps to an input (`inputAttrs` for plain `<input>`s) and a display format (`cellText()` / `cellHtml()`). Blank values display as blank.
 
   | Type             | Input                       | Notes                                                 |
@@ -112,7 +115,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 **Sorting.** Column headers are buttons (`data-sort`). Clicking one sorts the visible rows by that column, and clicking it again reverses the order. The sort resets when you change section.
 
-- `sortValue()` compares numeric types (`count`, `money`, `percent`, `level`, and computed numbers) as numbers. `scale` fields sort by amount, so the last option (Empty) is lowest. Everything else sorts by its displayed text, ignoring case.
+- `sortValue()` compares numeric types (`count`, `money`, `percent`, `level`, and computed numbers) as numbers. `scale` fields sort in option order, reversed for `highFirst` fields, so paint stock's last option (Empty) is lowest. Everything else sorts by its displayed text, ignoring case.
 - Blanks always sort last.
 - Sorting only changes the display; `db` keeps its order.
 
@@ -137,23 +140,38 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 **Accessibility and layout.**
 
-- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the add/edit form and the completion prompt, at desktop and phone sizes. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
+- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the add/edit form, the completion prompt and the keyboard shortcuts list, at desktop and phone sizes. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
 - **Red backgrounds.** Text on a red background uses `--accent-strong`, not `--accent`. White on `--accent` is under the 4.5:1 contrast minimum.
 - **Icon-only buttons** need an `aria-label`, like the queue's "Move … up" arrows.
 - **Button sizes.** Row buttons are at least 32px, and 44px on touch screens (`pointer: coarse`).
 - **Focus.** `:focus-visible` gives every control one blue focus ring. Don't remove outlines.
+- **Narrow screens (≤850px):** the sidebar footer's text is hidden, but the "Keyboard shortcuts" button stays, top right beside the brand, so the off switch can be reached with a tablet keyboard.
 - **Phones (≤520px):**
   - The nav is a single scrolling row, and `show()` scrolls the current link into view.
   - The page grid uses `minmax(0, 1fr)`, so wide content can't widen the page.
   - `tests/layout.spec.js` checks that every section fits a 375px screen.
 
-**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`), then dispatches on `data-*` attributes of the clicked `<button>`: `edit`, `del`, `queue`, `next`, `plus`, `top`, `up`, `down`, `recovery`, `wish`, `wishall`, `sort` and `scale`.
-
-- **Level buttons (`scale`).** A tap saves the value with `commit()`, then `setScale()` redraws only that table cell and moves focus back to the chosen button. The row doesn't move in a sorted table, and keyboard users keep their place.
+**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`), then dispatches on `data-*` attributes of the clicked `<button>`: `edit`, `del`, `queue`, `next`, `plus`, `top`, `up`, `down`, `recovery`, `wish`, `wishall`, `sort`, `scale` and `step`.
 
 - `edit` and `del` work in every section because they act on the current section.
 - To add a new row action, render a button with a new `data-*` attribute and add a branch to this listener.
 - Other controls are wired directly in `app.js`.
+
+**Quick edits.** These change a record without opening the form.
+
+- **One-tap buttons (`scale`).** A tap saves the value with `commit()`, then `setScale()` redraws the row and moves focus back to the chosen button.
+- **+/− buttons (`stepper`).** `stepCount()` adds or takes 1 with `commit()` and stores the result as a string, like the form does.
+  - `stepRange()` sets the limits: never below 0, nor below any field whose `atMost` names this one, nor above this field's own `atMost`. So painted count stays between 0 and model count, and model count can't drop below painted.
+  - A button at its limit is disabled. When a press reaches the limit, focus moves to the other button.
+  - A blank count shows "–", and + starts it at 1.
+- **Redrawing one row.** Both use `redrawRow(record, ...selectors)`. Table rows carry `data-row="<id>"`; `redrawRow` replaces that row and focuses the first selector that matches an enabled control in it. The row doesn't move in a sorted table, and keyboard users keep their place.
+- **Quick add.** Each list, the queue and skills have a `.quickadd` form above them: type a name and press Enter. `quickAdd()` clears search and filter so the new record is visible, adds `{ id, name }` with `commitWithUndo`, and keeps focus in the box. `show()` sets the box's placeholder and `aria-label` from the section's `noun`.
+
+**Keyboard shortcuts.** A `keydown` listener in `app.js` handles single keys: N opens the add form, Q focuses quick add, / focuses search, 1 to 8 go to the sections in nav order (`SECTION_KEYS`), and ? opens `#keysDialog`, which lists them.
+
+- They're ignored while a box has focus, with Ctrl, Alt or Cmd, or while any dialog is open.
+- WCAG 2.1.4 requires a way to turn single-key shortcuts off. The checkbox in `#keysDialog` does that; the sidebar's "Keyboard shortcuts" button opens the dialog even while they're off.
+- The setting is kept in `localStorage["forgeledger_v2_shortcuts"]` (`SHORTCUTS_KEY`), outside the data, so it isn't in backups. Missing means on.
 
 **Mutation pattern.** Never change `db` and call `save()` directly. Use `commit(() => { /* change db */ })`: it snapshots `db`, applies the change, and saves. If saving fails, it restores the snapshot, shows an error, and returns `false`. Afterwards, call `renderNav()` (nav badges show item counts) and the renderer for the affected view.
 

@@ -50,6 +50,23 @@ test("the current section is scrolled into view in the nav row", async ({
   expect(link.x + link.width).toBeLessThanOrEqual(row.x + row.width + 1);
 });
 
+test("the keyboard shortcuts button is still there, beside the brand", async ({
+  page,
+}) => {
+  await expect(page.locator(".sideinfo")).toBeHidden();
+  // The brand is a full-width block, so measure its text.
+  const brandEnd = await page.evaluate(() => {
+    const r = document.createRange();
+    r.selectNodeContents(document.querySelector(".brand"));
+    return r.getBoundingClientRect().right;
+  });
+  const btn = await page.locator("#keysBtn").boundingBox();
+  expect(btn.x).toBeGreaterThan(brandEnd);
+  expect(btn.x + btn.width).toBeLessThanOrEqual(375);
+  await page.click("#keysBtn");
+  await expect(page.locator("#keysDialog")).toBeVisible();
+});
+
 test("short pages leave no gap under the header", async ({ page }) => {
   await nav(page, "queue");
   const [side, main] = await Promise.all([

@@ -44,10 +44,12 @@ function sortValue(f, x) {
   let numeric = ["count", "money", "percent", "level"].includes(f.type),
     v = f.value ? f.value(x) : x[f.key];
   if (v == null || v === "" || (Array.isArray(v) && !v.length)) return null;
-  // Levels sort by amount: the last option (e.g. Empty) is the lowest.
+  // Levels sort in option order, or reversed when the options run from
+  // most to least (paint stock: Empty sorts first).
   if (f.type === "scale") {
     let i = f.options.indexOf(v);
-    return i < 0 ? null : f.options.length - 1 - i;
+    if (i < 0) return null;
+    return f.highFirst ? f.options.length - 1 - i : i;
   }
   if (numeric) return Number.isNaN(Number(v)) ? null : Number(v);
   return cellText(f, x).toLowerCase();
@@ -116,6 +118,13 @@ function show(k) {
     .querySelector("#" + (d ? d.view || "listView" : "dashboard"))
     .classList.add("active");
   document.querySelector("#addBtn").style.display = d ? "inline-block" : "none";
+  if (d) {
+    let what = `${/^[aeiou]/i.test(d.noun) ? "an" : "a"} ${d.noun}`;
+    for (let input of document.querySelectorAll(".quickadd input")) {
+      input.placeholder = `Quick add ${what}…`;
+      input.setAttribute("aria-label", `Quick add ${what}, by name`);
+    }
+  }
   render();
 }
 function render() {
@@ -250,12 +259,13 @@ function cellText(f, x) {
 }
 function cellHtml(f, x) {
   let v = x[f.key];
+  if (f.stepper) return stepperHtml(f, x);
   // One button per level; tapping one saves it (setScale in actions.js).
   if (f.type === "scale")
     return `<span class="scale" role="group" aria-label="${esc(f.label)} of ${esc(x.name)}">${f.options
       .map(
         (o, i) =>
-          `<button type="button" class="lvl-${i}" data-scale="${f.key}" data-id="${esc(x.id)}" data-value="${esc(o)}" aria-pressed="${v === o}">${esc(o)}</button>`,
+          `<button type="button" class="tone-${f.tones?.[i] || "none"}" data-scale="${f.key}" data-id="${esc(x.id)}" data-value="${esc(o)}" aria-pressed="${v === o}">${esc(o)}</button>`,
       )
       .join("")}</span>`;
   if (f.type === "url")
@@ -282,6 +292,49 @@ function swatchHtml(colour) {
   let c = safeColour(colour);
   return `<span class="colour${c ? "" : " none"}" style="background:${c || "transparent"}" aria-hidden="true"></span>`;
 }
+// The range a +/- count can move in: at least 0 and at least any field
+// that must not exceed it (model count >= painted), at most its `atMost`
+// field (painted <= model count). Blank limits are ignored.
+function stepRange(d, f, x) {
+  let set = (v) => v !== "" && v != null,
+    lo = 0,
+    hi = null;
+  for (let g of d.fields)
+    if (g.atMost === f.key && set(x[g.key]))
+      lo = Math.max(lo, Number(x[g.key]) || 0);
+  if (f.atMost && set(x[f.atMost])) hi = Number(x[f.atMost]) || 0;
+  return { lo, hi };
+}
+// A count with - and + buttons; blank shows "–" and + starts it at 1.
+function stepperHtml(f, x) {
+  let v = x[f.key],
+    n = v === "" || v == null ? null : Number(v) || 0,
+    { lo, hi } = stepRange(defs[section], f, x),
+    label = esc(`${f.label} of ${x.name}`),
+    attrs = `data-key="${f.key}" data-id="${esc(x.id)}"`;
+  return `<span class="stepper" role="group" aria-label="${label}"><button type="button" data-step="-1" ${attrs} aria-label="Decrease ${label}"${n === null || n <= lo ? " disabled" : ""}>−</button><span class="stepval">${n === null ? '<span aria-hidden="true">–</span><span class="sr-only">not set</span>' : n}</span><button type="button" data-step="1" ${attrs} aria-label="Increase ${label}"${hi !== null && (n ?? 0) >= hi ? " disabled" : ""}>+</button></span>`;
+}
+// One table row for record `x` of collection `d`.
+function rowHtml(d, x) {
+  let cells = d.columns
+    .map((k) => column(d, k))
+    .map(
+      (c) =>
+        `<td>${c.key === "name" && d.swatch ? swatchHtml(x[d.swatch]) : ""}${cellHtml(c, x)}</td>`,
+    )
+    .join("");
+  return `<tr data-row="${esc(x.id)}">${cells}<td class="rowacts"><button data-edit="${esc(x.id)}">Edit</button><button class="del" data-del="${esc(x.id)}">Delete</button>${section === "miniatures" ? `<button data-queue="${esc(x.id)}">Queue</button>` : ""}</td></tr>`;
+}
+// Redraw one table row after a one-tap change, so the row keeps its place
+// (even in a sorted table), then put focus back on the first of `focus`
+// (selectors within the row) that's still there and enabled.
+function redrawRow(rec, ...focus) {
+  let sel = `tr[data-row="${CSS.escape(rec.id)}"]`,
+    row = document.querySelector(sel);
+  if (!row) return;
+  row.outerHTML = rowHtml(defs[section], rec);
+  refocus(...focus.map((f) => `${sel} ${f}`));
+}
 function renderTable() {
   let d = defs[section],
     cols = d.columns.map((k) => column(d, k)),
@@ -294,12 +347,7 @@ function renderTable() {
       return `<th aria-sort="${aria}"><button class="sortbtn" data-sort="${k}">${esc(cols[i].label)}${on ? (sort.dir > 0 ? " ▲" : " ▼") : ""}</button></th>`;
     })
     .join("");
-  let body = rows
-    .map(
-      (x) =>
-        `<tr>${cols.map((c) => `<td>${c.key === "name" && d.swatch ? swatchHtml(x[d.swatch]) : ""}${cellHtml(c, x)}</td>`).join("")}<td class="rowacts"><button data-edit="${esc(x.id)}">Edit</button><button class="del" data-del="${esc(x.id)}">Delete</button>${section === "miniatures" ? `<button data-queue="${esc(x.id)}">Queue</button>` : ""}</td></tr>`,
-    )
-    .join("");
+  let body = rows.map((x) => rowHtml(d, x)).join("");
   document.querySelector("#content").innerHTML = rows.length
     ? `<div class="tablewrap"><table><thead><tr>${head}<th>Actions</th></tr></thead><tbody>${body}</tbody></table></div>`
     : '<div class="card empty">No matching items.</div>';

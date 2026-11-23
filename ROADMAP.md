@@ -31,20 +31,14 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
   - an accessibility and phone layout pass.
 - **Paint levels (phase 7):** stock is Full / Good / Half / Low / Empty, set with one tap.
 - **Queue controls (phase 8):** next stage, a progress bar, a +1 counter, Top, and drag to reorder.
+- **Fixes (phase 9):** the queue +1 counts models per stage and moves the item on when they're all done, paint colours show as a swatch, editing keeps fields the form doesn't show, and the sidebar footer no longer overlaps the nav in short windows.
 
-## Phase 9: Fixes (in progress)
-
-- **Queue +1 counts per stage:** "Basecoating: 3 of 5 done". When every model is done, the item moves to the next stage automatically, with Undo.
-- **Paint colours** show as a swatch beside each paint's name.
-- **Editing keeps fields the form doesn't show,** such as the stage count.
-- **The sidebar footer** no longer overlaps the nav in short windows.
-
-## Phase 10: Fewer trips to the edit form
+## Phase 10: Fewer trips to the edit form (in progress)
 
 - **One-tap status fields,** like paint stock: miniature status, wishlist priority and tool condition.
 - **+/− buttons** on paint quantity, model count and painted count. Painted can't go above the model count.
 - **A quick-add row** at the top of each list: type a name and press Enter.
-- **Keyboard shortcuts:** N to add, / to search, Esc to close, plus keys to jump between sections, and a list of them on "?". A setting turns them off, as WCAG 2.1.4 requires for single-key shortcuts.
+- **Keyboard shortcuts:** N to add, Q to quick-add, / to search, 1 to 8 to jump between sections, Esc to close, and a list of them on "?" or from the sidebar. A setting in that list turns them off, as WCAG 2.1.4 requires for single-key shortcuts.
 
 ## Phase 11: Skills
 

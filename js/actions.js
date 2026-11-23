@@ -153,18 +153,16 @@ function importJSON(file) {
   r.readAsText(file);
 }
 
-// One tap on a level button (e.g. a paint's stock): save it, then redraw
-// only that cell so the row keeps its place and keyboard focus stays on
-// the chosen button.
+// One tap on a level button (paint stock, miniature status, …): save it,
+// then redraw only that row so it keeps its place and keyboard focus
+// stays on the chosen button.
 function setScale(b) {
   let f = column(defs[section], b.dataset.scale),
     rec = db[section].find((x) => x.id === b.dataset.id),
     value = b.dataset.value;
   if (!rec || f?.type !== "scale" || !f.options.includes(value)) return;
   if (!commit(() => (rec[f.key] = value))) return;
-  let cell = b.closest("td");
-  cell.innerHTML = cellHtml(f, rec);
-  cell.querySelector('[aria-pressed="true"]').focus();
+  redrawRow(rec, `[data-scale="${f.key}"][aria-pressed="true"]`);
 }
 
 // Move queue item `from` to position `to` (counted without the item).
@@ -228,4 +226,40 @@ function plusOneDone(qid) {
     `[data-edit="${CSS.escape(qid)}"]`,
   );
   if (advance && to === "Complete") askComplete(q);
+}
+
+// One tap on - or +: change a count by one within its limits, then redraw
+// the row (its other counts may have new limits) and keep focus on the
+// button, or on the other one if this one is now at its limit.
+function stepCount(b) {
+  let d = defs[section],
+    f = column(d, b.dataset.key),
+    rec = db[section].find((x) => x.id === b.dataset.id),
+    delta = Number(b.dataset.step);
+  if (!rec || !f?.stepper || Math.abs(delta) !== 1) return;
+  let blank = rec[f.key] === "" || rec[f.key] == null,
+    next = (Number(rec[f.key]) || 0) + delta,
+    { lo, hi } = stepRange(d, f, rec);
+  if ((blank && delta < 0) || next < lo || (hi !== null && next > hi)) return;
+  if (!commit(() => (rec[f.key] = String(next)))) return;
+  let btn = (step) => `[data-key="${f.key}"][data-step="${step}"]`;
+  redrawRow(rec, btn(delta), btn(-delta));
+}
+
+// Quick add: a new record in the current section with just a name, with
+// Undo. Search and filter are cleared so the new record is visible, and
+// the box is emptied (keeping focus) for the next one.
+function quickAdd(form) {
+  let input = form.elements.name,
+    name = input.value.trim();
+  if (!name || !defs[section]) return;
+  document.querySelector("#search").value = "";
+  document.querySelector("#filter").value = "";
+  let added = commitWithUndo(
+    () => db[section].push({ id: id(), name }),
+    () => `Added "${name}"`,
+  );
+  if (!added) return;
+  input.value = "";
+  input.focus();
 }
