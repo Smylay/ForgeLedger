@@ -248,3 +248,31 @@ test("a bought wishlist item carries nothing that can run", async ({
   // The hostile "link" isn't http(s), so it isn't copied into the notes.
   expect((await stored(page)).paints[0].notes).toBe(attack("boughtNotes"));
 });
+
+test("photo ids and names can't run script", async ({ page }, testInfo) => {
+  await importBackup(
+    page,
+    {
+      schemaVersion: 5,
+      miniatures: [
+        {
+          id: "m",
+          name: attack("photoName"),
+          photos: [attack("photoId"), "ok"],
+        },
+      ],
+      photos: {
+        [attack("photoKey")]: { type: "image/png", full: "AAAA" },
+      },
+    },
+    testInfo,
+  );
+  await nav(page, "miniatures");
+  await page.click("button[data-photos]");
+  await page.click('#photoStrip [data-pick="1"]');
+  await page.waitForTimeout(200); // let any injected <img> fail to load
+  const ran = await page.evaluate(() =>
+    ["photoName", "photoId", "photoKey"].filter((f) => window[f]),
+  );
+  expect(ran).toEqual([]);
+});

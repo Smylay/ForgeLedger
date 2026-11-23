@@ -4,7 +4,7 @@
 
 const KEY = "forgeledger_v2_data";
 // Bump when stored data changes shape, and add a step to migrate().
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 const BACKUP_KEY = "forgeledger_v2_last_backup";
 // "off" when the user has turned single-key shortcuts off (kept outside
 // the data, like the last backup time).
@@ -148,6 +148,7 @@ const defs = {
   miniatures: {
     title: "Miniatures",
     noun: "miniature",
+    photos: true, // a thumbnail and a Photos button on each row
     sub: "Models, units and their painting state",
     fields: [
       { key: "name", label: "Miniature / unit", required: true },

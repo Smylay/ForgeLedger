@@ -1,8 +1,7 @@
 ForgeLedger Bugs/Suggestions
 
-- Add pictures per miniature
-- Add a feature to modify and reorder the queue stages
-- Add a feature to modify and reorder the queue stages
+- Add pictures per miniature (done in PR #15)
+- Add a feature to modify and reorder the queue stages (done in PR #14)
 - Each step of the build progress of an individual model should count toward the project percentage
 - Include an example json to demo the capabilities of the software
 - I want to add a system that lets us add milestones at a custom level of project completion that are like "I did x% of this project so I can now justify buying this model from my wishlist as a reward"

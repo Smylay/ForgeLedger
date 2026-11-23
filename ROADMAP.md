@@ -36,26 +36,24 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - **Skills and paint types (phase 11):** a level guide, a library of 20 techniques with a next step for each level, a skill profile, practice suggestions, and Primer and Shade/Wash paint types.
 - **Queue models at different stages (phase 12):** split a queue item by stage, with a count and a Move 1 button for each stage. _(From the bug list.)_
 - **Wishlist Bought button (phase 13):** restocks set the paint back to Full; paints, tools and miniatures move into their lists; anything else asks where it goes.
+- **Editable queue stages (phase 14):** edit the default stages, or give one queue item its own; items follow renames and move on from deleted stages. _(From the bug list.)_
 
-## Phase 14: Editable queue stages (in progress)
-
-_(From the bug list.)_
-
-- **Edit the default stages:** rename, reorder, add and delete the stages between Not started and Complete.
-- **Give one queue item its own stages,** starting from a copy of the default, or put it back on the default.
-- **Items follow the changes:** renamed stages keep their counts, and items at a deleted stage move on to the next stage.
-
-## Phase 15: Miniature photos
+## Phase 15: Miniature photos (in progress)
 
 _(From the bug list.)_
 
 - **Add photos to a miniature,** from a file or a phone's camera. They're shrunk and kept in the browser's own storage (IndexedDB), so they stay on your device.
 - **Export backup includes them,** so one file still moves everything.
-- **Works opened as a file** in Chrome, Edge and Firefox. Safari can't use the browser's image storage from a double-clicked file, so it needs the app served, for example from your home server.
+- **Works opened as a file or hosted,** in Chrome, Edge, Firefox and Safari.
 
 ## Later
 
+- _From the bug list, to be planned next:_
+  - Count each model's build progress (its queue stages) towards its project's percentage, not only finished models.
+  - An example backup file that shows off what ForgeLedger can do.
+  - Reward milestones: set project completion levels (e.g. 50%) that unlock a chosen wishlist item.
 - A currency setting (currently fixed to GBP).
+- Fit the miniatures table on a laptop screen. With nine columns plus its row buttons, it scrolls sideways below about 1400px wide.
 - Count restock purchases in Recorded spend. Bought on a restock sets the paint to Full but doesn't record what the new pot cost, because a paint holds one price.
 - Optional automatic saving to a JSON file you choose (Chromium-based browsers only).
 - Installing as an app when hosted over HTTPS.

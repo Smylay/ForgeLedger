@@ -107,7 +107,25 @@ async function importBackup(page, content, testInfo, name = "backup.json") {
   await page.setInputFiles("#importFile", file);
 }
 
+// An image drawn in the page, as a file for an <input type="file">.
+async function imageFile(page, name, w, h, colour = "#c33") {
+  const b64 = await page.evaluate(
+    ([w, h, colour]) => {
+      const c = document.createElement("canvas");
+      c.width = w;
+      c.height = h;
+      const g = c.getContext("2d");
+      g.fillStyle = colour;
+      g.fillRect(0, 0, w, h);
+      return c.toDataURL("image/png").split(",")[1];
+    },
+    [w, h, colour],
+  );
+  return { name, mimeType: "image/png", buffer: Buffer.from(b64, "base64") };
+}
+
 module.exports = {
+  imageFile,
   test,
   expect: base.expect,
   APP,
