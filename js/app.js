@@ -65,12 +65,16 @@ document.addEventListener("click", (e) => {
     renderNav();
     if (queued) toast("Added to queue");
   }
-  if (b.dataset.up !== undefined || b.dataset.down !== undefined) {
-    let i = +(b.dataset.up ?? b.dataset.down),
-      j = b.dataset.up !== undefined ? i - 1 : i + 1;
-    if (j >= 0 && j < db.queue.length)
-      commit(() => ([db.queue[i], db.queue[j]] = [db.queue[j], db.queue[i]]));
+  if (b.dataset.next) nextStage(b.dataset.next);
+  if (b.dataset.plus) paintedPlusOne(b.dataset.plus);
+  // Reordering keeps focus on the same button of the item that moved.
+  for (let dir of ["top", "up", "down"]) {
+    if (b.dataset[dir] === undefined) continue;
+    let i = +b.dataset[dir],
+      j = dir === "top" ? 0 : dir === "up" ? i - 1 : i + 1,
+      moved = moveQueueItem(i, j);
     renderQueue();
+    refocus(`[data-${dir}="${moved ? j : i}"]`);
   }
 });
 document.querySelector("#addBtn").onclick = () => openForm(section);
@@ -128,6 +132,48 @@ window.addEventListener("storage", (e) => {
   render();
   renderAlerts();
   toast("Updated with changes from another tab");
+});
+// Drag a queue item by its handle, with a mouse, pen or finger. The list
+// stays put while dragging (a line shows where the item will land), so
+// the pointer capture on the handle isn't lost; the move is saved on
+// release. The Top and arrow buttons do the same from the keyboard.
+document.querySelector("#queueContent").addEventListener("pointerdown", (e) => {
+  let handle = e.target.closest(".handle");
+  if (!handle || e.button !== 0) return;
+  let list = e.currentTarget,
+    item = handle.closest(".qitem"),
+    from = +item.dataset.index,
+    to = from;
+  e.preventDefault();
+  try {
+    handle.setPointerCapture(e.pointerId); // keep events if the pointer leaves
+  } catch {}
+  item.classList.add("dragging");
+  let others = [...list.querySelectorAll(".qitem")].filter((x) => x !== item);
+  let clear = () =>
+    others.forEach((o) => o.classList.remove("drop-before", "drop-after"));
+  let move = (ev) => {
+    // The new position is how many other items sit above the pointer.
+    to = others.filter((o) => {
+      let r = o.getBoundingClientRect();
+      return ev.clientY > r.top + r.height / 2;
+    }).length;
+    clear();
+    if (to < others.length) others[to].classList.add("drop-before");
+    else others.at(-1)?.classList.add("drop-after");
+  };
+  let end = (ev) => {
+    handle.removeEventListener("pointermove", move);
+    handle.removeEventListener("pointerup", end);
+    handle.removeEventListener("pointercancel", end);
+    clear();
+    item.classList.remove("dragging");
+    if (ev.type === "pointerup") moveQueueItem(from, to);
+    renderQueue();
+  };
+  handle.addEventListener("pointermove", move);
+  handle.addEventListener("pointerup", end);
+  handle.addEventListener("pointercancel", end);
 });
 // Back, forward, and typed or bookmarked addresses.
 window.addEventListener("hashchange", () => {

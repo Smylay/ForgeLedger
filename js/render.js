@@ -299,20 +299,54 @@ function renderTable() {
     ? `<div class="tablewrap"><table><thead><tr>${head}<th>Actions</th></tr></thead><tbody>${body}</tbody></table></div>`
     : '<div class="card empty">No matching items.</div>';
 }
+// One queue item: drag handle, position, details with a stage progress
+// bar, then its actions. Buttons carry the item id (next, plus) or its
+// position (top, up, down), which the click listener in app.js reads.
+function queueItemHtml(q, i) {
+  let stages = queueStages(),
+    last = stages.length - 1,
+    n = stageIndex(q),
+    done = n === last,
+    m = linked(column(defs.queue, "miniature"), q.miniature),
+    low = done ? [] : lowRecipePaints(m),
+    total = Number(m?.quantity) || 0,
+    painted = Number(m?.painted) || 0,
+    qid = esc(q.id),
+    name = esc(q.name);
+  let details = `${esc(stages[n])} · ${esc(q.models || 1)} model(s)${q.due ? " · due " + esc(q.due) + " " + dueBadge(q.due, done) : ""}`;
+  // Steps after "Not started"; filled up to the current stage.
+  let progress = `<div class="stages" role="progressbar" aria-label="Progress of ${name}" aria-valuemin="0" aria-valuemax="${last}" aria-valuenow="${n}" aria-valuetext="${esc(stages[n])}, step ${n} of ${last}">${stages
+    .slice(1)
+    .map(
+      (s, k) => `<span class="${k < n ? "on" : ""}" title="${esc(s)}"></span>`,
+    )
+    .join("")}</div>`;
+  let paintedLine = m
+    ? `<div class="muted">Painted: ${painted}${total ? ` of ${total}` : ""}</div>`
+    : "";
+  let lowLine = low.length
+    ? `<div class="warnline">Low paint: ${low.map((p) => `${esc(p.name)} (${esc(p.stock)})`).join(", ")}</div>`
+    : "";
+  let next = done
+    ? ""
+    : `<button class="btn" data-next="${qid}" aria-label="Next: ${esc(stages[n + 1])} for ${name}">Next: ${esc(stages[n + 1])}</button>`;
+  let plus = m
+    ? `<button class="btn" data-plus="${qid}" aria-label="+1 painted for ${name}"${total && painted >= total ? " disabled" : ""}>+1 painted</button>`
+    : "";
+  return `<div class="qitem" data-index="${i}"><span class="handle" aria-hidden="true" title="Drag to reorder">⠿</span><div class="qnum">${i + 1}</div><div class="qbody"><b>${name}</b><div class="muted">${details}</div>${progress}${paintedLine}${lowLine}</div><div class="qactions">${next}${plus}<span class="rowacts"><button data-top="${i}" aria-label="Move ${name} to top">Top</button><button data-up="${i}" aria-label="Move ${name} up">↑</button><button data-down="${i}" aria-label="Move ${name} down">↓</button><button data-edit="${qid}">Edit</button><button class="del" data-del="${qid}">Delete</button></span></div></div>`;
+}
 function renderQueue() {
   document.querySelector("#queueContent").innerHTML = db.queue.length
-    ? db.queue
-        .map((q, i) => {
-          let low =
-            q.stage === "Complete"
-              ? []
-              : lowRecipePaints(
-                  linked(column(defs.queue, "miniature"), q.miniature),
-                );
-          return `<div class="qitem"><div class="qnum">${i + 1}</div><div><b>${esc(q.name)}</b><div class="muted">${esc(q.stage || "Not started")} · ${esc(q.models || 1)} model(s)${q.due ? " · due " + esc(q.due) + " " + dueBadge(q.due, q.stage === "Complete") : ""}</div>${low.length ? `<div class="warnline">Low paint: ${low.map((p) => `${esc(p.name)} (${esc(p.stock)})`).join(", ")}</div>` : ""}</div><div class="rowacts"><button data-up="${i}" aria-label="Move ${esc(q.name)} up">↑</button><button data-down="${i}" aria-label="Move ${esc(q.name)} down">↓</button><button data-edit="${esc(q.id)}">Edit</button><button class="del" data-del="${esc(q.id)}">Delete</button></div></div>`;
-        })
-        .join("")
+    ? db.queue.map(queueItemHtml).join("")
     : '<div class="card empty">Painting queue is empty.</div>';
+}
+// After a redraw, put keyboard focus back on the control the user was on
+// (or the first fallback that's still there and enabled).
+function refocus(...selectors) {
+  for (let s of selectors) {
+    let el = document.querySelector(s);
+    if (el && !el.disabled) return el.focus();
+  }
 }
 function renderSkills() {
   document.querySelector("#skillsContent").innerHTML = db.skills

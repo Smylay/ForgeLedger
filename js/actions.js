@@ -166,3 +166,50 @@ function setScale(b) {
   cell.innerHTML = cellHtml(f, rec);
   cell.querySelector('[aria-pressed="true"]').focus();
 }
+
+// Move queue item `from` to position `to` (counted without the item).
+function moveQueueItem(from, to) {
+  if (from === to || to < 0 || to >= db.queue.length) return false;
+  return commit(() => db.queue.splice(to, 0, ...db.queue.splice(from, 1)));
+}
+
+// Move a queue item to its next stage, with Undo. Reaching Complete asks
+// about its miniature, just as saving the form does.
+function nextStage(qid) {
+  let q = db.queue.find((x) => x.id === qid),
+    stages = queueStages(),
+    n = q ? stageIndex(q) : stages.length;
+  if (n >= stages.length - 1) return;
+  let to = stages[n + 1],
+    sel = `[data-next="${CSS.escape(qid)}"]`;
+  if (
+    !commitWithUndo(
+      () => (q.stage = to),
+      () => `Moved "${q.name}" to ${to}`,
+    )
+  )
+    return;
+  refocus(sel, `[data-edit="${CSS.escape(qid)}"]`);
+  if (to === "Complete") askComplete(q);
+}
+
+// Count one more painted model on a queue item's miniature, with Undo.
+// Stops at the miniature's model count when it has one.
+function paintedPlusOne(qid) {
+  let q = db.queue.find((x) => x.id === qid),
+    m = q && linked(column(defs.queue, "miniature"), q.miniature);
+  if (!m) return;
+  let total = Number(m.quantity) || 0,
+    painted = (Number(m.painted) || 0) + 1;
+  if (total && painted > total) return;
+  let saved = commitWithUndo(
+    () => (m.painted = String(painted)),
+    () => `${m.name}: ${painted}${total ? ` of ${total}` : ""} painted`,
+  );
+  if (saved)
+    refocus(
+      `[data-plus="${CSS.escape(qid)}"]`,
+      `[data-next="${CSS.escape(qid)}"]`,
+      `[data-edit="${CSS.escape(qid)}"]`,
+    );
+}

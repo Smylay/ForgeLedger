@@ -353,6 +353,7 @@ tr:last-child td {
 /* Touch screens: fingers need bigger targets than a mouse pointer. */
 @media (pointer: coarse) {
   .rowacts button,
+  .qactions .btn,
   .sortbtn {
     min-width: 44px;
     min-height: 44px;
@@ -445,7 +446,7 @@ dialog::backdrop {
 }
 .qitem {
   display: grid;
-  grid-template-columns: 38px 1fr auto;
+  grid-template-columns: 24px 28px 1fr auto;
   gap: 10px;
   align-items: center;
   background: var(--panel);
@@ -457,6 +458,59 @@ dialog::backdrop {
   font-weight: 900;
   color: var(--gold);
   font-size: 18px;
+}
+/* Drag handle: the whole height of the item, and no page scrolling while
+   a finger drags it. */
+.handle {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 18px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.qitem.dragging {
+  opacity: 0.5;
+}
+.qitem.drop-before {
+  box-shadow: 0 -3px 0 var(--blue);
+}
+.qitem.drop-after {
+  box-shadow: 0 3px 0 var(--blue);
+}
+/* Stage progress: one segment per step after "Not started". */
+.stages {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 3px;
+  max-width: 320px;
+  margin: 8px 0 4px;
+}
+.stages span {
+  height: 6px;
+  border-radius: 3px;
+  background: #303945;
+}
+.stages span.on {
+  background: var(--gold);
+}
+.qactions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.qactions .btn {
+  min-height: 32px;
+  padding: 5px 10px;
+}
+.qactions .btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 .skillgrid {
   display: grid;
@@ -574,10 +628,11 @@ dialog::backdrop {
   }
   /* Queue buttons get their own line under the item's details. */
   .qitem {
-    grid-template-columns: 28px 1fr;
+    grid-template-columns: 24px 22px 1fr;
   }
-  .qitem .rowacts {
-    grid-column: 2;
+  .qitem .qactions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
   }
   .metric .v {
     font-size: 22px;

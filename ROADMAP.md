@@ -38,19 +38,13 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
   - pages with their own addresses, so back, forward and bookmarks work;
   - a hosting guide, with tests that run the app over HTTP as well as from a local file;
   - a mobile and accessibility pass, with automated WCAG 2.2 AA checks on every page.
+- **Paint levels (phase 7):** paint stock is Full / Good / Half / Low / Empty, set with one tap; old percentages converted once; Low and Empty count as low stock.
 
-## Phase 7: Paint levels (in progress)
+## Phase 8: Queue controls (in progress)
 
-- **Paint stock as Full / Good / Half / Low / Empty,** set with one tap in the paints table.
-- **Existing Remaining % values convert once:** 0% becomes Empty, under 20% Low, under 50% Half, under 80% Good, and anything higher Full.
-- **Low and Empty count as low stock.**
-- **The stored percentage is kept** so older backups still load, but it's no longer shown.
-
-## Phase 8: Queue controls
-
-- A next-stage button on each queue item.
-- A progress bar across the seven stages.
-- A "painted +1" button that updates the linked miniature, up to its model count.
+- A next-stage button on each queue item, with Undo.
+- A progress bar across the stages.
+- A "+1 painted" button that updates the linked miniature, up to its model count.
 - Drag to reorder (mouse and touch) and move-to-top, alongside the arrows.
 
 ## Later

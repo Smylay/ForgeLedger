@@ -341,3 +341,13 @@ function projectStats(p) {
     spent: minis.reduce((a, m) => a + Number(m.price || 0), 0),
   };
 }
+
+// The painting queue's stages in order (the stage field's options).
+function queueStages() {
+  return column(defs.queue, "stage").options;
+}
+// How far through the stages a queue item is, from 0 (Not started) to the
+// last stage (Complete). Blank or unknown stages count as Not started.
+function stageIndex(q) {
+  return Math.max(0, queueStages().indexOf(q.stage || "Not started"));
+}
