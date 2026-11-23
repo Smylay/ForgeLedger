@@ -87,6 +87,13 @@ const data = {
       due: day(-1),
     },
     { id: "q2", name: "Hero", stage: "Priming", models: "1", due: day(3) },
+    {
+      id: "q3",
+      name: "Split squad",
+      models: "5",
+      stage: "Priming",
+      split: { Priming: 2, Basecoating: 2, Complete: 1 },
+    },
   ],
   wishlist: [
     {

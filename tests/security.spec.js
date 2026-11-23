@@ -39,6 +39,12 @@ test("values from an imported backup can't run script", async ({
       projects: [{ id: attack("projectId"), name: "Project" }],
       queue: [
         { id: attack("queueId"), name: "Queued", miniature: attack("miniId") },
+        {
+          id: "split",
+          name: "Split",
+          models: "3",
+          split: { [attack("splitKey")]: 1, Priming: attack("splitCount") },
+        },
       ],
       // A level of 0 and no library match put this skill in the profile,
       // the practice suggestions (with its goal) and its card.
@@ -79,6 +85,8 @@ test("values from an imported backup can't run script", async ({
       "miniId",
       "projectId",
       "queueId",
+      "splitKey",
+      "splitCount",
       "skillId",
       "skillName",
       "level",

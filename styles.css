@@ -446,7 +446,6 @@ tr:last-child td {
 /* Touch screens: fingers need bigger targets than a mouse pointer. */
 @media (pointer: coarse) {
   .rowacts button,
-  .qactions .btn,
   .stepper button,
   .sortbtn {
     min-width: 44px;
@@ -595,6 +594,27 @@ dialog::backdrop {
   height: 100%;
   background: var(--gold);
 }
+/* Split by stage: each stage that has models, with "Move 1 to …". */
+.splitrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 6px;
+}
+.splitstage {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.splitstage .btn {
+  min-height: 32px;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+.qactions .btn[aria-pressed="true"] {
+  background: #2b4a6b;
+  border-color: var(--blue);
+}
 .qactions {
   display: flex;
   flex-wrap: wrap;
@@ -609,6 +629,14 @@ dialog::backdrop {
 .qactions .btn:disabled {
   opacity: 0.5;
   cursor: default;
+}
+/* After the 32px rules above, so it wins on touch screens. */
+@media (pointer: coarse) {
+  .qactions .btn,
+  .splitstage .btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
 }
 .skillgrid {
   display: grid;

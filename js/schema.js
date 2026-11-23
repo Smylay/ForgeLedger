@@ -381,3 +381,67 @@ function stageDoneCount(q) {
   let n = Math.floor(Number(q.stageDone) || 0);
   return Math.min(queueTotal(q), Math.max(0, n));
 }
+
+// Split queue items: models at different stages. `split` holds a count per
+// stage name, e.g. { Priming: 2, Basecoating: 3 }; no `split` means every
+// model is at `stage`. While split, `stage` and `stageDone` are kept in
+// step (the least advanced stage, and how many models are past it), so
+// code that only reads `stage` still works.
+function isSplit(q) {
+  return isRecord(q.split);
+}
+// One count per stage, in stage order, adding up to queueTotal(). Stored
+// counts may be junk or out of date (the model count changed): extra
+// models start at Not started, and missing ones come off the least
+// advanced stages first.
+function splitCounts(q) {
+  let stages = queueStages(),
+    total = queueTotal(q),
+    counts = stages.map((s) =>
+      Object.hasOwn(q.split, s)
+        ? Math.max(0, Math.floor(Number(q.split[s]) || 0))
+        : 0,
+    ),
+    extra = counts.reduce((a, b) => a + b, 0) - total;
+  if (extra < 0) counts[0] -= extra;
+  for (let i = 0; extra > 0; i++) {
+    let cut = Math.min(counts[i], extra);
+    counts[i] -= cut;
+    extra -= cut;
+  }
+  return counts;
+}
+// Counts for an item that isn't split yet: models done in the current
+// stage are already at the next one.
+function splitFrom(q) {
+  let stages = queueStages(),
+    n = stageIndex(q),
+    total = queueTotal(q),
+    done = n === 0 || n === stages.length - 1 ? 0 : stageDoneCount(q),
+    counts = stages.map(() => 0);
+  counts[n] = total - done;
+  if (done) counts[n + 1] += done;
+  return counts;
+}
+// Save counts on an item, keeping `stage` and `stageDone` in step.
+function storeSplit(q, counts) {
+  let stages = queueStages(),
+    n = counts.findIndex((c) => c > 0);
+  if (n < 0) n = 0;
+  q.split = Object.fromEntries(
+    stages.map((s, i) => [s, counts[i]]).filter(([, c]) => c > 0),
+  );
+  q.stage = stages[n];
+  q.stageDone =
+    n === stages.length - 1
+      ? 0
+      : counts.slice(n + 1).reduce((a, b) => a + b, 0);
+}
+// "Priming 2 · Basecoating 3", the stages that have models.
+function splitText(q) {
+  let counts = splitCounts(q);
+  return queueStages()
+    .map((s, i) => (counts[i] ? `${s} ${counts[i]}` : ""))
+    .filter(Boolean)
+    .join(" · ");
+}

@@ -22,7 +22,15 @@ test.beforeEach(async ({ page }) => {
       { id: "p", name: "A paint with a rather long name", remaining: "5" },
     ],
     miniatures: [{ id: "m", name: "Squad", quantity: "10", paints: ["p"] }],
-    queue: [{ id: "q", name: "Squad", miniature: "m", stage: "Basing" }],
+    queue: [
+      { id: "q", name: "Squad", miniature: "m", stage: "Basing" },
+      {
+        id: "s",
+        name: "A split squad with a long name",
+        models: "10",
+        split: { "Not started": 2, Basecoating: 3, Detailing: 4, Basing: 1 },
+      },
+    ],
   });
 });
 
