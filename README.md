@@ -10,7 +10,7 @@ ForgeLedger is an offline-first tracker for miniature wargaming. It keeps your p
 - **Tools** with a condition, from New to Replace soon.
 - **Army projects** whose progress and spend are calculated from their miniatures, with overdue and due-soon markers. Progress counts work in progress: a model halfway through its painting stages counts as half done. Each project shows its rewards, and you can add one from there.
 - **A painting queue** linked to your miniatures. Each item has a stage progress bar, a one-tap Next stage button, and a +1 counter for the current stage that moves the item on once every model is done. Split an item by stage when its models are at different points, such as 2 priming and 3 basecoating. Rename, reorder, add or remove the stages for the whole queue, or give one item stages of its own. Reorder it by dragging, or with the Top and arrow buttons. Completing an item can mark its miniature complete.
-- **Painting skills** rated 0–9, with a name for each level (4 is Competent). Pick from a library of 20 techniques, each with a next step for your level, or add your own. A skill profile shows every level at a glance, and Practice next suggests what to work on: skills you haven't updated in a month, then your lowest.
+- **Painting skills** rated 0–9, with a name for each level (4 is Competent). Pick from a library of 20 techniques, each with a difficulty (Easy to Expert), the tools it needs and a next step for your level, or add your own. A technique's card says whether you have its tools, with Add to wishlist and Bought. A skill profile shows every level at a glance, and Practice next suggests what to work on: skills you haven't updated in a month, then easier and lower ones.
 - **A wishlist** with priorities, prices and product links. Make an item a reward that unlocks when a project reaches a percentage you choose. Tap Bought to restock a paint, or to move the item into your paints, tools or miniatures.
 - **Suggestions as you type** for brands, paint ranges, factions and game systems: the ones you've used, then common ones. You can still type anything.
 - **Quick edits without the form:** one-tap stock, status, condition and priority; + and − buttons on paint quantities, model counts and painted counts; and a quick-add box on every page: type a name and press Enter.
@@ -121,6 +121,7 @@ GitHub Actions runs the tests in all three browsers, plus the format check, on e
 
 Pull requests are welcome. Before you open one:
 
+- **Open it against the `dev` branch.** `main` only gets releases, merged from `dev`.
 - **Make the tests and the format check pass**, and add tests for what you change.
 - **Keep the app runnable by double-clicking `index.html`.** Browsers block ES modules and service workers from local files, so don't introduce modules, a bundler or a service worker.
 - **Keep old data loading.** People restore backups made by older versions, so don't rename or repurpose stored fields. Add new fields as optional.

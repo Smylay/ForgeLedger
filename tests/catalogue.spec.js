@@ -114,6 +114,24 @@ test.describe("in the app", () => {
     });
   });
 
+  test("Two Thin Coats Dark Arts paints are there, without colours", async ({
+    page,
+  }) => {
+    await nav(page, "paints");
+    await page.click("#addBtn");
+    const label = await pick(
+      page,
+      "#catalogueFind",
+      "#catalogueList",
+      "flayer",
+    );
+    expect(label).toBe("Flayer Red · Two Thin Coats (Duncan Rhodes) Dark Arts");
+    await expect(page.locator('[data-nocolour="colour"]')).toBeChecked();
+    await expect(page.locator('#formFields [name="type"]')).toHaveValue(
+      "Standard",
+    );
+  });
+
   test("codes find paints too", async ({ page }) => {
     await nav(page, "paints");
     await page.click("#addBtn");

@@ -1,0 +1,284 @@
+{
+  "meta": {
+    "note": "Paints added to miniature_paints.json for the catalogue. hex is null where no colour has been published; the app shows no colour for them.",
+    "sources": [
+      {
+        "brands": ["Two Thin Coats (Duncan Rhodes)"],
+        "range": "Dark Arts",
+        "detail": "Names and the acrylic, metallic and ink split from Paint Vault's Dark Arts listing (paint-vault.com/brand/two-thin-coats/dark-arts), as found in November 2026. One review names a metallic 'Ancient Brass' where Paint Vault has 'Ancient Iron'."
+      }
+    ]
+  },
+  "paints": [
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Cherubic White",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Altar Ivory",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Divination White",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Blight Cream",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Pustule Ochre",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Malign Yellow",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Abhorrent Ochre",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Dystopian Dust",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Archon Orange",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Crypt Grey",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Masque Flesh",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Diablo Red",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Cinderborn Brown",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Grindhouse Orange",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Flayer Red",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Betrayer Green",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Cultmaster Green",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Noir Brown",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Blood Red Sky",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Diabolical Green",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Animus Black",
+      "code": null,
+      "hex": null,
+      "type": "standard",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Ironclad Silver",
+      "code": null,
+      "hex": null,
+      "type": "metallic",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Ancient Iron",
+      "code": null,
+      "hex": null,
+      "type": "metallic",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Old Brown Metal",
+      "code": null,
+      "hex": null,
+      "type": "metallic",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "White Ink",
+      "code": null,
+      "hex": null,
+      "type": "ink",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Tobacco Ink",
+      "code": null,
+      "hex": null,
+      "type": "ink",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Warm Brown Ink",
+      "code": null,
+      "hex": null,
+      "type": "ink",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Deep Red Ink",
+      "code": null,
+      "hex": null,
+      "type": "ink",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Brown Ink",
+      "code": null,
+      "hex": null,
+      "type": "ink",
+      "discontinued": false
+    },
+    {
+      "brand": "Two Thin Coats (Duncan Rhodes)",
+      "range": "Dark Arts",
+      "name": "Black Ink",
+      "code": null,
+      "hex": null,
+      "type": "ink",
+      "discontinued": false
+    }
+  ]
+}

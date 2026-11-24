@@ -772,6 +772,24 @@ dialog::backdrop {
   padding-bottom: 10px;
   border-bottom: 1px solid var(--line);
 }
+/* A skill card's difficulty, and the tools its technique needs. */
+.skill .diff {
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.needs {
+  margin-top: 6px;
+  font-size: 13px;
+}
+.needs ul {
+  display: grid;
+  gap: 2px;
+  margin: 2px 0 0;
+  padding-left: 18px;
+}
+.needs .rowacts {
+  margin-left: 6px;
+}
 /* "Used in": the miniatures whose recipe uses a paint. */
 .usedinlist {
   display: grid;

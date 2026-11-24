@@ -44,28 +44,25 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - **Tidier code (phase 19):** one file per feature, a table of button actions, and the longest drawing functions split up; plus how to update without losing data. _(From the bug list.)_
 - **Quick wins (phase 20):** each list opens sorted with what needs attention first, "Used in" on paints, rewards on the projects page, and "Quick add". _(From the bug list.)_
 - **Suggestions as you type (phase 21):** brand, range, faction and game system boxes suggest what you've used and common values; tools and miniatures have a brand. _(From the bug list.)_
+- **Paint catalogue (phase 22):** about 5,300 paints from 15 brands to pick from in the paint form and quick add, planning recipes with paints you don't own, and more paint types. _(From the bug list.)_
 
-## Phase 22: Paint catalogue (in progress)
-
-_(From the bug list.)_
-
-- **Pick a paint from a catalogue** of about 5,300 paints from 15 brands, and its brand, range, colour and type fill in; quick add picks from it too. Built from `miniature_paints.json`, after a clean-up: varnishes and mediums get no colour, duplicate entries are merged, and names are tidied.
-- **Plan a recipe with paints you don't own,** from your wishlist or the catalogue; they're saved as paints to buy, on your wishlist.
-- **Paint types gain Standard, Air, Dry, Glaze and Effect,** to match the catalogue.
-- **Range is the product line,** such as Vallejo Model Color or Game Color. The example data's ranges, which only repeated the type, are fixed.
-
-## Phase 23: Skills
+## Phase 23: Skills (in progress)
 
 _(From the bug list.)_
 
 - **Each technique has a difficulty,** Easy, Medium, Hard or Expert, and Practice next suggests easier ones first.
 - **Techniques that need a tool,** such as airbrushing, say so, with Bought and Add to wishlist buttons when you don't have one.
+- **Two Thin Coats Dark Arts in the paint catalogue** (asked for in chat): names only, until colours are published.
 
 ## Phase 24: Colour themes
 
 _(From the bug list.)_
 
 - **More colour choices** on top of dark and light, each checked for contrast.
+
+## Releases
+
+Phases merge into `dev`; versions are released to `main`. Version 1.1.0 would bring phases 19 to 23.
 
 ## Later
 

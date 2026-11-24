@@ -23,7 +23,8 @@ function renderSkills() {
         : next
           ? ""
           : '<div class="muted">No practice goal</div>';
-      return `<div class="skill" data-card="${sid}"><div class="skilltop"><b>${esc(s.name)}</b><strong class="lvl">${level}/9 · ${levelName(level)}</strong></div><input type="range" min="0" max="9" value="${level}" data-skill="${sid}" aria-label="${esc(s.name)} proficiency" aria-valuetext="${levelText(level)}"><p class="nextstep"${next ? "" : " hidden"}><span class="muted">Next step:</span> <span class="steptext">${esc(next)}</span></p>${goal}<div class="muted changed">${changedText(s)}</div><div class="rowacts"><button data-edit="${sid}">Edit notes</button><button class="del" data-del="${sid}">Delete</button></div></div>`;
+      let d = skillDifficulty(s);
+      return `<div class="skill" data-card="${sid}"><div class="skilltop"><span><b>${esc(s.name)}</b>${d ? ` <span class="pill diff">${d}</span>` : ""}</span><strong class="lvl">${level}/9 · ${levelName(level)}</strong></div><input type="range" min="0" max="9" value="${level}" data-skill="${sid}" aria-label="${esc(s.name)} proficiency" aria-valuetext="${levelText(level)}"><p class="nextstep"${next ? "" : " hidden"}><span class="muted">Next step:</span> <span class="steptext">${esc(next)}</span></p>${goal}${toolNeedsHtml(s)}<div class="muted changed">${changedText(s)}</div><div class="rowacts"><button data-edit="${sid}">Edit notes</button><button class="del" data-del="${sid}">Delete</button></div></div>`;
     })
     .join("");
 }
@@ -38,15 +39,22 @@ function updateSkillCard(s) {
   card.querySelector(".steptext").textContent = nextStep(s);
   card.querySelector(".changed").textContent = changedText(s);
 }
-// The library techniques you haven't added, then "Other" to name your own.
+// The library techniques you haven't added, easiest first, then "Other"
+// to name your own.
 function renderSkillPicker() {
   let pick = document.querySelector("#skillAdd select"),
     chosen = pick.value,
     left = TECHNIQUES.filter(
       (t) => !db.skills.some((s) => sameName(s.name, t.name)),
+    ).sort(
+      (a, b) =>
+        DIFFICULTIES.indexOf(a.difficulty) - DIFFICULTIES.indexOf(b.difficulty),
     );
   pick.innerHTML = `<option value="">Add a technique…</option>${left
-    .map((t) => `<option>${esc(t.name)}</option>`)
+    .map(
+      (t) =>
+        `<option value="${esc(t.name)}">${esc(t.name)} · ${t.difficulty}</option>`,
+    )
     .join("")}<option value="other">Other: name your own…</option>`;
   pick.value = [...pick.options].some((o) => o.value === chosen) ? chosen : "";
 }
@@ -71,9 +79,6 @@ function renderSkillOverview() {
         .join("")}</ol>`
     : `<p class="muted">${db.skills.length ? "Every skill is at Mastery." : "Add a skill to get suggestions."}</p>`;
 }
-// Quick add: a new record in the current section with just a name, with
-// Undo. Search and filter are cleared so the new record is visible, and
-// the box is emptied (keeping focus) for the next one.
 // The skill picker: a technique from the library, or "Other" with a name.
 function addSkill(form) {
   let { pick, name: input } = form.elements,
@@ -99,4 +104,86 @@ function addSkill(form) {
   input.required = false;
   pick.value = "";
   pick.focus();
+}
+
+// The tools a skill's technique needs, under its card: each with whether
+// you have it, and if not, Add to wishlist (unless it's there) and Bought.
+function toolMatches(name, text) {
+  let x = String(text ?? "").toLowerCase();
+  return (TECHNIQUE_TOOLS[name]?.match || []).some((m) => x.includes(m));
+}
+function ownedTool(name) {
+  return db.tools.find((t) => toolMatches(name, t.name));
+}
+function wishedTool(name) {
+  return db.wishlist.find(
+    (w) => w.category === "Tool" && toolMatches(name, w.name),
+  );
+}
+function toolNeedsHtml(s) {
+  let tools = technique(s?.name)?.tools || [];
+  if (!tools.length) return "";
+  return `<div class="needs"><span class="muted">Needs:</span><ul>${tools
+    .map((name) => {
+      let have = ownedTool(name),
+        wish = !have && wishedTool(name),
+        n = esc(name),
+        state = have
+          ? `you have ${esc(have.name)}`
+          : wish
+            ? "on your wishlist"
+            : "not in your tools",
+        buttons = have
+          ? ""
+          : `<span class="rowacts">${wish ? "" : `<button data-toolwish="${n}" aria-label="Add to wishlist: ${n}">Add to wishlist</button>`}<button data-toolbought="${n}" aria-label="Bought: ${n}">Bought</button></span>`;
+      return `<li><b>${n}</b> <span class="muted">· ${state}</span>${buttons}</li>`;
+    })
+    .join("")}</ul></div>`;
+}
+// Add to wishlist: the tool, as a Tool item, with Undo.
+function toolWish(name, card) {
+  if (!TECHNIQUE_TOOLS[name] || ownedTool(name) || wishedTool(name)) return;
+  let added = commitWithUndo(
+    () =>
+      db.wishlist.push({
+        id: id(),
+        name,
+        category: "Tool",
+        priority: "Medium",
+      }),
+    () => `Added "${name}" to your wishlist`,
+  );
+  if (!added) return;
+  renderNav();
+  renderSkills();
+  refocus(`[data-card="${CSS.escape(card || "")}"] [data-toolbought]`);
+}
+// Bought: the tool goes into your tools (New, quantity 1), with Undo. A
+// matching wishlist item comes off the wishlist and gives its name, price
+// and notes, as the wishlist's Bought does.
+function toolBought(name, card) {
+  let t = TECHNIQUE_TOOLS[name];
+  if (!t || ownedTool(name)) return;
+  let w = wishedTool(name),
+    tool = w
+      ? boughtRecord("tools", w)
+      : {
+          id: id(),
+          name,
+          price: "",
+          notes: "",
+          quantity: "1",
+          condition: "New",
+        };
+  let bought = commitWithUndo(
+    () => {
+      if (w) db.wishlist = db.wishlist.filter((x) => x.id !== w.id);
+      db.tools.push({ ...tool, category: t.category });
+    },
+    () => `Bought "${tool.name}": it's in your tools`,
+  );
+  if (!bought) return;
+  renderNav();
+  renderSkills();
+  refocus(`[data-card="${CSS.escape(card || "")}"] input`);
 }
