@@ -4,6 +4,8 @@ What changed in each version of ForgeLedger. Backups from every earlier version 
 
 ## Unreleased
 
+- **Suggestions as you type** in the brand, range, faction and game system boxes: what you've entered before, most used first, then common brands and game systems. Range suggestions follow the brand. You can still type anything.
+- **Tools and miniatures have a Brand,** with their own suggestions.
 - **Each list opens sorted** so what needs attention comes first: paints by lowest stock, tools by worst condition, miniatures by least finished, projects by soonest target date, the wishlist by highest priority. Click a column header to sort another way.
 - **"Used in" on paints:** how many miniatures' recipes use each paint, and which ones.
 - **Rewards on the projects page:** each project shows its rewards under its name, with an Add reward button.

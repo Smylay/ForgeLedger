@@ -350,3 +350,45 @@ test("the Used in list can't run script", async ({ page }, testInfo) => {
   );
   expect(ran).toEqual([]);
 });
+
+test("suggestions can't run script", async ({ page }, testInfo) => {
+  await importBackup(
+    page,
+    {
+      paints: [
+        {
+          id: "p",
+          name: "Paint",
+          brand: attack("suggestBrand"),
+          range: attack("suggestRange"),
+        },
+      ],
+      projects: [
+        {
+          id: "j",
+          name: "Project",
+          faction: attack("suggestFaction"),
+          system: attack("suggestSystem"),
+        },
+      ],
+    },
+    testInfo,
+  );
+  await nav(page, "paints");
+  await page.click("#addBtn");
+  // Typing the brand redraws the range suggestions from the stored value.
+  await fillForm(page, { brand: attack("suggestBrand") });
+  await page.click("#cancelModal");
+  await nav(page, "projects");
+  await page.click("#addBtn");
+  await expect(page.locator("#suggest-system option").first()).toHaveAttribute(
+    "value",
+    attack("suggestSystem"),
+  );
+  const ran = await page.evaluate(() =>
+    ["suggestBrand", "suggestRange", "suggestFaction", "suggestSystem"].filter(
+      (f) => window[f],
+    ),
+  );
+  expect(ran).toEqual([]);
+});

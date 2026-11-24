@@ -42,21 +42,13 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - **Example data (phase 17):** a Load example data button on an empty dashboard, and the same data as a backup file in the repository. _(From the bug list.)_
 - **Version 1.0:** Settings (theme, currency, auto-save to a file, keyboard shortcuts, Erase all data), a light theme _(from the bug list)_, tables that fit a laptop screen, and version numbers in the app and its backups. See [CHANGELOG.md](CHANGELOG.md).
 - **Tidier code (phase 19):** one file per feature, a table of button actions, and the longest drawing functions split up; plus how to update without losing data. _(From the bug list.)_
+- **Quick wins (phase 20):** each list opens sorted with what needs attention first, "Used in" on paints, rewards on the projects page, and "Quick add". _(From the bug list.)_
 
-## Phase 20: Quick wins (in progress)
-
-_(From the bug list.)_
-
-- **"Add" becomes "Quick add",** so it's clearly different from "Add item".
-- **Each page sorts sensibly by default,** for example paints from lowest stock, tools from worst condition, the wishlist by priority, projects by deadline.
-- **"Used in" on paints:** which miniatures' recipes use a paint.
-- **Rewards on the projects page:** each project shows its rewards, and you can add one from there.
-
-## Phase 21: Suggestions as you type
+## Phase 21: Suggestions as you type (in progress)
 
 _(From the bug list.)_
 
-- **Brand, range, game system, faction and category boxes suggest values:** common brands, plus anything you've already entered. You can still type anything, so there's no separate "Other".
+- **Brand, range, game system and faction boxes suggest values:** what you've already entered, then common brands and game systems. You can still type anything, so there's no separate "Other". Tools and miniatures gain a Brand. (Tool and wishlist categories already have fixed lists.)
 
 ## Phase 22: Paint catalogue
 

@@ -96,6 +96,7 @@ document.querySelector("#itemForm").oninput = (e) => {
   for (let el of form.elements) el.setCustomValidity?.(""); // re-check on save
   if (e.target.type === "color")
     form.querySelector(`[data-nocolour="${e.target.name}"]`).checked = false;
+  if (e.target.name) updateSuggestions(form, e.target.name);
 };
 // Runs as the button is clicked; the dialog closes itself afterwards.
 document.querySelector("#completeForm").onsubmit = (e) => {
