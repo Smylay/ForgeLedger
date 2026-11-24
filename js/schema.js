@@ -81,8 +81,10 @@ const defs = {
     sub: "Brands, ranges, stock and replacement warnings",
     fields: [
       { key: "name", label: "Paint name", required: true },
-      { key: "brand", label: "Brand" },
-      { key: "range", label: "Range" },
+      { key: "brand", label: "Brand", suggest: "paintBrands" },
+      // Range is the product line, e.g. Vallejo Model Color; its suggestions
+      // follow the brand.
+      { key: "range", label: "Range", suggest: true, suggestBy: "brand" },
       { key: "colour", label: "Colour / hex", type: "color" },
       {
         key: "type",
@@ -140,6 +142,7 @@ const defs = {
     sub: "Brushes, airbrush equipment and hobby supplies",
     fields: [
       { key: "name", label: "Tool", required: true },
+      { key: "brand", label: "Brand", suggest: "toolBrands" },
       {
         key: "category",
         label: "Category",
@@ -184,7 +187,13 @@ const defs = {
     sub: "Models, units and their painting state",
     fields: [
       { key: "name", label: "Miniature / unit", required: true },
-      { key: "faction", label: "Faction" },
+      { key: "brand", label: "Brand", suggest: "miniatureBrands" },
+      {
+        key: "faction",
+        label: "Faction",
+        suggest: true,
+        suggestFrom: ["miniatures", "projects"], // shared by both
+      },
       { key: "project", label: "Army project", type: "link", to: "projects" },
       { key: "quantity", label: "Model count", type: "count", stepper: true },
       {
@@ -230,8 +239,13 @@ const defs = {
     sub: "Track complete forces, goals, budgets and progress",
     fields: [
       { key: "name", label: "Project name", required: true },
-      { key: "faction", label: "Faction" },
-      { key: "system", label: "Game system" },
+      {
+        key: "faction",
+        label: "Faction",
+        suggest: true,
+        suggestFrom: ["miniatures", "projects"], // shared by both
+      },
+      { key: "system", label: "Game system", suggest: "gameSystems" },
       { key: "target", label: "Target model count", type: "count" },
       {
         key: "budget",

@@ -54,6 +54,7 @@ The code lives in plain `<script>` files that share the global scope. They aren'
 | `skills.js`     | the skills page: cards, sliders, the skill profile, practice suggestions, the technique picker                           |
 | `backup.js`     | JSON backup and import, and CSV export                                                                                   |
 | `render.js`     | nav and page switching, the dashboard, list tables, sorting, deadline markers, alerts                                    |
+| `suggest.js`    | suggestions as you type: common brands and game systems, plus values you've used                                         |
 | `forms.js`      | `inputAttrs`, `fieldHtml()`, `openForm()`, `submit()`                                                                    |
 | `actions.js`    | quick changes in every list: delete with Undo, one-tap levels, +/− counts, quick add                                     |
 | `app.js`        | mutable state, `db = load()`, event wiring, start-up                                                                     |
@@ -112,11 +113,12 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 
 - `title` and `sub` for the page heading, `nav` if the nav label differs from the title, and `noun` for the form title ("Add paint").
 - `swatch` (optional): the key of a colour field to show as a dot beside each record's name in the table, e.g. paints' `colour`. No colour or an invalid one shows a hollow dot.
-- `fields`: `{ key, label, type, required, options, atMost, doneWhen, stepper, tones, highFirst }` objects.
+- `fields`: `{ key, label, type, required, options, atMost, doneWhen, stepper, tones, highFirst, suggest, suggestBy, suggestFrom }` objects.
 
   - `atMost` names another field this one can't exceed; for example, painted count can't exceed model count. `submit()` checks it with `setCustomValidity`.
   - `doneWhen(record)` on a `date` field turns on deadline markers for that date (see below). Markers stop once `doneWhen` returns true.
   - `stepper: true` on a `count` field shows it in the table with − and + buttons (see Quick edits).
+  - `suggest` on a text field gives it suggestions as you type (see Suggestions): the name of a common list in `SUGGESTION_LISTS`, or `true` for your own values only. `suggestBy` narrows them to records whose named field matches the form's (range, by brand). `suggestFrom` lists the collections to take your values from, if not just this one (faction: miniatures and projects).
   - `tones` on a `scale` field colours each option's button when chosen: `good`, `mid`, `bad` or `none`, one per option. `highFirst: true` means the options run from most to least, like paint stock, so sorting reverses them.
   - Each type maps to an input (`inputAttrs` for plain `<input>`s) and a display format (`cellText()` / `cellHtml()`). Blank values display as blank.
 
@@ -147,6 +149,14 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 To add a field, add it to `fields`, and to `columns` if it should appear in the table.
 
 Search (`searchText()`) matches each field and computed value as displayed, so field names and ids never match, and linked records match by name.
+
+**Suggestions.** Text fields with `suggest` get a `<datalist>` (`suggestHtml()`, in `suggest.js`), so the browser offers values as you type and anything can still be entered.
+
+- **The order:** your own values first, most used first, with case differences counted as one; then the common values from `SUGGESTION_LISTS` you haven't used.
+- **Which fields:** paint, tool and miniature brand (each with its own common list), paint range (by brand), faction (shared by miniatures and projects) and game system (with common game systems).
+- **Paint brands** are spelt as in `miniature_paints.json`, so the paint catalogue can fill them in later.
+- **Range follows brand:** when the brand box changes, `updateSuggestions()` (from the form's `input` handler in `app.js`) redraws the range list. If you've used that brand, only its ranges are offered.
+- Suggestions are stored values, so they're escaped like everything else.
 
 **Sorting.** Column headers are buttons (`data-sort`). Clicking one sorts the visible rows by that column, and clicking it again reverses the order. The sort resets when you change section.
 
@@ -388,6 +398,7 @@ Apply runs on the dialog form's `submit`, not its `close`, so the change happens
   - `queue.split` is not a link: it's a count of models per stage name, for an item split by stage (see Split by stage). It's optional.
   - `queue.stages` is not a link: it's an item's own list of stages between Not started and Complete (see Queue stages). It's optional. The default list is the top-level `queueStages`.
   - `miniatures.photos` is not a link: it's an array of photo ids in IndexedDB, cover first (see Photos). It's optional.
+  - `tools.brand` and `miniatures.brand` are optional text fields, added after 1.0.0; older records have none. They're in the form and search, not the tables.
   - `miniatures.paints` is a `links` array of the paints in its recipe. The older free-text `recipe` field is still there, labelled "Recipe steps".
   - `skills.changed` is not a link: it's the date the skill's level last changed (see Skills). It's optional.
   - `wishlist.rewardFor` points at the project a reward belongs to, and `wishlist.rewardAt` is the percent it unlocks at (see Rewards).

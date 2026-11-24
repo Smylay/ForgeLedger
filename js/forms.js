@@ -32,7 +32,9 @@ function fieldHtml(f, obj) {
     if (c.length === 4) c = "#" + [...c.slice(1)].map((h) => h + h).join("");
     return `<div class="colourfield"><label>${f.label}<input ${name} type="color" value="${c || "#808080"}"></label><label class="check"><input type="checkbox" data-nocolour="${f.key}" ${c ? "" : "checked"}> No colour</label></div>`;
   }
-  return `<label>${f.label}<input ${name} ${inputAttrs[f.type || "text"]} value="${esc(v)}" ${req}></label>`;
+  // Suggestions as you type: a datalist of your values and common ones.
+  let list = f.suggest ? `list="suggest-${f.key}" autocomplete="off"` : "";
+  return `<label>${f.label}<input ${name} ${inputAttrs[f.type || "text"]} value="${esc(v)}" ${req} ${list}>${f.suggest ? suggestHtml(f, formSection, obj) : ""}</label>`;
 }
 // Open the add/edit form for a record of collection `sec`, on any page:
 // adding a reward from the projects page opens a wishlist form. `obj` is
