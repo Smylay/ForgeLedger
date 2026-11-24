@@ -274,6 +274,28 @@ for (const run of [
       expect(await violations(page)).toEqual([]);
     });
 
+    test("the paint form with catalogue suggestions has no accessibility violations", async ({
+      page,
+    }) => {
+      await nav(page, "paints");
+      await page.click("#addBtn");
+      await page.fill("#catalogueFind", "red");
+      await expect(
+        page.locator("#catalogueList option").first(),
+      ).toBeAttached();
+      expect(await violations(page)).toEqual([]);
+    });
+
+    test("planning a recipe paint has no accessibility violations", async ({
+      page,
+    }) => {
+      await nav(page, "miniatures");
+      await page.click("#addBtn");
+      await page.fill("#planPaint", "black");
+      await expect(page.locator("#planList option").first()).toBeAttached();
+      expect(await violations(page)).toEqual([]);
+    });
+
     test("the Used in list has no accessibility violations", async ({
       page,
     }) => {

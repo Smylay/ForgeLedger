@@ -73,3 +73,13 @@ test("photos can be added when hosted", async ({ page }) => {
     /^blob:/,
   );
 });
+
+test("the paint catalogue loads when hosted", async ({ page }) => {
+  await openSite(page, "#/paints");
+  await page.click("#addBtn");
+  await page.fill("#catalogueFind", "nuln oil");
+  await expect(page.locator("#catalogueList option").first()).toHaveAttribute(
+    "value",
+    "Nuln Oil · Citadel Shade",
+  );
+});

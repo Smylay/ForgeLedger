@@ -65,9 +65,14 @@ function quickAdd(form) {
   if (!name || !defs[section]) return;
   document.querySelector("#search").value = "";
   document.querySelector("#filter").value = "";
+  // A paint picked from the catalogue comes with its details.
+  let record = quickCatalogueRecord(name) || { id: id(), name };
   let added = commitWithUndo(
-    () => db[section].push({ id: id(), name }),
-    () => `Added "${name}"`,
+    () => db[section].push(record),
+    () =>
+      record.brand
+        ? `Added "${record.name}" (${record.brand} ${record.range})`
+        : `Added "${name}"`,
   );
   if (!added) return;
   input.value = "";

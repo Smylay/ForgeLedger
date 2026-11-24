@@ -43,19 +43,14 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - **Version 1.0:** Settings (theme, currency, auto-save to a file, keyboard shortcuts, Erase all data), a light theme _(from the bug list)_, tables that fit a laptop screen, and version numbers in the app and its backups. See [CHANGELOG.md](CHANGELOG.md).
 - **Tidier code (phase 19):** one file per feature, a table of button actions, and the longest drawing functions split up; plus how to update without losing data. _(From the bug list.)_
 - **Quick wins (phase 20):** each list opens sorted with what needs attention first, "Used in" on paints, rewards on the projects page, and "Quick add". _(From the bug list.)_
+- **Suggestions as you type (phase 21):** brand, range, faction and game system boxes suggest what you've used and common values; tools and miniatures have a brand. _(From the bug list.)_
 
-## Phase 21: Suggestions as you type (in progress)
-
-_(From the bug list.)_
-
-- **Brand, range, game system and faction boxes suggest values:** what you've already entered, then common brands and game systems. You can still type anything, so there's no separate "Other". Tools and miniatures gain a Brand. (Tool and wishlist categories already have fixed lists.)
-
-## Phase 22: Paint catalogue
+## Phase 22: Paint catalogue (in progress)
 
 _(From the bug list.)_
 
-- **Pick a paint from a catalogue** of about 5,000 paints from 15 brands, and its brand, range, colour and type fill in. Built from `miniature_paints.json`, after a clean-up: varnishes and mediums get no colour, duplicate entries are merged, and a few names and colours are fixed.
-- **The recipe picker on miniatures offers catalogue paints too,** marking ones you don't own, with Add to wishlist.
+- **Pick a paint from a catalogue** of about 5,300 paints from 15 brands, and its brand, range, colour and type fill in; quick add picks from it too. Built from `miniature_paints.json`, after a clean-up: varnishes and mediums get no colour, duplicate entries are merged, and names are tidied.
+- **Plan a recipe with paints you don't own,** from your wishlist or the catalogue; they're saved as paints to buy, on your wishlist.
 - **Paint types gain Standard, Air, Dry, Glaze and Effect,** to match the catalogue.
 - **Range is the product line,** such as Vallejo Model Color or Game Color. The example data's ranges, which only repeated the type, are fixed.
 

@@ -1,3 +1,4 @@
-# Raw paint catalogue data, as supplied; Phase 22 turns it into the app's
-# catalogue.
-miniature_paints.json
+# Paint catalogue data: the source as supplied, and the file the app loads,
+# which scripts/make-catalogue.js writes.
+data/sources/miniature_paints.json
+data/paint-catalogue.js

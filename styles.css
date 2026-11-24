@@ -761,6 +761,17 @@ dialog::backdrop {
 .rewardchip .pill {
   margin-left: 4px;
 }
+/* The paint form's Find box, and planning a recipe with a paint you don't
+   own: a box with a line of help under it. */
+.catalogfind,
+.planpaint {
+  display: grid;
+  gap: 4px;
+}
+.catalogfind {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
 /* "Used in": the miniatures whose recipe uses a paint. */
 .usedinlist {
   display: grid;

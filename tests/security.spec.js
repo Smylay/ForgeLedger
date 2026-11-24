@@ -392,3 +392,37 @@ test("suggestions can't run script", async ({ page }, testInfo) => {
   );
   expect(ran).toEqual([]);
 });
+
+test("planning recipe paints can't run script", async ({ page }, testInfo) => {
+  await importBackup(
+    page,
+    {
+      wishlist: [
+        {
+          id: attack("planWishId"),
+          name: attack("planWish"),
+          category: "Paint",
+        },
+      ],
+    },
+    testInfo,
+  );
+  await nav(page, "miniatures");
+  await page.click("#addBtn");
+  await fillForm(page, { name: "Mini" });
+  await page.fill("#planPaint", "x");
+  await expect(page.locator("#planList option").first()).toBeAttached();
+  const label = await page
+    .locator("#planList option")
+    .first()
+    .getAttribute("value");
+  await page.fill("#planPaint", label);
+  await page.click('#itemForm button[type="submit"]');
+  await page.waitForTimeout(200);
+  const ran = await page.evaluate(() =>
+    ["planWishId", "planWish"].filter((f) => window[f]),
+  );
+  expect(ran).toEqual([]);
+  // The paint it became is named like the wishlist item, as text.
+  expect((await stored(page)).paints[0].name).toBe(attack("planWish"));
+});

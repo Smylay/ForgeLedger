@@ -54,8 +54,12 @@ test("range suggestions follow the brand", async ({ page }) => {
   await page.click("#addBtn");
   // No brand yet: every range you've used, most used first.
   expect(await options(page, "range")).toEqual(["Core", "Base", "Shades"]);
+  // Citadel: yours first, then the paint catalogue's Citadel ranges.
   await fillForm(page, { brand: "Citadel" });
-  expect(await options(page, "range")).toEqual(["Base"]);
+  await expect
+    .poll(() => options(page, "range"))
+    .toEqual(expect.arrayContaining(["Base", "Layer", "Contrast"]));
+  expect((await options(page, "range"))[0]).toBe("Base");
   await fillForm(page, { brand: "ACME" });
   expect(await options(page, "range")).toEqual(["Core", "Shades"]);
   // A brand you haven't used: all your ranges again.
@@ -69,7 +73,10 @@ test("editing a paint suggests ranges for its own brand", async ({ page }) => {
     .filter({ hasText: "Green" })
     .getByRole("button", { name: "Edit" })
     .click();
-  expect(await options(page, "range")).toEqual(["Base"]);
+  await expect
+    .poll(() => options(page, "range"))
+    .toEqual(expect.arrayContaining(["Base", "Shade"]));
+  expect((await options(page, "range"))[0]).toBe("Base");
 });
 
 test("factions are shared by miniatures and projects", async ({ page }) => {
