@@ -96,6 +96,12 @@ document.querySelector("#skillAdd select").onchange = (e) => {
   if (other) input.focus();
 };
 document.querySelector("#itemForm").onsubmit = submit;
+// Enter in the catalogue and plan boxes picks a suggestion; it doesn't save
+// the form.
+document.querySelector("#itemForm").onkeydown = (e) => {
+  if (e.key === "Enter" && ["catalogueFind", "planPaint"].includes(e.target.id))
+    e.preventDefault();
+};
 document.querySelector("#itemForm").oninput = (e) => {
   let form = e.currentTarget;
   for (let el of form.elements) el.setCustomValidity?.(""); // re-check on save

@@ -128,16 +128,18 @@ test.describe("in the app", () => {
     await nav(page, "paints");
     const box = page.locator("#listView .quickadd input");
     await expect(box).toHaveAttribute("list", "quickCatalogue");
+    // Picking a suggestion adds it straight away.
     await pick(
       page,
       "#listView .quickadd input",
       "#quickCatalogue",
       "nuln oil",
     );
-    await box.press("Enter");
     await expect(page.locator("#toastText")).toHaveText(
       'Added "Nuln Oil" (Citadel Shade)',
     );
+    await expect(box).toHaveValue("");
+    expect((await stored(page)).paints).toHaveLength(1);
     expect((await stored(page)).paints[0]).toMatchObject({
       name: "Nuln Oil",
       brand: "Citadel",
@@ -149,7 +151,7 @@ test.describe("in the app", () => {
     });
     // Anything else is added by name, as before.
     await box.fill("My own mix");
-    await box.press("Enter");
+    await page.click("#listView .quickadd button");
     expect((await stored(page)).paints[1]).toEqual({
       id: expect.any(String),
       name: "My own mix",
@@ -157,6 +159,15 @@ test.describe("in the app", () => {
     // Other pages' quick add doesn't suggest paints.
     await nav(page, "tools");
     await expect(box).not.toHaveAttribute("list", /./);
+  });
+
+  test("Enter in the Find box doesn't save the form", async ({ page }) => {
+    await nav(page, "paints");
+    await page.click("#addBtn");
+    await fillForm(page, { name: "Half done" });
+    await page.locator("#catalogueFind").press("Enter");
+    await expect(page.locator("#modal")).toBeVisible();
+    expect((await stored(page))?.paints ?? []).toHaveLength(0);
   });
 
   test.describe("planning a recipe with paints you don't own", () => {

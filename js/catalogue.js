@@ -157,7 +157,9 @@ function catalogueForForm(form) {
 }
 
 // Quick add on the paints page suggests catalogue paints; picking one adds
-// it with its details, as a paint you have (Full, quantity 1).
+// it straight away, with its details, as a paint you have (Full, quantity
+// 1). Straight away, because while suggestions show, Safari (WebKit) takes
+// Enter to close them rather than to submit.
 async function quickCatalogueInput(input) {
   if (section !== "paints") return;
   try {
@@ -165,6 +167,7 @@ async function quickCatalogueInput(input) {
   } catch {
     return;
   }
+  if (catalogueEntry(input.value)) return input.form.requestSubmit();
   document.querySelector("#quickCatalogue").innerHTML = catalogueOptions(
     input.value.trim().length >= 2 ? findInCatalogue(input.value) : [],
   );

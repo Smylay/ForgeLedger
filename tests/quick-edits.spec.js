@@ -191,22 +191,24 @@ test.describe("+/- on counts", () => {
 test.describe("quick add", () => {
   const box = (page) => page.locator(".view.active .quickadd input");
 
+  // On tools: the paints page's box also suggests catalogue paints, and
+  // while suggestions show, WebKit takes Enter to close them (see
+  // tests/catalogue.spec.js).
   test("adds a record by name and keeps the box ready", async ({ page }) => {
-    await nav(page, "paints");
+    await nav(page, "tools");
+    const before = (await stored(page)).tools.length;
     await box(page).fill("Blue");
     await box(page).press("Enter");
     await box(page).fill("Green");
     await box(page).press("Enter");
-    expect((await stored(page)).paints.map((p) => p.name)).toEqual([
-      "Red",
-      "Blue",
-      "Green",
-    ]);
+    expect((await stored(page)).tools.slice(before).map((t) => t.name)).toEqual(
+      ["Blue", "Green"],
+    );
     await expect(box(page)).toHaveValue("");
     await expect(box(page)).toBeFocused();
     await expect(page.locator("#toastText")).toHaveText('Added "Green"');
     await page.click("#toastAction");
-    expect((await stored(page)).paints).toHaveLength(2);
+    expect((await stored(page)).tools).toHaveLength(before + 1);
   });
 
   test("works on the queue and skills too", async ({ page }) => {
