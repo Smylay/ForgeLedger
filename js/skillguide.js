@@ -1,6 +1,7 @@
 // The skill guide: what each level means, and a library of painting
 // techniques with the next thing to practise at each level. Static data;
 // nothing here is stored.
+"use strict";
 
 // Level 0 to 9: a name, and what it looks like in practice.
 const LEVELS = [

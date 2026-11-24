@@ -143,17 +143,6 @@ function commit(change) {
   db = before;
   return false;
 }
-// After a change, add rewards it unlocked to `newRewards` (shown until
-// dismissed), and drop any it locked again.
-function noteRewards(was) {
-  let now = unlockedRewards();
-  newRewards = [
-    ...newRewards.filter((rid) => now.includes(rid)),
-    ...now.filter((rid) => !was.includes(rid) && !newRewards.includes(rid)),
-  ];
-  renderRewardNotice();
-}
-
 // Make a change that the message it shows can undo. `message` is a
 // function so it can describe what the change did.
 function commitWithUndo(change, message) {

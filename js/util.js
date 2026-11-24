@@ -1,4 +1,5 @@
-// Small helpers with no app state: ids, escaping, money, messages, downloads.
+// Small helpers with no app state: ids, escaping, safe colours and links,
+// dates, messages, downloads and putting focus back.
 "use strict";
 
 function id() {
@@ -54,4 +55,13 @@ function today() {
   let d = new Date(),
     p = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// After a redraw, put keyboard focus back on the control the user was on
+// (or the first fallback that's still there and enabled).
+function refocus(...selectors) {
+  for (let s of selectors) {
+    let el = document.querySelector(s);
+    if (el && !el.disabled) return el.focus();
+  }
 }

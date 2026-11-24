@@ -5,6 +5,7 @@
 // The file's handle is kept in IndexedDB (AUTOSAVE_DB), so it's remembered
 // between visits. Browsers ask for permission again after a restart, so a
 // remembered file starts "paused" until the user clicks Resume.
+"use strict";
 
 const AUTOSAVE_DB = "forgeledger_files";
 const AUTOSAVE_DELAY = 1500; // ms after the last change before writing

@@ -1,43 +1,21 @@
-// Everything that draws a view: nav, dashboard, tables, queue, skills.
+// Drawing the pages: nav and page switching, the dashboard, list tables,
+// sorting, deadline markers and alerts. The queue, skills, photos and
+// Settings draw themselves in their own files.
 "use strict";
 
+// The unreadable-data alert's buttons (see renderAlerts).
+function downloadRecovered() {
+  download(recovered.raw, `forgeledger-unreadable-data-${today()}.json`);
+}
+function dismissRecovered() {
+  recovered = null;
+  renderAlerts();
+}
 function renderBackupState() {
   document.querySelector("#backupState").textContent =
     "Last backup: " + backupText(backupAgeDays());
 }
 
-// A wishlist item's reward state, for its table cell and the dashboard.
-function rewardHtml(w) {
-  let r = reward(w);
-  if (!r) return "";
-  return r.unlocked
-    ? `<span class="pill unlocked">Unlocked</span> ${esc(r.project.name)} reached ${r.at}%`
-    : `<span class="pill locked">Locked</span> ${esc(r.project.name)}: ${r.percent}% of ${r.at}%`;
-}
-// Rewards unlocked by a change just now (`newRewards`), until dismissed or
-// bought, on every page.
-function renderRewardNotice() {
-  let shown = newRewards
-    .map((rid) => db.wishlist.find((w) => w.id === rid))
-    .filter((w) => w && reward(w)?.unlocked);
-  document.querySelector("#rewardNotice").innerHTML = shown
-    .map((w) => {
-      let r = reward(w),
-        wid = esc(w.id),
-        name = esc(w.name);
-      return `<div class="notice reward">Reward unlocked: <b>${name}</b>. ${esc(r.project.name)} reached ${r.at}%. <button class="btn" data-bought="${wid}" aria-label="Bought: ${name}">Bought</button> <button class="btn" data-unreward="${wid}" aria-label="Dismiss: ${name}">Dismiss</button></div>`;
-    })
-    .join("");
-}
-// Top of the dashboard: an offer of example data while the app is empty,
-// and a note while example data is loaded.
-function renderStartNotice() {
-  document.querySelector("#startNotice").innerHTML = !hasUserData()
-    ? '<div class="notice">New to ForgeLedger? <button class="btn" data-demo="load">Load example data</button> to see what it can do. You can clear it again afterwards.</div>'
-    : db.demo
-      ? '<div class="notice">You\'re looking at example data. <button class="btn" data-demo="clear">Clear it and start fresh</button> <button class="btn" data-demo="keep">Keep it</button></div>'
-      : "";
-}
 function renderAlerts() {
   let notes = [];
   if (memoryOnly)
@@ -169,26 +147,45 @@ function render() {
 }
 function renderDashboard() {
   renderStartNotice();
-  let modelCount = db.miniatures.reduce(
-      (a, x) => a + Number(x.quantity || 1),
-      0,
-    ),
+  renderBackupNotice();
+  renderMetrics();
+  renderProjectSummary();
+  renderQueueSummary();
+  renderStockSummary();
+  renderSpendSummary();
+  renderRewardSummary();
+}
+// Recorded spend: every price in paints, tools and miniatures, as entered
+// (not multiplied by quantity).
+function recordedSpend() {
+  return ["paints", "tools", "miniatures"]
+    .flatMap((k) => db[k])
+    .reduce((a, x) => a + Number(x.price || 0), 0);
+}
+function renderBackupNotice() {
+  let age = backupAgeDays();
+  document.querySelector("#backupNotice").innerHTML =
+    hasUserData() && (age === null || age >= BACKUP_REMINDER_DAYS)
+      ? `<div class="notice warn">Your data is only stored in this browser. Last backup: ${backupText(age)}. Use <b>Export backup</b> to save a copy.</div>`
+      : "";
+}
+function renderMetrics() {
+  let models = db.miniatures.reduce((a, x) => a + Number(x.quantity || 1), 0),
     painted = db.miniatures.reduce((a, x) => a + Number(x.painted || 0), 0),
-    spend = ["paints", "tools", "miniatures"]
-      .flatMap((k) => db[k])
-      .reduce((a, x) => a + Number(x.price || 0), 0);
-  let cards = [
-    ["Paints", db.paints.length],
-    ["Models", modelCount],
-    ["Painted", painted],
-    ["Recorded spend", money(spend)],
-  ];
+    cards = [
+      ["Paints", db.paints.length],
+      ["Models", models],
+      ["Painted", painted],
+      ["Recorded spend", money(recordedSpend())],
+    ];
   document.querySelector("#metrics").innerHTML = cards
     .map(
       (x) =>
         `<div class="card metric"><div class="muted">${x[0]}</div><div class="v">${x[1]}</div></div>`,
     )
     .join("");
+}
+function renderProjectSummary() {
   document.querySelector("#projectSummary").innerHTML = db.projects.length
     ? db.projects
         .map((p) => {
@@ -199,23 +196,8 @@ function renderDashboard() {
         })
         .join("")
     : '<div class="empty">No army projects yet.</div>';
-  // Rewards: unlocked first, then the nearest to unlocking.
-  let rewards = db.wishlist
-    .map((w) => ({ w, r: reward(w) }))
-    .filter((x) => x.r)
-    .sort(
-      (a, b) =>
-        b.r.unlocked - a.r.unlocked ||
-        b.r.percent / b.r.at - a.r.percent / a.r.at,
-    );
-  document.querySelector("#rewardSummary").innerHTML = rewards.length
-    ? rewards
-        .map(
-          ({ w, r }) =>
-            `<div class="rewardline"><span><b>${esc(w.name)}</b> ${rewardHtml(w)}</span>${r.unlocked ? `<button class="btn" data-bought="${esc(w.id)}" aria-label="Bought: ${esc(w.name)}">Bought</button>` : ""}</div>`,
-        )
-        .join("")
-    : '<div class="empty">No rewards yet. Give a wishlist item a project and a % to unlock it at.</div>';
+}
+function renderQueueSummary() {
   document.querySelector("#queueSummary").innerHTML = db.queue.length
     ? db.queue
         .slice(0, 5)
@@ -225,6 +207,10 @@ function renderDashboard() {
         )
         .join("")
     : '<div class="empty">Queue is empty.</div>';
+}
+// Low paints, with how many queued miniatures need each, and a button to
+// add it to the wishlist unless it's there already.
+function renderStockSummary() {
   let low = db.paints.filter(isLow),
     // Miniatures waiting in the queue, for "needed for N queued".
     waiting = db.queue
@@ -246,14 +232,30 @@ function renderDashboard() {
         ? `<div class="rowacts stockall"><button data-wishall>Add all ${toBuy.length} to wishlist</button></div>`
         : "")
     : '<div class="empty">No paints running low.</div>';
-  let age = backupAgeDays();
-  document.querySelector("#backupNotice").innerHTML =
-    hasUserData() && (age === null || age >= BACKUP_REMINDER_DAYS)
-      ? `<div class="notice warn">Your data is only stored in this browser. Last backup: ${backupText(age)}. Use <b>Export backup</b> to save a copy.</div>`
-      : "";
+}
+function renderSpendSummary() {
   let wish = db.wishlist.reduce((a, x) => a + Number(x.price || 0), 0);
   document.querySelector("#spendSummary").innerHTML =
-    `<div class="metric"><div class="v">${money(spend)}</div><div class="muted">Owned collection spend</div><br><div class="v">${money(wish)}</div><div class="muted">Wishlist exposure</div></div>`;
+    `<div class="metric"><div class="v">${money(recordedSpend())}</div><div class="muted">Owned collection spend</div><br><div class="v">${money(wish)}</div><div class="muted">Wishlist exposure</div></div>`;
+}
+// Rewards: unlocked first, then the nearest to unlocking.
+function renderRewardSummary() {
+  let rewards = db.wishlist
+    .map((w) => ({ w, r: reward(w) }))
+    .filter((x) => x.r)
+    .sort(
+      (a, b) =>
+        b.r.unlocked - a.r.unlocked ||
+        b.r.percent / b.r.at - a.r.percent / a.r.at,
+    );
+  document.querySelector("#rewardSummary").innerHTML = rewards.length
+    ? rewards
+        .map(
+          ({ w, r }) =>
+            `<div class="rewardline"><span><b>${esc(w.name)}</b> ${rewardHtml(w)}</span>${r.unlocked ? `<button class="btn" data-bought="${esc(w.id)}" aria-label="Bought: ${esc(w.name)}">Bought</button>` : ""}</div>`,
+        )
+        .join("")
+    : '<div class="empty">No rewards yet. Give a wishlist item a project and a % to unlock it at.</div>';
 }
 // What a record can be found by: each field and computed value as shown.
 // Field names and hidden ids never match, and projects match by name.
@@ -375,19 +377,6 @@ function rowHtml(d, x) {
     .join("");
   return `<tr data-row="${esc(x.id)}">${cells}<td class="rowacts">${section === "wishlist" ? `<button data-bought="${esc(x.id)}" aria-label="Bought: ${esc(x.name)}">Bought</button>` : ""}<button data-edit="${esc(x.id)}">Edit</button><button class="del" data-del="${esc(x.id)}">Delete</button>${section === "miniatures" ? `<button data-queue="${esc(x.id)}">Queue</button>` : ""}${d.photos ? photosButtonHtml(x) : ""}</td></tr>`;
 }
-// A miniature's cover photo (its first) as a small thumbnail; the picture
-// itself is filled in afterwards by fillPhotos(), from IndexedDB.
-function coverHtml(x) {
-  let ids = photoIds(x);
-  return ids.length
-    ? `<img class="thumb" data-photo="${esc(ids[0])}" alt="" width="32" height="32">`
-    : "";
-}
-function photosButtonHtml(x) {
-  let n = photoIds(x).length,
-    label = n ? `Photos (${n})` : "Photos";
-  return `<button data-photos="${esc(x.id)}" aria-label="${label}: ${esc(x.name)}">${label}</button>`;
-}
 // Redraw one table row after a one-tap change, so the row keeps its place
 // (even in a sorted table), then put focus back on the first of `focus`
 // (selectors within the row) that's still there and enabled.
@@ -398,6 +387,12 @@ function redrawRow(rec, ...focus) {
   row.outerHTML = rowHtml(defs[section], rec);
   refocus(...focus.map((f) => `${sel} ${f}`));
   fillPhotos(document.querySelector(sel) || document);
+}
+// A column header: sort by it, or reverse the order if it's already sorted
+// by it. Only the display changes; db keeps its order.
+function sortBy(key) {
+  sort = sort.key === key ? { key, dir: -sort.dir } : { key, dir: 1 };
+  renderTable();
 }
 function renderTable() {
   let d = defs[section],
@@ -416,172 +411,4 @@ function renderTable() {
     ? `<div class="tablewrap"><table><thead><tr>${head}<th>Actions</th></tr></thead><tbody>${body}</tbody></table></div>`
     : '<div class="card empty">No matching items.</div>';
   fillPhotos(document.querySelector("#content"));
-}
-// One queue item: drag handle, position, details with a stage progress
-// bar, then its actions. Buttons carry the item id (next, plus) or its
-// position (top, up, down), which the click listener in app.js reads.
-function queueItemHtml(q, i) {
-  let stages = queueStages(q),
-    last = stages.length - 1,
-    split = isSplit(q),
-    counts = split ? splitCounts(q) : null,
-    // A split item is as far on as its least advanced model.
-    n = split
-      ? Math.max(
-          0,
-          counts.findIndex((c) => c > 0),
-        )
-      : stageIndex(q),
-    done = n === last,
-    m = linked(column(defs.queue, "miniature"), q.miniature),
-    low = done ? [] : lowRecipePaints(m),
-    total = queueTotal(q),
-    count = stageDoneCount(q),
-    working = n > 0 && !done, // in a stage that +1 counts towards
-    qid = esc(q.id),
-    name = esc(q.name);
-  let details = `${split && !done ? "Split by stage" : esc(stages[n])} · ${total} model(s)${ownStages(q) ? " · own stages" : ""}${q.due ? " · due " + esc(q.due) + " " + dueBadge(q.due, done) : ""}`;
-  // Steps after "Not started": earlier stages full, the current one filled
-  // as far as its count, later ones empty. Split, each step fills with the
-  // share of models past it (or, for Complete, at it).
-  let past = (j) =>
-    j === last ? counts[last] : counts.slice(j + 1).reduce((a, b) => a + b, 0);
-  let fill = (k) =>
-    split
-      ? Math.round((100 * past(k + 1)) / total)
-      : done || k < n - 1
-        ? 100
-        : k === n - 1
-          ? Math.round((100 * count) / total)
-          : 0;
-  let status = split
-    ? splitText(q)
-    : working
-      ? `${stages[n]}: ${count} of ${total} done`
-      : stages[n];
-  // Split, the bar's value is the models' average step.
-  let now = split
-    ? Math.round((10 * counts.reduce((a, c, j) => a + c * j, 0)) / total) / 10
-    : n;
-  let progress = `<div class="stages" role="progressbar" aria-label="Progress of ${name}" aria-valuemin="0" aria-valuemax="${last}" aria-valuenow="${now}" aria-valuetext="${esc(status)}${split ? "" : `, step ${n} of ${last}`}">${stages
-    .slice(1)
-    .map(
-      (s, k) =>
-        `<span title="${esc(s)}"><i style="width:${fill(k)}%"></i></span>`,
-    )
-    .join("")}</div>`;
-  let countLine =
-    working && !split
-      ? `<div class="muted stagecount">${esc(status)}</div>`
-      : "";
-  // Split: each stage that has models, with a button to move one on.
-  let splitRow =
-    split && !done
-      ? `<div class="splitrow" role="group" aria-label="Models by stage, ${name}">${stages
-          .map((s, j) =>
-            counts[j]
-              ? `<span class="splitstage">${esc(s)} <b>${counts[j]}</b>${j < last ? `<button class="btn" data-adv="${qid}" data-from="${j}" aria-label="Move 1 to ${esc(stages[j + 1])} from ${esc(s)}, ${name}">Move 1 to ${esc(stages[j + 1])}</button>` : ""}</span>`
-              : "",
-          )
-          .join("")}</div>`
-      : "";
-  // The toggle: off, every model is at one stage, as before.
-  let splitBtn =
-    done || total < 2
-      ? ""
-      : `<button class="btn" data-split="${qid}" aria-pressed="${split}" aria-label="Split by stage: ${name}">Split by stage</button>`;
-  let lowLine = low.length
-    ? `<div class="warnline">Low paint: ${low.map((p) => `${esc(p.name)} (${esc(p.stock)})`).join(", ")}</div>`
-    : "";
-  let next =
-    done || split
-      ? ""
-      : `<button class="btn" data-next="${qid}" aria-label="Next: ${esc(stages[n + 1])} for ${name}">Next: ${esc(stages[n + 1])}</button>`;
-  // +1 counts in the current stage; from "Not started" it starts the first.
-  let plus =
-    done || split
-      ? ""
-      : `<button class="btn" data-plus="${qid}" aria-label="+1 done in ${esc(stages[Math.max(n, 1)])} for ${name}">+1 done</button>`;
-  return `<div class="qitem" data-index="${i}"><span class="handle" aria-hidden="true" title="Drag to reorder">⠿</span><div class="qnum">${i + 1}</div><div class="qbody"><b>${name}</b><div class="muted">${details}</div>${progress}${countLine}${splitRow}${lowLine}</div><div class="qactions">${next}${plus}${splitBtn}<span class="rowacts"><button data-top="${i}" aria-label="Move ${name} to top">Top</button><button data-up="${i}" aria-label="Move ${name} up">↑</button><button data-down="${i}" aria-label="Move ${name} down">↓</button><button data-stages="${qid}" aria-label="Stages for ${name}">Stages</button><button data-edit="${qid}">Edit</button><button class="del" data-del="${qid}">Delete</button></span></div></div>`;
-}
-function renderQueue() {
-  document.querySelector("#queueContent").innerHTML = db.queue.length
-    ? db.queue.map(queueItemHtml).join("")
-    : '<div class="card empty">Painting queue is empty.</div>';
-}
-// After a redraw, put keyboard focus back on the control the user was on
-// (or the first fallback that's still there and enabled).
-function refocus(...selectors) {
-  for (let s of selectors) {
-    let el = document.querySelector(s);
-    if (el && !el.disabled) return el.focus();
-  }
-}
-function renderSkills() {
-  renderSkillPicker();
-  renderSkillOverview();
-  let guide = document.querySelector("#levelGuide");
-  if (!guide.children.length)
-    guide.innerHTML = LEVELS.map(
-      ([name, meaning]) => `<li><b>${name}:</b> ${meaning}</li>`,
-    ).join("");
-  document.querySelector("#skillsContent").innerHTML = db.skills
-    .map((s) => {
-      let level = skillLevel(s),
-        sid = esc(s.id),
-        next = nextStep(s);
-      // A skill from the library gets its next step; one of your own shows
-      // your goal, or says there isn't one.
-      let goal = s.goal
-        ? `<div class="muted">Your goal: ${esc(s.goal)}</div>`
-        : next
-          ? ""
-          : '<div class="muted">No practice goal</div>';
-      return `<div class="skill" data-card="${sid}"><div class="skilltop"><b>${esc(s.name)}</b><strong class="lvl">${level}/9 · ${levelName(level)}</strong></div><input type="range" min="0" max="9" value="${level}" data-skill="${sid}" aria-label="${esc(s.name)} proficiency" aria-valuetext="${levelText(level)}"><p class="nextstep"${next ? "" : " hidden"}><span class="muted">Next step:</span> <span class="steptext">${esc(next)}</span></p>${goal}<div class="muted changed">${changedText(s)}</div><div class="rowacts"><button data-edit="${sid}">Edit notes</button><button class="del" data-del="${sid}">Delete</button></div></div>`;
-    })
-    .join("");
-}
-// Redraw one card's level, next step and date in place, so a slider being
-// dragged isn't replaced.
-function updateSkillCard(s) {
-  let card = document.querySelector(`[data-card="${CSS.escape(s.id)}"]`),
-    level = skillLevel(s);
-  if (!card) return;
-  card.querySelector(".lvl").textContent = `${level}/9 · ${levelName(level)}`;
-  card.querySelector("input").setAttribute("aria-valuetext", levelText(level));
-  card.querySelector(".steptext").textContent = nextStep(s);
-  card.querySelector(".changed").textContent = changedText(s);
-}
-// The library techniques you haven't added, then "Other" to name your own.
-function renderSkillPicker() {
-  let pick = document.querySelector("#skillAdd select"),
-    chosen = pick.value,
-    left = TECHNIQUES.filter(
-      (t) => !db.skills.some((s) => sameName(s.name, t.name)),
-    );
-  pick.innerHTML = `<option value="">Add a technique…</option>${left
-    .map((t) => `<option>${esc(t.name)}</option>`)
-    .join("")}<option value="other">Other: name your own…</option>`;
-  pick.value = [...pick.options].some((o) => o.value === chosen) ? chosen : "";
-}
-// The profile (every skill's level, highest first) and practice suggestions.
-function renderSkillOverview() {
-  let byLevel = [...db.skills].sort((a, b) => skillLevel(b) - skillLevel(a));
-  document.querySelector("#skillProfile").innerHTML = byLevel.length
-    ? byLevel
-        .map((s) => {
-          let level = skillLevel(s);
-          return `<li><span class="mname">${esc(s.name)}</span><span class="meter" aria-hidden="true"><i style="width:${Math.round((level / 9) * 1000) / 10}%"></i></span><span class="mval">${level} · ${levelName(level)}</span></li>`;
-        })
-        .join("")
-    : '<li class="muted">No skills yet. Add one above.</li>';
-  let picks = practiceNext(db.skills);
-  document.querySelector("#practice").innerHTML = picks.length
-    ? `<ol class="practice">${picks
-        .map(({ skill, reason }) => {
-          let advice = nextStep(skill) || skill.goal || "";
-          return `<li><b>${esc(skill.name)}</b> <span class="muted">· ${reason}</span>${advice ? `<div>${esc(advice)}</div>` : ""}</li>`;
-        })
-        .join("")}</ol>`
-    : `<p class="muted">${db.skills.length ? "Every skill is at Mastery." : "Add a skill to get suggestions."}</p>`;
 }

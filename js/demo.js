@@ -1,7 +1,9 @@
 // Example data: "Load example data" on an empty dashboard, and
 // examples/forgeledger-example.json (made by scripts/make-example.js).
 // Names are made up. Dates count from `base`, so markers like "Due in 5
-// days" show whenever it's loaded; the file uses DEMO_FILE_DATE.
+// days" show whenever it's loaded; the file uses DEMO_FILE_DATE. The
+// offer, Load, Clear and Keep are at the end of the file.
+"use strict";
 
 const DEMO_FILE_DATE = "2027-01-15";
 
@@ -375,4 +377,45 @@ function demoPhotos() {
     photo("demo-photo-1", "#8a1c1c", "#c8312e"),
     photo("demo-photo-2", "#1d3557", "#b08d3c"),
   ];
+}
+
+// Top of the dashboard: an offer of example data while the app is empty,
+// and a note while example data is loaded.
+function renderStartNotice() {
+  document.querySelector("#startNotice").innerHTML = !hasUserData()
+    ? '<div class="notice">New to ForgeLedger? <button class="btn" data-demo="load">Load example data</button> to see what it can do. You can clear it again afterwards.</div>'
+    : db.demo
+      ? '<div class="notice">You\'re looking at example data. <button class="btn" data-demo="clear">Clear it and start fresh</button> <button class="btn" data-demo="keep">Keep it</button></div>'
+      : "";
+}
+// Example data (demo.js): only offered while the app is empty, so it never
+// replaces anything. Its photos are drawn and stored first; if they can't
+// be stored, the miniatures simply have none.
+async function loadDemo() {
+  if (hasUserData()) return;
+  let data = demoData(),
+    stored = false;
+  if (await photosWork())
+    try {
+      await putPhotos(demoPhotos());
+      stored = true;
+    } catch {}
+  if (!stored) for (let m of data.miniatures) delete m.photos;
+  if (!commit(() => (db = withCurrency(fromBackup(data))))) return;
+  newRewards = [];
+  renderRewardNotice();
+  renderNav();
+  render();
+  toast("Example data loaded");
+}
+// Back to an empty app, with Undo. The example photos are tidied later.
+function clearDemo() {
+  commitWithUndo(
+    () => (db = withCurrency(structuredClone(defaults))),
+    () => "Cleared the example data",
+  );
+}
+// Keep the example data as your own: the notice about it goes away.
+function keepDemo() {
+  if (commit(() => delete db.demo)) render();
 }

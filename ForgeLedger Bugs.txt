@@ -1,6 +1,6 @@
 ForgeLedger Bugs/Suggestions
 
-- We should review the codebase to see if any files are becoming over complex and ensure its built in a logical way.
+- We should review the codebase to see if any files are becoming over complex and ensure its built in a logical way. (done in PR #19)
 
 - Maybe we could add some themes for different colours
 

@@ -3,7 +3,8 @@
 // for them. Images are stored as bytes (ArrayBuffer) with their type, not
 // as Blobs, which WebKit (Safari) can't store from a file:// page. They're
 // shrunk before saving: PHOTO_SIZE pixels on the long edge, plus a
-// THUMB_SIZE thumbnail.
+// THUMB_SIZE thumbnail. The photo viewer is at the end of the file.
+"use strict";
 
 const PHOTO_DB = "forgeledger_photos";
 const PHOTO_SIZE = 1600;
@@ -206,4 +207,133 @@ function photosFromBackup(photos) {
     } catch {} // not valid base64
   }
   return recs;
+}
+
+// The photo viewer for one miniature: the chosen photo large, a strip of
+// thumbnails to pick from, and buttons to add, make cover and remove.
+function openPhotos(mid) {
+  let m = db.miniatures.find((x) => x.id === mid);
+  if (!m) return;
+  viewing = { id: m.id, index: 0, url: "" };
+  document.querySelector("#photoStatus").textContent = "";
+  document.querySelector("#photosDialog").showModal();
+  renderPhotos();
+}
+async function renderPhotos() {
+  let m = viewing && db.miniatures.find((x) => x.id === viewing.id);
+  if (!m) return;
+  let ids = photoIds(m),
+    i = (viewing.index = Math.max(0, Math.min(viewing.index, ids.length - 1))),
+    name = esc(m.name),
+    dlg = document.querySelector("#photosDialog");
+  document.querySelector("#photosTitle").textContent = `Photos of "${m.name}"`;
+  document.querySelector("#photoView").innerHTML = ids.length
+    ? `<img data-photo="${esc(ids[i])}" data-size="full" alt="Photo ${i + 1} of ${ids.length} of ${name}"><figcaption>Photo ${i + 1} of ${ids.length}${i === 0 ? " · cover" : ""}</figcaption>`
+    : '<p class="muted">No photos yet. Add them from your computer, or your phone\'s camera.</p>';
+  document.querySelector("#photoStrip").innerHTML = ids
+    .map(
+      (p, k) =>
+        `<button type="button" data-pick="${k}" aria-label="Show photo ${k + 1}"${k === i ? ' aria-current="true"' : ""}><img data-photo="${esc(p)}" alt=""></button>`,
+    )
+    .join("");
+  document.querySelector("#coverPhoto").disabled = i === 0;
+  document.querySelector("#removePhoto").disabled = !ids.length;
+  let works = await photosWork();
+  document.querySelector("#photosUnavailable").hidden = works;
+  document.querySelector("#addPhotos").disabled = !works;
+  if (viewing?.url) URL.revokeObjectURL(viewing.url);
+  await fillPhotos(dlg);
+  if (viewing)
+    viewing.url = dlg.querySelector('img[data-size="full"]')?.src || "";
+}
+function showPhoto(k) {
+  if (!viewing) return;
+  viewing.index = k;
+  renderPhotos().then(() =>
+    refocus(`#photoStrip [data-pick="${k}"]`, "#addPhotos"),
+  );
+}
+// Shrink and store picked images, then add them to the miniature with Undo.
+// Files the browser can't read (e.g. HEIC on some computers) are named.
+async function addPhotoFiles(files) {
+  if (!viewing || !files.length) return;
+  let mid = viewing.id,
+    status = document.querySelector("#photoStatus"),
+    recs = [],
+    failed = [];
+  status.textContent = `Adding ${files.length} photo(s)…`;
+  document.querySelector("#addPhotos").disabled = true;
+  for (let f of files)
+    try {
+      recs.push(await photoFromFile(f));
+    } catch {
+      failed.push(f.name);
+    }
+  if (recs.length)
+    try {
+      await putPhotos(recs);
+    } catch {
+      failed.push(
+        ...files.map((f) => f.name).filter((n) => !failed.includes(n)),
+      );
+      recs = [];
+    }
+  // Look the miniature up again: another tab may have changed the data.
+  let m = db.miniatures.find((x) => x.id === mid);
+  if (m && recs.length) {
+    let before = photoIds(m).length;
+    let added = commitWithUndo(
+      () => (m.photos = [...photoIds(m), ...recs.map((r) => r.id)]),
+      () => `Added ${recs.length} photo(s) to "${m.name}"`,
+    );
+    if (added && viewing?.id === mid) viewing.index = before;
+  }
+  status.textContent = failed.length
+    ? `Couldn't add ${failed.join(", ")}. Use JPEG, PNG or WebP images; if they are, the browser's storage may be full.`
+    : "";
+  await renderPhotos();
+  document.querySelector("#addPhotos").focus();
+}
+// The photo shown becomes the first, which is the cover.
+function makeCover() {
+  let m = viewing && db.miniatures.find((x) => x.id === viewing.id);
+  if (!m) return;
+  let ids = photoIds(m),
+    pid = ids[viewing.index];
+  if (!pid || viewing.index === 0) return;
+  if (!commit(() => (m.photos = [pid, ...ids.filter((p) => p !== pid)])))
+    return;
+  viewing.index = 0;
+  render();
+  renderPhotos().then(() => refocus("#removePhoto"));
+}
+// Take the shown photo off the miniature, with Undo. The image stays stored
+// until start-up tidies it (tidyPhotos), so Undo can bring it back.
+function removePhoto() {
+  let m = viewing && db.miniatures.find((x) => x.id === viewing.id);
+  if (!m) return;
+  let ids = photoIds(m),
+    pid = ids[viewing.index];
+  if (!pid) return;
+  commitWithUndo(
+    () => (m.photos = ids.filter((p) => p !== pid)),
+    () => `Removed a photo from "${m.name}"`,
+  );
+  renderPhotos().then(() =>
+    refocus("#removePhoto", "#addPhotos", "#closePhotos"),
+  );
+}
+
+// A miniature's cover photo (its first) as a small thumbnail; the picture
+// itself is filled in afterwards by fillPhotos(), from IndexedDB.
+function coverHtml(x) {
+  let ids = photoIds(x);
+  return ids.length
+    ? `<img class="thumb" data-photo="${esc(ids[0])}" alt="" width="32" height="32">`
+    : "";
+}
+function photosButtonHtml(x) {
+  let n = photoIds(x).length,
+    label = n ? `Photos (${n})` : "Photos";
+  return `<button data-photos="${esc(x.id)}" aria-label="${label}: ${esc(x.name)}">${label}</button>`;
 }
