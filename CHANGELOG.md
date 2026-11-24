@@ -4,7 +4,8 @@ What changed in each version of ForgeLedger. Backups from every earlier version 
 
 ## Unreleased
 
-Nothing yet.
+- **How to update** without losing data, in the README.
+- **The code is reorganised by feature** (the queue, the stage editor, the wishlist, skills, Settings, backups), so each part is easier to find and change. Nothing changes in how the app works.
 
 ## 1.0.0 – 2026-11-23
 

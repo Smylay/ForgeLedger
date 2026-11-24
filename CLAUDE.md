@@ -37,19 +37,27 @@ Keep it runnable from `file://`. Browsers refuse to load ES module scripts from 
 
 The code lives in plain `<script>` files that share the global scope. They aren't ES modules, which can't load from `file://`. `forgeledger_v2.html` loads them in this order:
 
-| File            | Contents                                                                                                             |
-| --------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `util.js`       | helpers with no app state: `id()`, `esc()`, `safeColour()`, `safeUrl()`, `toast()`, `download()`, `today()`          |
-| `schema.js`     | `APP_VERSION`, storage keys, `CURRENCIES`, `money()`, `defaults`, `defs`, `column()`, link helpers, `projectStats()` |
-| `skillguide.js` | `LEVELS`, the `TECHNIQUES` library, `nextStep()`, `practiceNext()` and other skill helpers                           |
-| `demo.js`       | the example data: `demoData()`, `demoPhotos()`, `DEMO_FILE_DATE`                                                     |
-| `storage.js`    | load, validate, repair, migrate, `save()`, `commit()`, `commitWithUndo()`, backup age                                |
-| `photos.js`     | miniature photos in IndexedDB: open, store, shrink, show, tidy, and their part of backups                            |
-| `autosave.js`   | auto-save to a file the user picked: the remembered handle, writes after each save, its status                       |
-| `render.js`     | nav and page switching, dashboard, tables, queue, skills, sorting, deadline markers                                  |
-| `forms.js`      | `inputAttrs`, `fieldHtml()`, `openForm()`, `submit()`                                                                |
-| `actions.js`    | delete, add to wishlist, the queue completion prompt, JSON export/import, CSV, Settings, Erase all data              |
-| `app.js`        | mutable state, `db = load()`, event wiring, start-up                                                                 |
+| File            | Contents                                                                                                                             |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `util.js`       | helpers with no app state: `id()`, `esc()`, `safeColour()`, `safeUrl()`, `toast()`, `download()`, `today()`, `refocus()`             |
+| `schema.js`     | `APP_VERSION`, storage keys and other constants, `defaults`, `defs`, `column()`, link helpers, paint stock helpers, `projectStats()` |
+| `skillguide.js` | `LEVELS`, the `TECHNIQUES` library, `nextStep()`, `practiceNext()` and other skill rules                                             |
+| `demo.js`       | the example data (`demoData()`, `demoPhotos()`, `DEMO_FILE_DATE`), and the offer to load, clear or keep it                           |
+| `storage.js`    | load, validate, repair, migrate, `save()`, `commit()`, `commitWithUndo()`, backup age                                                |
+| `photos.js`     | miniature photos in IndexedDB (open, store, shrink, show, tidy, their part of backups), and the photo viewer                         |
+| `autosave.js`   | auto-save to a file the user picked: the remembered handle, writes after each save, its status                                       |
+| `settings.js`   | Settings: currencies and `money()`, the theme, the shortcuts switch, Erase all data                                                  |
+| `wishlist.js`   | adding low paints to the wishlist, the Bought button, and rewards                                                                    |
+| `queue.js`      | the painting queue: stages and split counts, drawing an item, Next, +1, Split, Move 1, reordering, the completion prompt             |
+| `stages.js`     | the stage editor, and moving items when stages change                                                                                |
+| `skills.js`     | the skills page: cards, sliders, the skill profile, practice suggestions, the technique picker                                       |
+| `backup.js`     | JSON backup and import, and CSV export                                                                                               |
+| `render.js`     | nav and page switching, the dashboard, list tables, sorting, deadline markers, alerts                                                |
+| `forms.js`      | `inputAttrs`, `fieldHtml()`, `openForm()`, `submit()`                                                                                |
+| `actions.js`    | quick changes in every list: delete with Undo, one-tap levels, +/− counts, quick add                                                 |
+| `app.js`        | mutable state, `db = load()`, event wiring, start-up                                                                                 |
+
+- **Files are grouped by feature.** A feature's drawing and its actions live together, e.g. everything about the queue is in `queue.js`. `render.js` and `actions.js` hold only what every list shares.
 
 - **Only `app.js` runs code at load.** The other files only declare functions and constants, so a function can call anything in any file. Top-level code must only use what earlier files define; for example, `defaults` in `schema.js` calls `id()` from `util.js`.
   - The one exception is a small inline script in `forgeledger_v2.html`'s `<head>`. It sets `<html data-theme>` from the saved theme before the page draws, so a light theme doesn't flash dark. It repeats the key `forgeledger_v2_theme` (`THEME_KEY`), since no other file has loaded yet.
@@ -178,10 +186,10 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - The page grid uses `minmax(0, 1fr)`, so wide content can't widen the page.
   - `tests/layout.spec.js` checks that every section fits a 375px screen.
 
-**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`), then dispatches on `data-*` attributes of the clicked `<button>`: `edit`, `del`, `queue`, `next`, `plus`, `top`, `up`, `down`, `recovery`, `wish`, `wishall`, `bought`, `unreward`, `demo`, `stages`, `photos`, `sort`, `scale`, `step`, `split` and `adv`.
+**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`). For a `<button>`, it runs the entry in `BUTTON_ACTIONS` (in `app.js`) for each `data-*` attribute the button has: `edit`, `del`, `sort`, `scale`, `step`, `recovery`, `wish`, `wishall`, `bought`, `unreward`, `demo`, `photos`, `stages`, `queue`, `next`, `plus`, `split`, `adv`, `top`, `up` and `down`.
 
 - `edit` and `del` work in every section because they act on the current section.
-- To add a new row action, render a button with a new `data-*` attribute and add a branch to this listener.
+- To add a new row action, render a button with a new `data-*` attribute and add an entry to `BUTTON_ACTIONS` that calls a named function in the feature's file.
 - Other controls are wired directly in `app.js`.
 
 **Quick edits.** These change a record without opening the form.
@@ -200,7 +208,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 - WCAG 2.1.4 requires a way to turn single-key shortcuts off. The checkboxes in `#keysDialog` and Settings do that. The sidebar's "Keyboard shortcuts" button, or "Show the shortcuts" in Settings, opens the list even while they're off.
 - The setting is kept in `localStorage["forgeledger_v2_shortcuts"]` (`SHORTCUTS_KEY`), outside the data, so it isn't in backups. Missing means on.
 
-**Skills.** The skills view has its own renderer, `renderSkills()`. Its data and rules are in `skillguide.js`.
+**Skills.** The skills view has its own renderer, `renderSkills()`, in `skills.js`. Its data and rules are in `skillguide.js`.
 
 - **Levels.** Each level from 0 to 9 has a name and a meaning in `LEVELS`, e.g. 4 is "Competent". Cards show "4/9 · Competent", and the slider's `aria-valuetext` says the same. "What the levels mean" lists them all.
 - **Reading levels.** Read a level with `skillLevel()`, which clamps it to 0–9 and treats junk as 0.
@@ -272,7 +280,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 - **The example file.** `examples/forgeledger-example.json` is the same data as a backup, photos included. Its dates are fixed at `DEMO_FILE_DATE`. `scripts/make-example.js` (`npm run example`) writes it from the app's own code in Chromium, formatted with Prettier.
 - **Encoding.** Images are encoded with `canvas.toDataURL`, not `toBlob`. `toBlob`'s callback can stall in headless browsers, and it once hung the example photos in tests.
 
-**Settings.** `#settingsDialog` opens from the sidebar's Settings button (`openSettings()`, `renderSettings()` in `actions.js`). Each control is wired directly in `app.js`.
+**Settings.** `#settingsDialog` opens from the sidebar's Settings button (`openSettings()`, `renderSettings()` in `settings.js`). Each control is wired directly in `app.js`.
 
 - **Theme.** `setTheme()` sets `<html data-theme>` to `dark`, `light` or `system` and saves it under `THEME_KEY`. Missing or junk means dark. `system` follows `prefers-color-scheme`.
 - **Currency.** `db.currency` is an optional top-level field holding a code from `CURRENCIES` (12 of them, each with a name and a fixed locale for formatting). Read it with `currencyCode()`, which treats a missing or unknown code as GBP.
@@ -304,7 +312,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 - **Unlinking on delete.** Deleting a record clears every `link` field and removes the id from every `links` array that points at it. For example: miniatures in a deleted project, queue items for a deleted miniature, or recipes that used a deleted paint.
 - **Undo never reverts later work.** Every `commit()` clears the copy, and so does a change from another tab.
 
-**Queue controls.** `queueItemHtml()` draws each queue item.
+**Queue controls.** `queueItemHtml()` draws each queue item. `queueState()` works out where it stands (its stages, current step, counts and status text), and `queueProgressHtml()`, `queueSplitHtml()` and `queueButtonsHtml()` draw its parts from that.
 
 - **Next stage.** "Next: <stage>" (`data-next`, `nextStage()`) moves the item to the next of `queueStages()`, with Undo. Reaching Complete opens the completion prompt below.
 - **Progress bar.** `role="progressbar"` with one segment per step after "Not started". `stageIndex()` treats blank or unknown stages as Not started.
@@ -316,7 +324,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - Next stage and changing the stage in the form also reset the count.
   - +1 doesn't change the miniature's own `painted` count. The completion prompt sets that.
 - **Progress bar fill.** Finished stages are full, the current stage is filled as far as its count, and later stages are empty.
-- **Reordering.** Top, ↑ and ↓ (`data-top`, `data-up`, `data-down`) go through `moveQueueItem(from, to)`. Dragging the handle (pointer events, in `app.js`) does too.
+- **Reordering.** Top, ↑ and ↓ (`data-top`, `data-up`, `data-down`) go through `reorderQueue()`, then `moveQueueItem(from, to)`. Dragging the handle (pointer events, in `app.js`) does too.
   - While dragging, the list doesn't change; a `drop-before` or `drop-after` line shows where the item will land, and the move is saved on release. Moving the dragged element would release its pointer capture.
   - The handle has `touch-action: none`, so a finger can drag it without scrolling the page.
 - **Focus.** After each action, `refocus()` puts keyboard focus back on the same control of the same item.

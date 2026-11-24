@@ -32,3 +32,20 @@ test("tests reload with the helper, not page.reload()", () => {
     );
   expect(found).toEqual([]);
 });
+
+// Every script file is loaded, app.js last, and CLAUDE.md's file table
+// lists each one, so a new file can't be forgotten.
+test("every script is loaded, and documented", () => {
+  const root = path.join(__dirname, "..");
+  const files = fs
+    .readdirSync(path.join(root, "js"))
+    .filter((f) => f.endsWith(".js"));
+  const html = fs.readFileSync(path.join(root, "forgeledger_v2.html"), "utf8");
+  const loaded = [...html.matchAll(/<script src="js\/([\w-]+\.js)">/g)].map(
+    (m) => m[1],
+  );
+  expect([...loaded].sort()).toEqual([...files].sort());
+  expect(loaded.at(-1)).toBe("app.js");
+  const guide = fs.readFileSync(path.join(root, "CLAUDE.md"), "utf8");
+  expect(files.filter((f) => !guide.includes("| `" + f + "`"))).toEqual([]);
+});

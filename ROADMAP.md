@@ -40,26 +40,58 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - **Miniature photos (phase 15):** add photos from files or a phone camera, kept on your device in the browser's own storage and included in backups. _(From the bug list.)_
 - **Progress and rewards (phase 16):** work in progress counts toward a project's percentage, and wishlist items can unlock as rewards at a project %. _(From the bug list.)_
 - **Example data (phase 17):** a Load example data button on an empty dashboard, and the same data as a backup file in the repository. _(From the bug list.)_
+- **Version 1.0:** Settings (theme, currency, auto-save to a file, keyboard shortcuts, Erase all data), a light theme _(from the bug list)_, tables that fit a laptop screen, and version numbers in the app and its backups. See [CHANGELOG.md](CHANGELOG.md).
 
-## Version 1.0 (in progress)
+## Phase 19: Tidy the code, and how to update (in progress)
 
-The first numbered release. See [CHANGELOG.md](CHANGELOG.md).
+- **Review the code for files that have grown too complex,** and organise it logically: one file per feature, a table of button actions, and the two longest drawing functions split up. Nothing changes in how the app works. _(From the bug list.)_
+- **How to update** without losing data, in the README.
 
-- **Settings:** theme, currency, auto-save, keyboard shortcuts and Erase all data in one place.
-- **A light theme,** or one that matches your device. _(From the bug list.)_
-- **A currency setting.** Prices were fixed to GBP.
-- **Auto-save to a JSON file you choose,** in Chromium-based browsers.
-- **Tables fit a laptop screen:** the miniatures table no longer scrolls sideways at 1280px wide.
-- **Version numbers:** the app shows 1.0.0, and backups record the version that made them.
+## Phase 20: Quick wins
+
+_(From the bug list.)_
+
+- **"Add" becomes "Quick add",** so it's clearly different from "Add item".
+- **Each page sorts sensibly by default,** for example paints from lowest stock, tools from worst condition, the wishlist by priority, projects by deadline.
+- **"Used in" on paints:** which miniatures' recipes use a paint.
+- **Rewards on the projects page:** each project shows its rewards, and you can add one from there.
+
+## Phase 21: Suggestions as you type
+
+_(From the bug list.)_
+
+- **Brand, range, game system, faction and category boxes suggest values:** common brands, plus anything you've already entered. You can still type anything, so there's no separate "Other".
+
+## Phase 22: Paint catalogue
+
+_(From the bug list.)_
+
+- **Pick a paint from a catalogue** of about 5,000 paints from 15 brands, and its brand, range, colour and type fill in. Built from `miniature_paints.json`, after a clean-up: varnishes and mediums get no colour, duplicate entries are merged, and a few names and colours are fixed.
+- **The recipe picker on miniatures offers catalogue paints too,** marking ones you don't own, with Add to wishlist.
+- **Paint types gain Standard, Air, Dry, Glaze and Effect,** to match the catalogue.
+- **Range is the product line,** such as Vallejo Model Color or Game Color. The example data's ranges, which only repeated the type, are fixed.
+
+## Phase 23: Skills
+
+_(From the bug list.)_
+
+- **Each technique has a difficulty,** Easy, Medium, Hard or Expert, and Practice next suggests easier ones first.
+- **Techniques that need a tool,** such as airbrushing, say so, with Bought and Add to wishlist buttons when you don't have one.
+
+## Phase 24: Colour themes
+
+_(From the bug list.)_
+
+- **More colour choices** on top of dark and light, each checked for contrast.
 
 ## Later
 
 - Count restock purchases in Recorded spend. Bought on a restock sets the paint to Full but doesn't record what the new pot cost, because a paint holds one price.
-- Installing as an app when hosted over HTTPS.
 
 ## Considered, not planned
 
 - Painting sessions and time tracking.
 - A history of how each skill level changed over time.
 - A login. It's only needed if data ever moves to a server.
+- Installing as an app. It only works when hosted over HTTPS, and ForgeLedger is mainly run from a file.
 - Renaming `forgeledger_v2.html`. Browsers may keep a local file's saved data under its own name, so a renamed copy could open empty. `index.html` is the file to open.

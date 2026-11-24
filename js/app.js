@@ -22,6 +22,44 @@ let db = load(),
   section = "dashboard",
   editId = null;
 if (upgraded) save();
+// What each row and notice button does, by its data-* attribute. Buttons
+// are drawn without handlers; this one click listener reads the attribute.
+// To add a button, render it with a new data-* attribute and add it here.
+const BUTTON_ACTIONS = {
+  edit: (b) =>
+    openForm(
+      section,
+      db[section].find((x) => x.id === b.dataset.edit),
+    ),
+  del: (b) => remove(section, b.dataset.del),
+  sort: (b) => sortBy(b.dataset.sort),
+  scale: setScale,
+  step: stepCount,
+  recovery: (b) =>
+    b.dataset.recovery === "download"
+      ? downloadRecovered()
+      : dismissRecovered(),
+  wish: (b) => addToWishlist(db.paints.filter((p) => p.id === b.dataset.wish)),
+  wishall: addLowToWishlist,
+  bought,
+  unreward: (b) => dismissReward(b.dataset.unreward),
+  demo: (b) =>
+    b.dataset.demo === "load"
+      ? loadDemo()
+      : b.dataset.demo === "clear"
+        ? clearDemo()
+        : keepDemo(),
+  photos: (b) => openPhotos(b.dataset.photos),
+  stages: (b) => openStages(b.dataset.stages),
+  queue: (b) => queueMiniature(b.dataset.queue),
+  next: (b) => nextStage(b.dataset.next),
+  plus: (b) => plusOneDone(b.dataset.plus),
+  split: (b) => toggleSplit(b.dataset.split),
+  adv: (b) => moveOneOn(b.dataset.adv, Number(b.dataset.from)),
+  top: (b) => reorderQueue("top", +b.dataset.top),
+  up: (b) => reorderQueue("up", +b.dataset.up),
+  down: (b) => reorderQueue("down", +b.dataset.down),
+};
 document.addEventListener("click", (e) => {
   let link = e.target.closest("a[data-sec]");
   if (link && e.button === 0 && !(e.ctrlKey || e.metaKey || e.shiftKey)) {
@@ -31,73 +69,8 @@ document.addEventListener("click", (e) => {
   }
   let b = e.target.closest("button");
   if (!b) return;
-  if (b.dataset.edit)
-    openForm(
-      section,
-      db[section].find((x) => x.id === b.dataset.edit),
-    );
-  if (b.dataset.recovery === "download")
-    download(recovered.raw, `forgeledger-unreadable-data-${today()}.json`);
-  if (b.dataset.recovery === "dismiss") {
-    recovered = null;
-    renderAlerts();
-  }
-  if (b.dataset.del) remove(section, b.dataset.del);
-  if (b.dataset.sort) {
-    sort =
-      sort.key === b.dataset.sort
-        ? { key: sort.key, dir: -sort.dir }
-        : { key: b.dataset.sort, dir: 1 };
-    renderTable();
-  }
-  if (b.dataset.scale) setScale(b);
-  if (b.dataset.step) stepCount(b);
-  if (b.dataset.wish)
-    addToWishlist(db.paints.filter((p) => p.id === b.dataset.wish));
-  if (b.dataset.wishall !== undefined) {
-    let wanted = new Set(db.wishlist.map((w) => w.paint));
-    addToWishlist(db.paints.filter((p) => isLow(p) && !wanted.has(p.id)));
-  }
-  if (b.dataset.bought) bought(b);
-  if (b.dataset.demo === "load") loadDemo();
-  if (b.dataset.demo === "clear") clearDemo();
-  if (b.dataset.demo === "keep") keepDemo();
-  if (b.dataset.unreward) {
-    newRewards = newRewards.filter((rid) => rid !== b.dataset.unreward);
-    renderRewardNotice();
-  }
-  if (b.dataset.photos) openPhotos(b.dataset.photos);
-  if (b.dataset.stages) openStages(b.dataset.stages);
-  if (b.dataset.queue) {
-    let m = db.miniatures.find((x) => x.id === b.dataset.queue);
-    let queued = commit(() =>
-      db.queue.push({
-        id: id(),
-        name: m.name,
-        miniature: m.id,
-        project: m.project || "",
-        stage: "Not started",
-        models: m.quantity || 1,
-        due: "",
-        notes: "",
-      }),
-    );
-    renderNav();
-    if (queued) toast("Added to queue");
-  }
-  if (b.dataset.next) nextStage(b.dataset.next);
-  if (b.dataset.plus) plusOneDone(b.dataset.plus);
-  if (b.dataset.split) toggleSplit(b.dataset.split);
-  if (b.dataset.adv) moveOneOn(b.dataset.adv, Number(b.dataset.from));
-  // Reordering keeps focus on the same button of the item that moved.
-  for (let dir of ["top", "up", "down"]) {
-    if (b.dataset[dir] === undefined) continue;
-    let i = +b.dataset[dir],
-      j = dir === "top" ? 0 : dir === "up" ? i - 1 : i + 1,
-      moved = moveQueueItem(i, j);
-    renderQueue();
-    refocus(`[data-${dir}="${moved ? j : i}"]`);
-  }
+  for (let [attr, act] of Object.entries(BUTTON_ACTIONS))
+    if (b.dataset[attr] !== undefined) act(b);
 });
 document.querySelector("#addBtn").onclick = () => openForm(section);
 for (let form of document.querySelectorAll(".quickadd"))
@@ -143,11 +116,8 @@ document.querySelector("#themeSetting").onchange = (e) =>
   setTheme(e.target.value);
 document.querySelector("#currencySetting").onchange = (e) =>
   setCurrency(e.target.value);
-document.querySelector("#settingsKeysOn").onchange = (e) => {
-  try {
-    localStorage.setItem(SHORTCUTS_KEY, e.target.checked ? "on" : "off");
-  } catch {}
-};
+document.querySelector("#settingsKeysOn").onchange = (e) =>
+  setShortcuts(e.target.checked);
 document.querySelector("#settingsKeysList").onclick = () => {
   document.querySelector("#settingsDialog").close();
   openKeys();
@@ -302,23 +272,9 @@ document.querySelector("#queueContent").addEventListener("pointerdown", (e) => {
 // Ctrl, Alt or Cmd held, or while a dialog is open, and can be turned off
 // (WCAG 2.1.4); the choice is kept outside the data.
 const SECTION_KEYS = ["dashboard", ...Object.keys(defs)]; // keys 1 to 8
-function shortcutsOn() {
-  try {
-    return localStorage.getItem(SHORTCUTS_KEY) !== "off";
-  } catch {
-    return true;
-  }
-}
-function openKeys() {
-  document.querySelector("#keysOn").checked = shortcutsOn();
-  document.querySelector("#keysDialog").showModal();
-}
 document.querySelector("#keysBtn").onclick = openKeys;
-document.querySelector("#keysOn").onchange = (e) => {
-  try {
-    localStorage.setItem(SHORTCUTS_KEY, e.target.checked ? "on" : "off");
-  } catch {}
-};
+document.querySelector("#keysOn").onchange = (e) =>
+  setShortcuts(e.target.checked);
 document.addEventListener("keydown", (e) => {
   if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
   if (!shortcutsOn() || document.querySelector("dialog[open]")) return;

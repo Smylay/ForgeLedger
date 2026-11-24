@@ -39,6 +39,18 @@ ForgeLedger saves your data automatically in your browser's local storage. Nothi
 - **Auto-save to a file (Chrome, Edge and other Chromium-based browsers).** In **Settings**, choose a file once, for example in a folder your cloud storage syncs. After every change, ForgeLedger writes a full backup to it, photos included, and that counts as your latest backup. After you restart the browser it asks for permission again: open Settings and choose **Resume auto-saving**. Firefox and Safari can't save to a file you picked, so use Export backup there.
 - **Erase all data** in Settings deletes everything in this browser, photos included. It downloads a backup first and stops auto-saving, so the auto-save file keeps your data.
 
+## Updating ForgeLedger
+
+Your data is kept by your browser, not in ForgeLedger's files, so replacing the files doesn't touch it. To update:
+
+1. **Export a backup first** (**Export backup**, top right). It's your safety net.
+2. **Download the new version** from [Releases](https://github.com/Smylay/ForgeLedger/releases) (**Source code (zip)**).
+3. **Unzip it over your current copy, in the same folder,** replacing the old files. Then open `index.html` as before.
+
+Keep it in the same folder. Chrome and Edge find your data wherever the files are, but Firefox and Safari may keep a local file's data with its folder, so a copy somewhere else can open empty. If that happens, **Import** the backup from step 1. A hosted copy keeps its data as long as its address stays the same.
+
+Backups from older versions always import into newer ones. A backup made by a newer version won't import into an older one, so update before importing it.
+
 ## Settings
 
 Open **Settings** at the bottom of the sidebar (top right on phones and tablets).
