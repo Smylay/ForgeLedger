@@ -16,6 +16,13 @@ Keep it runnable from `file://`. Browsers refuse to load ES module scripts from 
 - **When a pull request fixes an item,** add `(done in PR #N)` to the end of that item's line, in the same pull request.
 - **Don't reword, reorder or remove** the owner's lines.
 
+## Branches and releases
+
+- **`dev` collects the work; `main` holds releases.** Each phase is a pull request into `dev`. When a version is ready, a release pull request merges `dev` into `main`.
+- **A release:** on `dev`, bump `APP_VERSION` and `package.json`'s `version`, and move CHANGELOG.md's Unreleased notes under the new version and date. Merge `dev` into `main`, then tag the merge commit `v<version>` and publish a GitHub release from its CHANGELOG notes.
+- **CI** runs on every push to any branch, so `dev` and phase branches are tested before they reach `main`.
+- **The bug list's `(done in PR #N)`** names the phase's pull request into `dev`.
+
 ## Running and verifying
 
 - **Run:** open `index.html` in a browser. It forwards to `forgeledger_v2.html`, which is the app itself. It works over `file://`. You can also serve the folder with `python3 -m http.server` and open `/`.
@@ -166,7 +173,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 **Paint catalogue.** About 5,300 paints from 15 brands, with range, code, type and colour. The code is in `catalogue.js`.
 
-- **The data.** `data/sources/miniature_paints.json` is the source as supplied; `data/sources/README.md` says where it came from and holds the licence credits. `scripts/make-catalogue.js` builds `data/paint-catalogue.js` from it, a script defining `PAINT_CATALOGUE` (brands, ranges and types once each, then one short array per paint). It tidies as it goes: varnishes, mediums and thinners get no colour, a paint listed twice in one range becomes one entry with both codes, names lose double spaces and bottle sizes, and types become the app's paint types.
+- **The data.** `data/sources/miniature_paints.json` is the source as supplied, and `data/sources/additions.json` adds ranges it doesn't have yet, such as Two Thin Coats Dark Arts (names only; `hex` null means no colour). `data/sources/README.md` says where they came from and holds the licence credits. `scripts/make-catalogue.js` builds `data/paint-catalogue.js` from it, a script defining `PAINT_CATALOGUE` (brands, ranges and types once each, then one short array per paint). It tidies as it goes: varnishes, mediums and thinners get no colour, a paint listed twice in one range becomes one entry with both codes, names lose double spaces and bottle sizes, and types become the app's paint types.
 - **Loading.** `data/` is outside `js/`, so the page doesn't load it at start-up. `loadCatalogue()` adds it as a `<script>` the first time it's needed, which works from `file://`, and keeps it in `catalogue` (state in `app.js`). If it can't load, the Find box says so and nothing else changes.
 - **Searching.** `findInCatalogue(text)` finds up to 30 paints whose name, brand, range or code contains every word typed, names starting with the text first. Each paint has a unique `label`, like "Mephiston Red · Citadel Base", which suggestion lists offer and `catalogueEntry()` looks up.
 - **The paint form** opens with a Find box (`defs.paints.formIntro`, `catalogueFindHtml()`). Picking a paint fills in name, brand, range, type and colour (`fillPaintForm()`), leaving stock, quantity, price and notes alone.
@@ -217,7 +224,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - The page grid uses `minmax(0, 1fr)`, so wide content can't widen the page.
   - `tests/layout.spec.js` checks that every section fits a 375px screen.
 
-**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`). For a `<button>`, it runs the entry in `BUTTON_ACTIONS` (in `app.js`) for each `data-*` attribute the button has: `edit`, `del`, `sort`, `scale`, `step`, `recovery`, `wish`, `wishall`, `bought`, `unreward`, `demo`, `photos`, `usedin`, `addreward`, `stages`, `queue`, `next`, `plus`, `split`, `adv`, `top`, `up` and `down`.
+**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`). For a `<button>`, it runs the entry in `BUTTON_ACTIONS` (in `app.js`) for each `data-*` attribute the button has: `edit`, `del`, `sort`, `scale`, `step`, `recovery`, `wish`, `wishall`, `bought`, `unreward`, `demo`, `photos`, `usedin`, `addreward`, `toolwish`, `toolbought`, `stages`, `queue`, `next`, `plus`, `split`, `adv`, `top`, `up` and `down`.
 
 - `edit` and `del` work in every section because they act on the current section.
 - To add a new row action, render a button with a new `data-*` attribute and add an entry to `BUTTON_ACTIONS` that calls a named function in the feature's file.
@@ -243,7 +250,10 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 - **Levels.** Each level from 0 to 9 has a name and a meaning in `LEVELS`, e.g. 4 is "Competent". Cards show "4/9 · Competent", and the slider's `aria-valuetext` says the same. "What the levels mean" lists them all.
 - **Reading levels.** Read a level with `skillLevel()`, which clamps it to 0–9 and treats junk as 0.
-- **The technique library.** `TECHNIQUES` has 20 entries. Each has a `name`, an `about` line, and four `next` steps, one per level band: 0–2, 3–4, 5–6 and 7–9.
+- **The technique library.** `TECHNIQUES` has 20 entries. Each has a `name`, an `about` line, a `difficulty` (one of `DIFFICULTIES`: Easy, Medium, Hard or Expert), the `tools` it needs, if any, and four `next` steps, one per level band: 0–2, 3–4, 5–6 and 7–9.
+  - A skill's difficulty is its technique's (`skillDifficulty()`), shown as a pill on its card; a skill of your own has none. The picker lists techniques easiest first, with their difficulty.
+  - **Tools.** `TECHNIQUE_TOOLS` names each tool a technique can need, with the tools category a new one goes in and the words (`match`) that, in one of your tools' names, mean you have it; e.g. "Iwata airbrush" counts as an Airbrush. A card's Needs line (`toolNeedsHtml()`) shows each: "you have …", "on your wishlist", or "not in your tools".
+  - Add to wishlist (`data-toolwish`, `toolWish()`) adds a Tool item. Bought (`data-toolbought`, `toolBought()`) adds the tool, New with quantity 1, in one `commitWithUndo`; a matching wishlist item comes off the wishlist and gives its name, price and notes (`boughtRecord()`).
   - The first ten match the skills a new install starts with.
   - A skill gets its technique by name, ignoring case and outer spaces (`technique()`). Nothing is stored, so renaming a skill unlinks it.
   - `nextStep(skill)` returns the step for the skill's level, or `""` for a skill of your own.
@@ -259,9 +269,9 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - On phones, the bar moves under the name.
 - **Practice next.** `practiceNext()` picks up to three skills:
   - skills unchanged for `STALE_DAYS` (30) come first, oldest first;
-  - then the lowest levels, in list order;
+  - then easier and lower ones: each step of difficulty counts as two levels, so an Easy skill at 3 comes before a Hard one at 0, and a skill of your own counts as Medium; ties keep list order;
   - skills at 9 are left out.
-  - Each pick shows its reason, plus its next step or, for a skill of your own, your goal.
+  - Each pick shows its reason (e.g. "Easy, at 3/9"), plus its next step or, for a skill of your own, your goal.
 
 **Bought.** Each wishlist row has a Bought button (`data-bought`, `bought()`). Whatever happens, the item comes off the wishlist, in one `commitWithUndo` with the rest (`buy()`).
 

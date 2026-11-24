@@ -25,11 +25,31 @@ function levelName(level) {
   return LEVELS[level][0];
 }
 
-// Each technique's `next` has one step per level band: 0-2, 3-4, 5-6, 7-9.
+// How hard a technique is to pick up, easiest first. Practice next
+// suggests easier techniques first (see practiceNext).
+const DIFFICULTIES = ["Easy", "Medium", "Hard", "Expert"];
+// Tools a technique needs, by name: the tools category a new one goes in,
+// and words that, in the name of one of your tools, mean you have it.
+const TECHNIQUE_TOOLS = {
+  Airbrush: { category: "Airbrush", match: ["airbrush"] },
+  Compressor: { category: "Airbrush", match: ["compressor"] },
+  Drybrush: { category: "Brush", match: ["drybrush", "dry brush"] },
+  "Detail brush": { category: "Brush", match: ["detail"] },
+  "Wet palette": { category: "Other", match: ["wet palette"] },
+  Sponge: { category: "Other", match: ["sponge"] },
+  Clippers: { category: "Cutting", match: ["clipper", "cutter", "nipper"] },
+  "Hobby knife": { category: "Cutting", match: ["knife", "scalpel"] },
+  "Plastic glue": { category: "Assembly", match: ["glue", "cement"] },
+};
+
+// Each technique has a `difficulty`, the `tools` it needs (if any), and
+// `next`: one step per level band, 0-2, 3-4, 5-6 and 7-9.
 // The first ten names match the skills a new install starts with.
 const TECHNIQUES = [
   {
     name: "Drybrushing",
+    difficulty: "Easy",
+    tools: ["Drybrush"],
     about: "Catching raised texture with an almost dry brush.",
     next: [
       "Wipe nearly all the paint off an old, soft brush, then brush lightly across fur, chainmail or rocks.",
@@ -40,6 +60,7 @@ const TECHNIQUES = [
   },
   {
     name: "Washing & shading",
+    difficulty: "Easy",
     about: "Thin, dark paint that runs into recesses to add shadow.",
     next: [
       "Wash a basecoated model all over and watch where it gathers. That's where the shadows go.",
@@ -50,6 +71,7 @@ const TECHNIQUES = [
   },
   {
     name: "Layering",
+    difficulty: "Medium",
     about: "Lighter colours in smaller and smaller areas, to build highlights.",
     next: [
       "Add one highlight colour to the raised areas of a basecoated model.",
@@ -60,6 +82,7 @@ const TECHNIQUES = [
   },
   {
     name: "Edge highlighting",
+    difficulty: "Medium",
     about: "A fine line of light colour along sharp edges.",
     next: [
       "Run the side of the brush, not the tip, along the edges of flat armour panels.",
@@ -70,6 +93,7 @@ const TECHNIQUES = [
   },
   {
     name: "Glazing",
+    difficulty: "Hard",
     about: "Very thin, see-through coats that tint and smooth what's below.",
     next: [
       "Thin paint with medium until it's barely tinted, and glaze a shadow to deepen it.",
@@ -80,6 +104,8 @@ const TECHNIQUES = [
   },
   {
     name: "Wet blending",
+    difficulty: "Hard",
+    tools: ["Wet palette"],
     about: "Mixing two colours on the model while both are still wet.",
     next: [
       "Try it on a large, flat area like a cloak, with a drop of medium to slow the drying.",
@@ -90,6 +116,8 @@ const TECHNIQUES = [
   },
   {
     name: "Airbrushing",
+    difficulty: "Medium",
+    tools: ["Airbrush", "Compressor"],
     about: "Spraying paint through a fine nozzle for smooth coats and fades.",
     next: [
       "Thin paint to the consistency of milk, and practise even coats on spare plastic.",
@@ -100,6 +128,8 @@ const TECHNIQUES = [
   },
   {
     name: "Weathering",
+    difficulty: "Medium",
+    tools: ["Sponge"],
     about: "Mud, rust, chips and dust that make models look used.",
     next: [
       "Dab a little dark brown onto the lower edges of armour with a piece of sponge, for chips.",
@@ -110,6 +140,7 @@ const TECHNIQUES = [
   },
   {
     name: "Object-source lighting",
+    difficulty: "Expert",
     about: "The glow a light source casts on the surfaces around it.",
     next: [
       "Paint the light source itself bright, then glaze its colour onto the nearest surfaces.",
@@ -120,6 +151,7 @@ const TECHNIQUES = [
   },
   {
     name: "Non-metallic metal",
+    difficulty: "Expert",
     about:
       "Painting metal with flat colours, using contrast to fake reflections.",
     next: [
@@ -131,6 +163,8 @@ const TECHNIQUES = [
   },
   {
     name: "Assembly & conversions",
+    difficulty: "Easy",
+    tools: ["Clippers", "Hobby knife", "Plastic glue"],
     about: "Clean builds, from mould lines to combining parts from other kits.",
     next: [
       "Scrape mould lines with the back of a hobby knife, and fill gaps before priming.",
@@ -141,6 +175,7 @@ const TECHNIQUES = [
   },
   {
     name: "Priming",
+    difficulty: "Easy",
     about: "A thin, even undercoat that paint grips and that sets the tone.",
     next: [
       "Spray in short passes from about 20 to 30 cm away, in dry, mild weather.",
@@ -151,6 +186,7 @@ const TECHNIQUES = [
   },
   {
     name: "Zenithal highlighting",
+    difficulty: "Medium",
     about: "A dark undercoat sprayed lighter from above, to map the light.",
     next: [
       "Spray black all over, then grey or white from above at about 45 degrees.",
@@ -161,6 +197,7 @@ const TECHNIQUES = [
   },
   {
     name: "Basecoating",
+    difficulty: "Easy",
     about: "Solid, smooth coats of each area's main colour.",
     next: [
       "Thin paint with a little water until it flows, and apply two thin coats rather than one thick one.",
@@ -171,6 +208,7 @@ const TECHNIQUES = [
   },
   {
     name: "Contrast & speed paints",
+    difficulty: "Easy",
     about:
       "One-coat paints that colour and shade at once over a light undercoat.",
     next: [
@@ -182,6 +220,7 @@ const TECHNIQUES = [
   },
   {
     name: "Metallics",
+    difficulty: "Easy",
     about: "Metallic paints, shaded and highlighted so the shine reads.",
     next: [
       "Basecoat over a dark undercoat, then shade with a dark wash.",
@@ -192,6 +231,8 @@ const TECHNIQUES = [
   },
   {
     name: "Faces & eyes",
+    difficulty: "Hard",
+    tools: ["Detail brush"],
     about: "Skin, features and eyes that give a model character.",
     next: [
       "Wash the skin, then highlight the nose, cheekbones and brow.",
@@ -202,6 +243,8 @@ const TECHNIQUES = [
   },
   {
     name: "Freehand",
+    difficulty: "Expert",
+    tools: ["Detail brush"],
     about: "Painting designs, symbols and patterns by hand.",
     next: [
       "Paint simple stripes or a checkerboard on a flat banner or shoulder pad.",
@@ -212,6 +255,7 @@ const TECHNIQUES = [
   },
   {
     name: "Basing",
+    difficulty: "Easy",
     about: "Texture, colour and details that set a model in a scene.",
     next: [
       "Glue sand to the base, paint it brown, drybrush it lighter and paint the rim.",
@@ -222,6 +266,7 @@ const TECHNIQUES = [
   },
   {
     name: "Varnishing",
+    difficulty: "Easy",
     about: "A clear coat that protects the paint from handling.",
     next: [
       "Spray a matt varnish over a finished model, in dry, mild weather.",
@@ -278,10 +323,20 @@ function changedText(s) {
 }
 
 const STALE_DAYS = 30;
+// A skill's difficulty: its technique's, or "" for a skill of your own.
+function skillDifficulty(s) {
+  return technique(s?.name)?.difficulty || "";
+}
 // Up to three skills to practise, each with the reason it was picked.
-// Skills not changed for STALE_DAYS come first, oldest first; then the
-// lowest levels, in list order. Skills at Mastery are left out.
+// Skills not changed for STALE_DAYS come first, oldest first. Then easier
+// and lower ones: each step of difficulty counts as two levels, so an Easy
+// skill at 3 comes before a Hard one at 0. A skill of your own counts as
+// Medium. Ties keep list order, and skills at Mastery are left out.
 function practiceNext(skills) {
+  let rank = (s) => {
+    let d = DIFFICULTIES.indexOf(skillDifficulty(s));
+    return skillLevel(s) + 2 * (d < 0 ? 1 : d);
+  };
   return skills
     .filter((s) => skillLevel(s) < 9)
     .map((s) => ({ s, days: daysSinceChanged(s) }))
@@ -289,15 +344,20 @@ function practiceNext(skills) {
     .sort(
       (a, b) =>
         b.stale - a.stale ||
-        (a.stale ? b.days - a.days : skillLevel(a.s) - skillLevel(b.s)),
+        (a.stale ? b.days - a.days : rank(a.s) - rank(b.s)),
     )
     .slice(0, 3)
-    .map(({ s, days, stale }) => ({
-      skill: s,
-      reason: stale
-        ? `Not changed in ${Math.floor(days / 7)} weeks`
-        : skillLevel(s) === 0
-          ? "Not tried yet"
-          : "One of your lowest",
-    }));
+    .map(({ s, days, stale }) => {
+      let level = skillLevel(s),
+        where = level === 0 ? "not tried yet" : `at ${level}/9`,
+        d = skillDifficulty(s);
+      return {
+        skill: s,
+        reason: stale
+          ? `Not changed in ${Math.floor(days / 7)} weeks`
+          : d
+            ? `${d}, ${where}`
+            : where[0].toUpperCase() + where.slice(1),
+      };
+    });
 }

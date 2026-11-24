@@ -249,9 +249,9 @@ test.describe("quick add", () => {
   });
 
   test("clears a search that would hide the new record", async ({ page }) => {
-    await nav(page, "paints");
+    await nav(page, "tools");
     await page.fill("#search", "zzz");
-    await box(page).fill("Yellow");
+    await box(page).fill("Sponge");
     await box(page).press("Enter");
     await expect(page.locator("#search")).toHaveValue("");
     await expect(tableRows(page)).toHaveCount(2);

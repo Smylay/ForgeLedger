@@ -50,6 +50,7 @@ const data = {
       quantity: "2",
       price: "6",
     },
+    { id: "t2", name: "Old airbrush", category: "Airbrush" },
   ],
   projects: [
     {
@@ -118,6 +119,9 @@ const data = {
     { id: "s1", name: "Layering", level: 4, changed: "2020-01-01" },
     { id: "s2", name: "Sculpting", level: 2, goal: "Finish a bust" },
     { id: "s3", name: "Glazing", level: 9 },
+    // Airbrushing needs an airbrush (owned, below) and a compressor (not),
+    // so its card shows tools with and without buttons.
+    { id: "s4", name: "Airbrushing", level: 1 },
   ],
 };
 

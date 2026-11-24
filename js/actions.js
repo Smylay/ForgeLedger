@@ -59,6 +59,9 @@ function stepCount(b) {
   redrawRow(rec, btn(delta), btn(-delta));
 }
 
+// Quick add: a new record in the current section with just a name, with
+// Undo. Search and filter are cleared so the new record is visible, and
+// the box is emptied (keeping focus) for the next one.
 function quickAdd(form) {
   let input = form.elements.name,
     name = input.value.trim();

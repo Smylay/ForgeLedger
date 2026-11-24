@@ -12,8 +12,9 @@ const {
   importAndWait,
 } = require("./helpers");
 
-// Breaks out of an HTML attribute and sets window[flag] if it runs.
-const attack = (flag) => `x"><img src=x onerror="window.${flag}=1">`;
+// Breaks out of an HTML attribute and sets window.xss_<flag> if it runs.
+// The prefix keeps flags apart from the app's own global names.
+const attack = (flag) => `x"><img src=x onerror="window.xss_${flag}=1">`;
 
 test.beforeEach(async ({ page }) => openApp(page));
 
@@ -95,7 +96,7 @@ test("values from an imported backup can't run script", async ({
       "changed",
       "url",
       "stock",
-    ].filter((f) => window[f]),
+    ].filter((f) => window["xss_" + f]),
   );
   expect(ran).toEqual([]);
 });
@@ -243,7 +244,9 @@ test("a bought wishlist item carries nothing that can run", async ({
   await page.click("button[data-edit]"); // the notes render in the form
   await page.waitForTimeout(200); // let any injected <img> fail to load
   const ran = await page.evaluate(() =>
-    ["boughtName", "boughtUrl", "boughtNotes"].filter((f) => window[f]),
+    ["boughtName", "boughtUrl", "boughtNotes"].filter(
+      (f) => window["xss_" + f],
+    ),
   );
   expect(ran).toEqual([]);
   // The hostile "link" isn't http(s), so it isn't copied into the notes.
@@ -273,7 +276,7 @@ test("photo ids and names can't run script", async ({ page }, testInfo) => {
   await page.click('#photoStrip [data-pick="1"]');
   await page.waitForTimeout(200); // let any injected <img> fail to load
   const ran = await page.evaluate(() =>
-    ["photoName", "photoId", "photoKey"].filter((f) => window[f]),
+    ["photoName", "photoId", "photoKey"].filter((f) => window["xss_" + f]),
   );
   expect(ran).toEqual([]);
 });
@@ -313,7 +316,7 @@ test("rewards can't run script", async ({ page }, testInfo) => {
   await page.waitForTimeout(200);
   const ran = await page.evaluate(() =>
     ["rewardProject", "rewardName", "rewardAt", "rewardProjectId"].filter(
-      (f) => window[f],
+      (f) => window["xss_" + f],
     ),
   );
   expect(ran).toEqual([]);
@@ -347,7 +350,7 @@ test("the Used in list can't run script", async ({ page }, testInfo) => {
       "usedProject",
       "usedMini",
       "usedStatus",
-    ].filter((f) => window[f]),
+    ].filter((f) => window["xss_" + f]),
   );
   expect(ran).toEqual([]);
 });
@@ -388,7 +391,7 @@ test("suggestions can't run script", async ({ page }, testInfo) => {
   );
   const ran = await page.evaluate(() =>
     ["suggestBrand", "suggestRange", "suggestFaction", "suggestSystem"].filter(
-      (f) => window[f],
+      (f) => window["xss_" + f],
     ),
   );
   expect(ran).toEqual([]);
@@ -421,9 +424,37 @@ test("planning recipe paints can't run script", async ({ page }, testInfo) => {
   await page.click('#itemForm button[type="submit"]');
   await page.waitForTimeout(200);
   const ran = await page.evaluate(() =>
-    ["planWishId", "planWish"].filter((f) => window[f]),
+    ["planWishId", "planWish"].filter((f) => window["xss_" + f]),
   );
   expect(ran).toEqual([]);
   // The paint it became is named like the wishlist item, as text.
   expect((await stored(page)).paints[0].name).toBe(attack("planWish"));
+});
+
+test("tool names on skill cards can't run script", async ({
+  page,
+}, testInfo) => {
+  await importAndWait(
+    page,
+    {
+      skills: [{ id: "s", name: "Airbrushing", level: 1 }],
+      tools: [{ id: "t", name: attack("hostileToolName") + " airbrush" }],
+      wishlist: [
+        {
+          id: "w",
+          name: attack("hostileWishName") + " compressor",
+          category: "Tool",
+        },
+      ],
+    },
+    testInfo,
+  );
+  await nav(page, "skills");
+  await expect(page.locator(".needs li")).toHaveCount(2);
+  await page.getByRole("button", { name: "Bought: Compressor" }).click();
+  await page.waitForTimeout(200);
+  const ran = await page.evaluate(() =>
+    ["hostileToolName", "hostileWishName"].filter((f) => window["xss_" + f]),
+  );
+  expect(ran).toEqual([]);
 });

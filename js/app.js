@@ -55,6 +55,10 @@ const BUTTON_ACTIONS = {
   photos: (b) => openPhotos(b.dataset.photos),
   usedin: (b) => showUsedIn(b.dataset.usedin),
   addreward: (b) => addReward(b.dataset.addreward),
+  toolwish: (b) =>
+    toolWish(b.dataset.toolwish, b.closest("[data-card]")?.dataset.card),
+  toolbought: (b) =>
+    toolBought(b.dataset.toolbought, b.closest("[data-card]")?.dataset.card),
   stages: (b) => openStages(b.dataset.stages),
   queue: (b) => queueMiniature(b.dataset.queue),
   next: (b) => nextStage(b.dataset.next),
