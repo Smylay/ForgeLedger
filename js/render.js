@@ -110,7 +110,7 @@ function show(k) {
   editId = null;
   document.querySelector("#search").value = "";
   document.querySelector("#filter").innerHTML = ""; // resets the filter
-  sort = { key: "", dir: 1 };
+  sort = d?.defaultSort ? { ...d.defaultSort } : { key: "", dir: 1 };
   renderNav();
   // On phones the nav is one scrolling row; keep the current page in view.
   document
@@ -372,7 +372,7 @@ function rowHtml(d, x) {
     .map((k) => column(d, k))
     .map(
       (c) =>
-        `<td>${c.key === "name" && d.swatch ? swatchHtml(x[d.swatch]) : ""}${c.key === "name" && d.photos && photoIds(x).length ? `<span class="withthumb">${coverHtml(x)}<span>${cellHtml(c, x)}</span></span>` : cellHtml(c, x)}</td>`,
+        `<td>${c.key === "name" && d.swatch ? swatchHtml(x[d.swatch]) : ""}${c.key === "name" && d.photos && photoIds(x).length ? `<span class="withthumb">${coverHtml(x)}<span>${cellHtml(c, x)}</span></span>` : cellHtml(c, x)}${c.key === "name" && d.under ? d.under(x) : ""}</td>`,
     )
     .join("");
   return `<tr data-row="${esc(x.id)}">${cells}<td class="rowacts">${section === "wishlist" ? `<button data-bought="${esc(x.id)}" aria-label="Bought: ${esc(x.name)}">Bought</button>` : ""}<button data-edit="${esc(x.id)}">Edit</button><button class="del" data-del="${esc(x.id)}">Delete</button>${section === "miniatures" ? `<button data-queue="${esc(x.id)}">Queue</button>` : ""}${d.photos ? photosButtonHtml(x) : ""}</td></tr>`;

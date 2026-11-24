@@ -282,7 +282,10 @@ test("rewards can't run script", async ({ page }, testInfo) => {
     page,
     {
       schemaVersion: 5,
-      projects: [{ id: "p", name: attack("rewardProject"), target: "1" }],
+      projects: [
+        { id: "p", name: attack("rewardProject"), target: "1" },
+        { id: attack("rewardProjectId"), name: "Other" },
+      ],
       queue: [{ id: "q", name: "Q", project: "p", stage: "Basing" }],
       wishlist: [
         {
@@ -292,18 +295,58 @@ test("rewards can't run script", async ({ page }, testInfo) => {
           rewardAt: attack("rewardAt"),
         },
         { id: "w2", name: "Two", rewardFor: "p", rewardAt: "0" },
+        { id: "w3", name: "Three", rewardFor: attack("rewardProjectId") },
       ],
     },
     testInfo,
   );
-  // The dashboard's Rewards card, then the wishlist's Reward column.
+  // The dashboard's Rewards card, the wishlist's Reward column, and the
+  // rewards under each project, with Add reward's form.
   await nav(page, "wishlist");
+  await nav(page, "projects");
+  await page.getByRole("button", { name: "Add reward for Other" }).click();
+  await page.keyboard.press("Escape");
   // Finishing the queue item unlocks the first reward and shows the notice.
   await nav(page, "queue");
   await page.click("#queueContent button[data-next]");
   await page.waitForTimeout(200);
   const ran = await page.evaluate(() =>
-    ["rewardProject", "rewardName", "rewardAt"].filter((f) => window[f]),
+    ["rewardProject", "rewardName", "rewardAt", "rewardProjectId"].filter(
+      (f) => window[f],
+    ),
+  );
+  expect(ran).toEqual([]);
+});
+
+test("the Used in list can't run script", async ({ page }, testInfo) => {
+  await importBackup(
+    page,
+    {
+      paints: [{ id: attack("usedPaintId"), name: attack("usedPaint") }],
+      projects: [{ id: "p", name: attack("usedProject") }],
+      miniatures: [
+        {
+          id: "m",
+          name: attack("usedMini"),
+          project: "p",
+          status: attack("usedStatus"),
+          paints: [attack("usedPaintId")],
+        },
+      ],
+    },
+    testInfo,
+  );
+  await nav(page, "paints");
+  await tableRows(page).first().locator("button[data-usedin]").click();
+  await expect(page.locator("#usedInDialog li")).toHaveCount(1);
+  const ran = await page.evaluate(() =>
+    [
+      "usedPaintId",
+      "usedPaint",
+      "usedProject",
+      "usedMini",
+      "usedStatus",
+    ].filter((f) => window[f]),
   );
   expect(ran).toEqual([]);
 });

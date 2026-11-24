@@ -20,6 +20,7 @@ let memoryOnly = false, // storage is blocked: changes live in memory only
   toastTimer;
 let db = load(),
   section = "dashboard",
+  formSection = null, // the collection the add/edit form saves to
   editId = null;
 if (upgraded) save();
 // What each row and notice button does, by its data-* attribute. Buttons
@@ -50,6 +51,8 @@ const BUTTON_ACTIONS = {
         ? clearDemo()
         : keepDemo(),
   photos: (b) => openPhotos(b.dataset.photos),
+  usedin: (b) => showUsedIn(b.dataset.usedin),
+  addreward: (b) => addReward(b.dataset.addreward),
   stages: (b) => openStages(b.dataset.stages),
   queue: (b) => queueMiniature(b.dataset.queue),
   next: (b) => nextStage(b.dataset.next),

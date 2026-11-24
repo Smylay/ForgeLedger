@@ -162,3 +162,22 @@ function dismissReward(rid) {
   newRewards = newRewards.filter((x) => x !== rid);
   renderRewardNotice();
 }
+// Under each project's name in the projects table: its rewards, and a
+// button to add one.
+function projectRewardsHtml(p) {
+  let chips = db.wishlist
+    .filter((w) => w.rewardFor === p.id)
+    .map((w) => ({ w, r: reward(w) }))
+    .filter((x) => x.r)
+    .map(
+      ({ w, r }) =>
+        `<span class="rewardchip">${esc(w.name)} ${r.unlocked ? '<span class="pill unlocked">Unlocked</span>' : `<span class="pill locked">Unlocks at ${r.at}%</span>`}</span>`,
+    )
+    .join("");
+  return `<div class="under">${chips}<span class="rowacts"><button data-addreward="${esc(p.id)}" aria-label="Add reward for ${esc(p.name)}">Add reward</button></span></div>`;
+}
+// "Add reward": a new wishlist item, for this project at 100%, from the
+// projects page.
+function addReward(pid) {
+  openForm("wishlist", { rewardFor: pid, rewardAt: "100" });
+}

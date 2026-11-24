@@ -78,7 +78,7 @@
         </section>
         <section class="view" id="listView">
           <form class="quickadd" autocomplete="off">
-            <input name="name" required /><button class="btn">Add</button>
+            <input name="name" required /><button class="btn">Quick add</button>
           </form>
           <div class="toolbar">
             <input id="search" placeholder="Search..." aria-label="Search" /><select
@@ -95,7 +95,7 @@
             automatically.
           </div>
           <form class="quickadd" autocomplete="off">
-            <input name="name" required /><button class="btn">Add</button>
+            <input name="name" required /><button class="btn">Quick add</button>
           </form>
           <div class="queuetools">
             <button class="btn" id="stagesBtn" type="button">Edit default stages</button>
@@ -111,7 +111,7 @@
             ><input name="name" aria-label="Name of your own skill" placeholder="Name your skill…" hidden /><button
               class="btn"
             >
-              Add
+              Quick add
             </button>
           </form>
           <div class="skilloverview">
@@ -258,6 +258,17 @@
         <p class="muted" id="photoStatus" role="status"></p>
       </div>
     </dialog>
+    <dialog id="usedInDialog" aria-labelledby="usedInTitle">
+      <form method="dialog">
+        <div class="modalhead">
+          <strong id="usedInTitle">Used in</strong><button class="btn" value="close">Close</button>
+        </div>
+        <div class="modalbody">
+          <p class="muted">The miniatures whose recipe uses this paint.</p>
+          <ul class="usedinlist" id="usedInList"></ul>
+        </div>
+      </form>
+    </dialog>
     <dialog id="settingsDialog" aria-labelledby="settingsTitle">
       <div class="modalhead">
         <strong id="settingsTitle">Settings</strong><button class="btn" id="closeSettings" type="button">Close</button>
@@ -317,6 +328,7 @@
     <script src="js/skillguide.js"></script>
     <script src="js/demo.js"></script>
     <script src="js/storage.js"></script>
+    <script src="js/paints.js"></script>
     <script src="js/photos.js"></script>
     <script src="js/autosave.js"></script>
     <script src="js/settings.js"></script>

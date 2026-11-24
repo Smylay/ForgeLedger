@@ -37,25 +37,26 @@ Keep it runnable from `file://`. Browsers refuse to load ES module scripts from 
 
 The code lives in plain `<script>` files that share the global scope. They aren't ES modules, which can't load from `file://`. `forgeledger_v2.html` loads them in this order:
 
-| File            | Contents                                                                                                                             |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `util.js`       | helpers with no app state: `id()`, `esc()`, `safeColour()`, `safeUrl()`, `toast()`, `download()`, `today()`, `refocus()`             |
-| `schema.js`     | `APP_VERSION`, storage keys and other constants, `defaults`, `defs`, `column()`, link helpers, paint stock helpers, `projectStats()` |
-| `skillguide.js` | `LEVELS`, the `TECHNIQUES` library, `nextStep()`, `practiceNext()` and other skill rules                                             |
-| `demo.js`       | the example data (`demoData()`, `demoPhotos()`, `DEMO_FILE_DATE`), and the offer to load, clear or keep it                           |
-| `storage.js`    | load, validate, repair, migrate, `save()`, `commit()`, `commitWithUndo()`, backup age                                                |
-| `photos.js`     | miniature photos in IndexedDB (open, store, shrink, show, tidy, their part of backups), and the photo viewer                         |
-| `autosave.js`   | auto-save to a file the user picked: the remembered handle, writes after each save, its status                                       |
-| `settings.js`   | Settings: currencies and `money()`, the theme, the shortcuts switch, Erase all data                                                  |
-| `wishlist.js`   | adding low paints to the wishlist, the Bought button, and rewards                                                                    |
-| `queue.js`      | the painting queue: stages and split counts, drawing an item, Next, +1, Split, Move 1, reordering, the completion prompt             |
-| `stages.js`     | the stage editor, and moving items when stages change                                                                                |
-| `skills.js`     | the skills page: cards, sliders, the skill profile, practice suggestions, the technique picker                                       |
-| `backup.js`     | JSON backup and import, and CSV export                                                                                               |
-| `render.js`     | nav and page switching, the dashboard, list tables, sorting, deadline markers, alerts                                                |
-| `forms.js`      | `inputAttrs`, `fieldHtml()`, `openForm()`, `submit()`                                                                                |
-| `actions.js`    | quick changes in every list: delete with Undo, one-tap levels, +/− counts, quick add                                                 |
-| `app.js`        | mutable state, `db = load()`, event wiring, start-up                                                                                 |
+| File            | Contents                                                                                                                 |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `util.js`       | helpers with no app state: `id()`, `esc()`, `safeColour()`, `safeUrl()`, `toast()`, `download()`, `today()`, `refocus()` |
+| `schema.js`     | `APP_VERSION`, storage keys and other constants, `defaults`, `defs`, `column()`, link helpers, `projectStats()`          |
+| `skillguide.js` | `LEVELS`, the `TECHNIQUES` library, `nextStep()`, `practiceNext()` and other skill rules                                 |
+| `demo.js`       | the example data (`demoData()`, `demoPhotos()`, `DEMO_FILE_DATE`), and the offer to load, clear or keep it               |
+| `storage.js`    | load, validate, repair, migrate, `save()`, `commit()`, `commitWithUndo()`, backup age                                    |
+| `paints.js`     | paint stock helpers (`isLow()`, `lowRecipePaints()`, `stockFromPercent()`), and "Used in"                                |
+| `photos.js`     | miniature photos in IndexedDB (open, store, shrink, show, tidy, their part of backups), and the photo viewer             |
+| `autosave.js`   | auto-save to a file the user picked: the remembered handle, writes after each save, its status                           |
+| `settings.js`   | Settings: currencies and `money()`, the theme, the shortcuts switch, Erase all data                                      |
+| `wishlist.js`   | adding low paints to the wishlist, the Bought button, and rewards                                                        |
+| `queue.js`      | the painting queue: stages and split counts, drawing an item, Next, +1, Split, Move 1, reordering, the completion prompt |
+| `stages.js`     | the stage editor, and moving items when stages change                                                                    |
+| `skills.js`     | the skills page: cards, sliders, the skill profile, practice suggestions, the technique picker                           |
+| `backup.js`     | JSON backup and import, and CSV export                                                                                   |
+| `render.js`     | nav and page switching, the dashboard, list tables, sorting, deadline markers, alerts                                    |
+| `forms.js`      | `inputAttrs`, `fieldHtml()`, `openForm()`, `submit()`                                                                    |
+| `actions.js`    | quick changes in every list: delete with Undo, one-tap levels, +/− counts, quick add                                     |
+| `app.js`        | mutable state, `db = load()`, event wiring, start-up                                                                     |
 
 - **Files are grouped by feature.** A feature's drawing and its actions live together, e.g. everything about the queue is in `queue.js`. `render.js` and `actions.js` hold only what every list shares.
 
@@ -65,7 +66,7 @@ The code lives in plain `<script>` files that share the global scope. They aren'
   - Declaring a `let` or `const` name twice is a `SyntaxError` that stops the app loading.
   - A second `function` with a name already used is worse: it silently replaces the first.
   - `tests/code.spec.js` fails if two files declare the same top-level name.
-- **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `upgraded`, `completing`, `buying`, `editingStages`, `viewing`, `newRewards`, `photoDbOpen`, `photoCheck`, `photoUrls`, `autoSave` and `toastTimer`.
+- **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `upgraded`, `completing`, `buying`, `editingStages`, `viewing`, `newRewards`, `photoDbOpen`, `photoCheck`, `photoUrls`, `autoSave`, `formSection` and `toastTimer`.
 
 To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 
@@ -136,6 +137,8 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 
 - `columns`: the field keys the table shows.
 - `computed`: read-only columns calculated from other data, such as `projectStats()` for projects. A computed column is `{ label, type, value(record), html(record) }`, and `column(d, key)` resolves keys from both `fields` and `computed`. `html` is optional: the table shows it instead of `value`, which search, sorting and CSV still use.
+- `defaultSort` (optional): `{ key, dir }`, the sort a list opens with (see Sorting).
+- `under` (optional): `(record) => html` shown under the record's name in the table, e.g. a project's rewards.
 - `filter`: the key of the field the filter dropdown filters on.
   - The dropdown lists the field's `options`. A field without options gets the values currently in use, e.g. project game systems.
   - The choice survives saves and resets when you change section.
@@ -146,6 +149,8 @@ To add a field, add it to `fields`, and to `columns` if it should appear in the 
 Search (`searchText()`) matches each field and computed value as displayed, so field names and ids never match, and linked records match by name.
 
 **Sorting.** Column headers are buttons (`data-sort`). Clicking one sorts the visible rows by that column, and clicking it again reverses the order. The sort resets when you change section.
+
+- **Each list opens sorted** by its `defaultSort`, so what needs attention comes first: paints by stock (lowest first), tools by condition (worst first), miniatures by status (least finished first), projects by target date (soonest first) and the wishlist by priority (highest first). The header shows ▲ or ▼, and clicking it reverses the order.
 
 - `sortValue()` compares numeric types (`count`, `money`, `percent`, `level`, and computed numbers) as numbers. `scale` fields sort in option order, reversed for `highFirst` fields, so paint stock's last option (Empty) is lowest. Everything else sorts by its displayed text, ignoring case.
 - Blanks always sort last.
@@ -186,7 +191,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - The page grid uses `minmax(0, 1fr)`, so wide content can't widen the page.
   - `tests/layout.spec.js` checks that every section fits a 375px screen.
 
-**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`). For a `<button>`, it runs the entry in `BUTTON_ACTIONS` (in `app.js`) for each `data-*` attribute the button has: `edit`, `del`, `sort`, `scale`, `step`, `recovery`, `wish`, `wishall`, `bought`, `unreward`, `demo`, `photos`, `stages`, `queue`, `next`, `plus`, `split`, `adv`, `top`, `up` and `down`.
+**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`). For a `<button>`, it runs the entry in `BUTTON_ACTIONS` (in `app.js`) for each `data-*` attribute the button has: `edit`, `del`, `sort`, `scale`, `step`, `recovery`, `wish`, `wishall`, `bought`, `unreward`, `demo`, `photos`, `usedin`, `addreward`, `stages`, `queue`, `next`, `plus`, `split`, `adv`, `top`, `up` and `down`.
 
 - `edit` and `del` work in every section because they act on the current section.
 - To add a new row action, render a button with a new `data-*` attribute and add an entry to `BUTTON_ACTIONS` that calls a named function in the feature's file.
@@ -200,7 +205,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - A button at its limit is disabled. When a press reaches the limit, focus moves to the other button.
   - A blank count shows "–", and + starts it at 1.
 - **Redrawing one row.** Both use `redrawRow(record, ...selectors)`. Table rows carry `data-row="<id>"`; `redrawRow` replaces that row and focuses the first selector that matches an enabled control in it. The row doesn't move in a sorted table, and keyboard users keep their place.
-- **Quick add.** Each list and the queue have a `.quickadd` form above them: type a name and press Enter. Skills use a picker instead (see Skills). `quickAdd()` clears search and filter so the new record is visible, adds `{ id, name }` with `commitWithUndo`, and keeps focus in the box. `show()` sets the box's placeholder and `aria-label` from the section's `noun`.
+- **Quick add.** Each list and the queue have a `.quickadd` form above them, with a "Quick add" button, as against "Add item", which opens the full form: type a name and press Enter. Skills use a picker instead (see Skills). `quickAdd()` clears search and filter so the new record is visible, adds `{ id, name }` with `commitWithUndo`, and keeps focus in the box. `show()` sets the box's placeholder and `aria-label` from the section's `noun`.
 
 **Keyboard shortcuts.** A `keydown` listener in `app.js` handles single keys: N opens the add form, Q focuses quick add (the picker on the skills page), / focuses search, 1 to 8 go to the sections in nav order (`SECTION_KEYS`), and ? opens `#keysDialog`, which lists them.
 
@@ -370,7 +375,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 Apply runs on the dialog form's `submit`, not its `close`, so the change happens during the click.
 
-The form handler `submit()` writes to `db[section]`, so `openForm(sec, obj)` sets `section` before the modal opens. If saving fails, the form stays open so nothing typed is lost.
+**The add/edit form.** `openForm(sec, obj)` opens the form for collection `sec` on any page, and `submit()` saves to `db[formSection]`; the page's own `section` isn't changed. So "Add reward" on the projects page opens a wishlist form, and saving redraws the projects page. `obj` is the record to edit, or, without an `id`, starting values for a new one. If saving fails, the form stays open so nothing typed is lost.
 **Data semantics:**
 
 - `FormData` returns strings, so numbers are stored as strings. Consumers wrap them in `Number(...)`. Only `level` fields are converted (and clamped to 0–9) on save.
@@ -411,5 +416,7 @@ The form handler `submit()` writes to `db[section]`, so `openForm(sec, obj)` set
   - `commit()` notes which rewards are unlocked before a change and after it (`noteRewards()`). Newly unlocked ones join `newRewards`; ones locked again (for example by Undo) leave it.
   - `#rewardNotice` shows `newRewards` on every page, each with Bought (the wishlist's `data-bought`) and Dismiss (`data-unreward`). The list lasts for the session only. Import clears it, since a backup's rewards weren't unlocked just now.
   - The dashboard's Rewards card lists every reward, unlocked first, with Bought on unlocked ones.
+  - The projects table shows each project's rewards under its name (`projectRewardsHtml()`, through `defs.projects.under`), with an "Add reward" button (`data-addreward`, `addReward()`) that opens a wishlist form for that project at 100%.
+- **Used in.** The paints table's computed "Used in" column counts the miniatures whose recipe (`paints`) includes each paint (`usedIn()`, in `paints.js`). Its button (`data-usedin`) opens `#usedInDialog`, which lists them with their project and status. Sorting by it puts unused paints first.
 - The dashboard's "Recorded spend" adds up `price` across paints, tools, and miniatures. Each `price` is added as entered; it is not multiplied by `quantity`.
 - Prices are shown in the currency chosen in Settings (see Settings), GBP by default.

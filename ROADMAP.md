@@ -41,13 +41,9 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - **Progress and rewards (phase 16):** work in progress counts toward a project's percentage, and wishlist items can unlock as rewards at a project %. _(From the bug list.)_
 - **Example data (phase 17):** a Load example data button on an empty dashboard, and the same data as a backup file in the repository. _(From the bug list.)_
 - **Version 1.0:** Settings (theme, currency, auto-save to a file, keyboard shortcuts, Erase all data), a light theme _(from the bug list)_, tables that fit a laptop screen, and version numbers in the app and its backups. See [CHANGELOG.md](CHANGELOG.md).
+- **Tidier code (phase 19):** one file per feature, a table of button actions, and the longest drawing functions split up; plus how to update without losing data. _(From the bug list.)_
 
-## Phase 19: Tidy the code, and how to update (in progress)
-
-- **Review the code for files that have grown too complex,** and organise it logically: one file per feature, a table of button actions, and the two longest drawing functions split up. Nothing changes in how the app works. _(From the bug list.)_
-- **How to update** without losing data, in the README.
-
-## Phase 20: Quick wins
+## Phase 20: Quick wins (in progress)
 
 _(From the bug list.)_
 

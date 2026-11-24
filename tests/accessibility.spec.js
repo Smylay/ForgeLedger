@@ -274,6 +274,17 @@ for (const run of [
       expect(await violations(page)).toEqual([]);
     });
 
+    test("the Used in list has no accessibility violations", async ({
+      page,
+    }) => {
+      await nav(page, "paints");
+      await page
+        .getByRole("button", { name: "Used in 1 miniature: Red" })
+        .click();
+      await expect(page.locator("#usedInDialog")).toBeVisible();
+      expect(await violations(page)).toEqual([]);
+    });
+
     test("Settings has no accessibility violations", async ({ page }) => {
       await page.click("#settingsBtn");
       await expect(page.locator("#settingsDialog")).toBeVisible();

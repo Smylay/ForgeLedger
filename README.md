@@ -4,16 +4,16 @@ ForgeLedger is an offline-first tracker for miniature wargaming. It keeps your p
 
 ## Features
 
-- **Paints** with brand, range, colour and type (including Primer and Shade/Wash), and a stock level (Full, Good, Half, Low or Empty) that you set with one tap. Low stock shows on the dashboard, with one-click restock to the wishlist.
+- **Paints** with brand, range, colour and type (including Primer and Shade/Wash), and a stock level (Full, Good, Half, Low or Empty) that you set with one tap. Low stock shows on the dashboard, with one-click restock to the wishlist. "Used in" lists the miniatures whose recipe uses a paint.
 - **Miniatures** with model and painted counts, status, army project, recipes built from your own paints, and photos from your computer or phone camera.
 - **Tools** with a condition, from New to Replace soon.
-- **Army projects** whose progress and spend are calculated from their miniatures, with overdue and due-soon markers. Progress counts work in progress: a model halfway through its painting stages counts as half done.
+- **Army projects** whose progress and spend are calculated from their miniatures, with overdue and due-soon markers. Progress counts work in progress: a model halfway through its painting stages counts as half done. Each project shows its rewards, and you can add one from there.
 - **A painting queue** linked to your miniatures. Each item has a stage progress bar, a one-tap Next stage button, and a +1 counter for the current stage that moves the item on once every model is done. Split an item by stage when its models are at different points, such as 2 priming and 3 basecoating. Rename, reorder, add or remove the stages for the whole queue, or give one item stages of its own. Reorder it by dragging, or with the Top and arrow buttons. Completing an item can mark its miniature complete.
 - **Painting skills** rated 0–9, with a name for each level (4 is Competent). Pick from a library of 20 techniques, each with a next step for your level, or add your own. A skill profile shows every level at a glance, and Practice next suggests what to work on: skills you haven't updated in a month, then your lowest.
 - **A wishlist** with priorities, prices and product links. Make an item a reward that unlocks when a project reaches a percentage you choose. Tap Bought to restock a paint, or to move the item into your paints, tools or miniatures.
 - **Quick edits without the form:** one-tap stock, status, condition and priority; + and − buttons on paint quantities, model counts and painted counts; and a quick-add box on every page: type a name and press Enter.
 - **Keyboard shortcuts:** N to add, Q to quick-add, / to search, and 1 to 8 to change page. Press ? for the list, which also turns them off.
-- **Search, filters and sortable columns** in every list, and Undo for deletes.
+- **Search, filters and sortable columns** in every list, and Undo for deletes. Each list opens with what needs attention first: lowest paint stock, worst tool condition, least finished miniatures, soonest project deadline, highest wishlist priority.
 - **JSON backup and restore**, CSV export of any list, and auto-save to a backup file in Chrome and Edge.
 - **Settings** for a dark or light theme (or match your device), the currency prices are shown in, auto-save, keyboard shortcuts, and erasing all your data.
 

@@ -83,7 +83,7 @@ test.describe("loaded", () => {
     await expect(page.locator("#queueContent")).toContainText("own stages");
     // Photos are drawn and stored.
     await nav(page, "miniatures");
-    await expect(tableRows(page).first().locator("img.thumb")).toHaveAttribute(
+    await expect(page.locator("#content img.thumb").first()).toHaveAttribute(
       "src",
       /^blob:/,
     );
@@ -150,7 +150,7 @@ test.describe("the example file", () => {
     await expect(page.locator("#toast")).toHaveText("Backup imported");
     await expect(start(page)).toContainText("You're looking at example data");
     await nav(page, "miniatures");
-    await expect(tableRows(page).first().locator("img.thumb")).toHaveAttribute(
+    await expect(page.locator("#content img.thumb").first()).toHaveAttribute(
       "src",
       /^blob:/,
     );

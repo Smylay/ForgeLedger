@@ -4,6 +4,10 @@ What changed in each version of ForgeLedger. Backups from every earlier version 
 
 ## Unreleased
 
+- **Each list opens sorted** so what needs attention comes first: paints by lowest stock, tools by worst condition, miniatures by least finished, projects by soonest target date, the wishlist by highest priority. Click a column header to sort another way.
+- **"Used in" on paints:** how many miniatures' recipes use each paint, and which ones.
+- **Rewards on the projects page:** each project shows its rewards under its name, with an Add reward button.
+- **"Quick add"** is now the name of the button beside each quick-add box, so it's clearly different from "Add item".
 - **How to update** without losing data, in the README.
 - **The code is reorganised by feature** (the queue, the stage editor, the wishlist, skills, Settings, backups), so each part is easier to find and change. Nothing changes in how the app works.
 

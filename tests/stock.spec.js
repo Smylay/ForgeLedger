@@ -167,7 +167,7 @@ test.describe("one-tap levels", () => {
   });
 });
 
-test("sorting by stock goes from least to most, unknown last", async ({
+test("paints open sorted by stock, least first, unknown last", async ({
   page,
 }) => {
   await seed(page, {
@@ -184,7 +184,6 @@ test("sorting by stock goes from least to most, unknown last", async ({
     tableRows(page).evaluateAll((rows) =>
       rows.map((r) => r.cells[0].textContent),
     );
-  await header.click();
   expect(await names()).toEqual([
     "Empty",
     "Low",
@@ -193,6 +192,7 @@ test("sorting by stock goes from least to most, unknown last", async ({
     "Full",
     "Unknown",
   ]);
+  await expect(header).toHaveText("Stock ▲");
   await header.click();
   expect(await names()).toEqual([
     "Full",

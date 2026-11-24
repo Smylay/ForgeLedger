@@ -749,6 +749,25 @@ dialog::backdrop {
 .modalbody {
   padding: 18px;
 }
+/* A project's rewards, under its name in the projects table. */
+.under {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin-top: 4px;
+  font-size: 12px;
+}
+.rewardchip .pill {
+  margin-left: 4px;
+}
+/* "Used in": the miniatures whose recipe uses a paint. */
+.usedinlist {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding-left: 20px;
+}
 /* Settings: one section per setting, divided by lines. */
 .settings section {
   padding-bottom: 14px;
