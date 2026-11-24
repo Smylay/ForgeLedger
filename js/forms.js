@@ -34,9 +34,12 @@ function fieldHtml(f, obj) {
   }
   return `<label>${f.label}<input ${name} ${inputAttrs[f.type || "text"]} value="${esc(v)}" ${req}></label>`;
 }
+// Open the add/edit form for a record of collection `sec`, on any page:
+// adding a reward from the projects page opens a wishlist form. `obj` is
+// the record to edit, or starting values for a new one (no `id`).
 function openForm(sec = section, obj = {}) {
   let d = defs[sec];
-  section = sec;
+  formSection = sec;
   editId = obj.id || null;
   document.querySelector("#modalTitle").textContent =
     (editId ? "Edit " : "Add ") + d.noun;
@@ -48,7 +51,7 @@ function openForm(sec = section, obj = {}) {
 function submit(e) {
   e.preventDefault();
   let form = e.target,
-    d = defs[section],
+    d = defs[formSection],
     fd = new FormData(form),
     o = Object.fromEntries(fd);
   // Rules the browser can't check on its own, e.g. painted <= model count.
@@ -76,14 +79,15 @@ function submit(e) {
     if (f.type === "links") o[f.key] = fd.getAll(f.key);
   }
   o.id = editId || id();
-  let prev = db[section].find((x) => x.id === o.id);
+  let prev = db[formSection].find((x) => x.id === o.id);
   // A queue item moved to another stage starts that stage's count again.
-  if (section === "queue" && prev && prev.stage !== o.stage) o.stageDone = 0;
+  if (formSection === "queue" && prev && prev.stage !== o.stage)
+    o.stageDone = 0;
   // Skills record when their level last changed, for practice suggestions.
-  if (section === "skills" && (!prev || skillLevel(prev) !== o.level))
+  if (formSection === "skills" && (!prev || skillLevel(prev) !== o.level))
     o.changed = today();
   let saved = commit(() => {
-    let arr = db[section],
+    let arr = db[formSection],
       i = arr.findIndex((x) => x.id === o.id);
     // Merge, so fields the form doesn't show (like a queue item's stage
     // count, or fields from older versions) survive an edit.
@@ -92,7 +96,7 @@ function submit(e) {
     // A split queue item: choosing another stage puts every model there;
     // otherwise keep its stage in step, as the model count may have changed.
     let q = arr[i >= 0 ? i : arr.length - 1];
-    if (section === "queue" && isSplit(q)) {
+    if (formSection === "queue" && isSplit(q)) {
       if (prev.stage !== o.stage) delete q.split;
       else storeSplit(q, splitCounts(q));
     }
@@ -103,7 +107,7 @@ function submit(e) {
   renderNav();
   render();
   if (
-    section === "queue" &&
+    formSection === "queue" &&
     o.stage === "Complete" &&
     prev?.stage !== "Complete"
   )

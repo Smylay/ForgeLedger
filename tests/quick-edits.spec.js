@@ -62,17 +62,24 @@ test.describe("one-tap status fields", () => {
     await expect(pressed(page, 0)).toHaveClass(/tone-bad/);
   });
 
-  test("status sorts in its natural order", async ({ page }) => {
+  test("status sorts in its natural order, least finished first", async ({
+    page,
+  }) => {
     await nav(page, "miniatures");
     await tableRows(page)
-      .nth(1)
+      .filter({ hasText: "Hero" })
       .getByRole("button", { name: "Primed" })
       .click();
+    const names = () =>
+      tableRows(page).evaluateAll((rows) =>
+        rows.map((r) => r.cells[0].textContent),
+      );
+    // The page opens sorted by status (a tap doesn't move the row).
+    await nav(page, "tools");
+    await nav(page, "miniatures");
+    expect(await names()).toEqual(["Squad", "Hero"]); // Built before Primed
     await page.locator("#content thead button", { hasText: "Status" }).click();
-    const names = await tableRows(page).evaluateAll((rows) =>
-      rows.map((r) => r.cells[0].textContent),
-    );
-    expect(names).toEqual(["Squad", "Hero"]); // Built before Primed
+    expect(await names()).toEqual(["Hero", "Squad"]);
   });
 
   test("tool condition sorts worst first, like paint stock", async ({
@@ -87,13 +94,16 @@ test.describe("one-tap status fields", () => {
       ],
     });
     await nav(page, "tools");
+    const names = () =>
+      tableRows(page).evaluateAll((rows) =>
+        rows.map((r) => r.cells[0].textContent),
+      );
+    // Tools open sorted by condition, worst first.
+    expect(await names()).toEqual(["Knife", "Brush", "Sponge"]);
     await page
       .locator("#content thead button", { hasText: "Condition" })
       .click();
-    const names = await tableRows(page).evaluateAll((rows) =>
-      rows.map((r) => r.cells[0].textContent),
-    );
-    expect(names).toEqual(["Knife", "Brush", "Sponge"]);
+    expect(await names()).toEqual(["Sponge", "Brush", "Knife"]);
   });
 
   test("the status filter still works", async ({ page }) => {

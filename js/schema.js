@@ -119,8 +119,19 @@ const defs = {
       },
       { key: "notes", label: "Notes", type: "textarea" },
     ],
-    columns: ["name", "brand", "range", "type", "quantity", "stock"],
+    computed: {
+      usedin: {
+        label: "Used in",
+        type: "count",
+        value: (p) => usedIn(p).length,
+        html: (p) => usedInHtml(p),
+      },
+    },
+    columns: ["name", "brand", "range", "type", "quantity", "stock", "usedin"],
     swatch: "colour", // show this colour beside each paint's name
+    // Each list opens sorted so what needs attention comes first: here, the
+    // lowest stock. Clicking a column header still sorts by that column.
+    defaultSort: { key: "stock", dir: 1 },
     filter: "type",
   },
   tools: {
@@ -164,6 +175,7 @@ const defs = {
     ],
     columns: ["name", "category", "condition", "quantity", "price"],
     filter: "category",
+    defaultSort: { key: "condition", dir: 1 }, // worst condition first
   },
   miniatures: {
     title: "Miniatures",
@@ -210,6 +222,7 @@ const defs = {
       "paints",
     ],
     filter: "status",
+    defaultSort: { key: "status", dir: 1 }, // least finished first
   },
   projects: {
     title: "Army projects",
@@ -269,6 +282,8 @@ const defs = {
       "deadline",
     ],
     filter: "system",
+    under: (p) => projectRewardsHtml(p), // rewards, under the name
+    defaultSort: { key: "deadline", dir: 1 }, // soonest target date first
   },
   queue: {
     title: "Painting queue",
@@ -361,6 +376,7 @@ const defs = {
     },
     columns: ["name", "category", "priority", "reward", "price", "url"],
     filter: "priority",
+    defaultSort: { key: "priority", dir: -1 }, // highest priority first
   },
 };
 // A field or computed column of collection `d`, by key.
@@ -380,28 +396,6 @@ function linkedAll(f, value) {
   return asList(value)
     .map((v) => linked(f, v))
     .filter(Boolean);
-}
-// A paint is low when its stock is Low or Empty.
-function isLow(p) {
-  return p.stock === "Low" || p.stock === "Empty";
-}
-// The stock level for an old Remaining % value, or "" if it isn't a number.
-// migrate() uses it once, when paints move from percentages to levels.
-function stockFromPercent(value) {
-  if (value === "" || value == null) return "";
-  let n = Number(value);
-  if (Number.isNaN(n)) return "";
-  if (n <= 0) return "Empty";
-  if (n < 20) return "Low";
-  if (n < 50) return "Half";
-  if (n < 80) return "Good";
-  return "Full";
-}
-// The low paints a miniature's recipe uses.
-function lowRecipePaints(m) {
-  return m
-    ? linkedAll(column(defs.miniatures, "paints"), m.paints).filter(isLow)
-    : [];
 }
 // How a record is named in a picker; paints include their brand.
 function optionLabel(r) {

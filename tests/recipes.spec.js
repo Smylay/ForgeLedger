@@ -110,7 +110,10 @@ test("deleting a paint removes it from recipes, and Undo puts it back", async ({
   page,
 }) => {
   await nav(page, "paints");
-  await page.locator("button[data-del]").nth(1).click(); // Black
+  await tableRows(page)
+    .filter({ hasText: "Black" })
+    .locator("button[data-del]")
+    .click();
   await expect(page.locator("#toastText")).toHaveText(
     'Deleted "Black" and unlinked 1 item(s) from it',
   );
@@ -130,4 +133,70 @@ test("a malformed recipe in imported data is ignored", async ({ page }) => {
   await nav(page, "miniatures");
   await expect(recipeCell(page, 0)).toHaveText("");
   await expect(recipeCell(page, 1)).toHaveText("Red");
+});
+
+test.describe("Used in, on paints", () => {
+  test.beforeEach(async ({ page }) => {
+    await seed(page, {
+      ...data,
+      miniatures: [
+        ...data.miniatures,
+        { id: "m3", name: "Captain", paints: ["red"], status: "Primed" },
+      ],
+      projects: [{ id: "p", name: "Strike force" }],
+    });
+    await nav(page, "paints");
+  });
+  const row = (page, name) => tableRows(page).filter({ hasText: name });
+
+  test("counts the miniatures whose recipe uses each paint", async ({
+    page,
+  }) => {
+    await expect(
+      page.locator("#content thead th", { hasText: "Used in" }),
+    ).toBeVisible();
+    await expect(row(page, "Red").locator("td").nth(6)).toHaveText(
+      "2 miniatures",
+    );
+    await expect(row(page, "Gold").locator("td").nth(6)).toHaveText(
+      "1 miniature",
+    );
+  });
+
+  test("lists them, with project and status", async ({ page }) => {
+    await seed(page, {
+      ...data,
+      miniatures: [
+        { ...data.miniatures[0], project: "p", status: "Built" },
+        data.miniatures[1],
+      ],
+      projects: [{ id: "p", name: "Strike force" }],
+    });
+    await nav(page, "paints");
+    await row(page, "Black")
+      .getByRole("button", { name: "Used in 1 miniature: Black" })
+      .click();
+    const dialog = page.locator("#usedInDialog");
+    await expect(dialog).toBeVisible();
+    await expect(page.locator("#usedInTitle")).toHaveText("Used in: Black");
+    await expect(dialog.locator("li")).toHaveText([
+      "Squad · Strike force · Built",
+    ]);
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+  });
+
+  test("an unused paint shows nothing, and sorts first", async ({ page }) => {
+    await seed(page, {
+      ...data,
+      paints: [...data.paints, { id: "spare", name: "Spare" }],
+    });
+    await nav(page, "paints");
+    await expect(row(page, "Spare").locator("td").nth(6)).toHaveText("");
+    await page.locator("#content thead button", { hasText: "Used in" }).click();
+    const names = await tableRows(page).evaluateAll((rows) =>
+      rows.map((r) => r.cells[0].textContent.trim()),
+    );
+    expect(names[0]).toBe("Spare"); // unused first, to find paints you never use
+  });
 });

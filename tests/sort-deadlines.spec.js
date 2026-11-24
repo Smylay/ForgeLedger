@@ -15,17 +15,20 @@ const day = (offset) => {
   return d.toLocaleDateString("en-CA");
 };
 // A column's values as shown; for a count with +/- buttons, just the
-// number ("" when it isn't set).
+// number ("" when it isn't set), and for a project's name, without the
+// rewards line under it.
 const column = (page, i) =>
   tableRows(page).evaluateAll(
     (rows, i) =>
       rows.map((r) => {
-        let v = r.cells[i].querySelector(".stepval");
+        let cell = r.cells[i].cloneNode(true),
+          v = cell.querySelector(".stepval");
+        cell.querySelector(".under")?.remove();
         return v
           ? v.querySelector(".sr-only")
             ? ""
             : v.textContent
-          : r.cells[i].textContent;
+          : cell.textContent;
       }),
     i,
   );
@@ -144,7 +147,9 @@ test.describe("deadline markers", () => {
     const markers = await tableRows(page).evaluateAll((rows) =>
       rows.map((r) => r.cells[8].querySelector(".pill")?.textContent ?? ""),
     );
-    expect(markers).toEqual(["Overdue", "Due in 5 days", "", "", "", ""]);
+    // Sorted by target date: Late and Done (3 days ago; Done has no marker),
+    // Soon, Far, then the junk date, then none.
+    expect(markers).toEqual(["Overdue", "", "Due in 5 days", "", "", ""]);
   });
 
   test("the dashboard marks projects the same way", async ({ page }) => {
@@ -163,4 +168,51 @@ test.describe("deadline markers", () => {
       );
     expect(markers).toEqual(["Overdue", "", "Due today", "Due in 1 day"]);
   });
+});
+
+test("each list opens sorted so what needs attention comes first", async ({
+  page,
+}) => {
+  await seed(page, {
+    paints: [
+      { id: "p1", name: "Full pot", stock: "Full" },
+      { id: "p2", name: "Empty pot", stock: "Empty" },
+    ],
+    tools: [
+      { id: "t1", name: "New brush", condition: "New" },
+      { id: "t2", name: "Old brush", condition: "Replace soon" },
+    ],
+    miniatures: [
+      { id: "m1", name: "Done", status: "Complete" },
+      { id: "m2", name: "Box", status: "Unbuilt" },
+    ],
+    projects: [
+      { id: "a", name: "Later", deadline: "2030-06-01" },
+      { id: "b", name: "Sooner", deadline: "2030-01-01" },
+      { id: "c", name: "Whenever", deadline: "" },
+    ],
+    wishlist: [
+      { id: "w1", name: "Maybe", priority: "Low" },
+      { id: "w2", name: "Unrated" },
+      { id: "w3", name: "Must have", priority: "High" },
+    ],
+  });
+  const firstColumn = () => column(page, 0);
+  const sorted = () =>
+    page.locator(
+      '#content th[aria-sort="ascending"], #content th[aria-sort="descending"]',
+    );
+  for (const [section, header, order] of [
+    ["paints", "Stock ▲", ["Empty pot", "Full pot"]],
+    ["tools", "Condition ▲", ["Old brush", "New brush"]],
+    ["miniatures", "Status ▲", ["Box", "Done"]],
+    ["projects", "Target date ▲", ["Sooner", "Later", "Whenever"]],
+    ["wishlist", "Priority ▼", ["Must have", "Maybe", "Unrated"]],
+  ]) {
+    await nav(page, section);
+    await expect(sorted(page), section).toHaveText([header]);
+    expect(await firstColumn(), section).toEqual(order);
+  }
+  // Sorting only changes the display; the saved order is untouched.
+  expect((await stored(page)).paints.map((p) => p.id)).toEqual(["p1", "p2"]);
 });

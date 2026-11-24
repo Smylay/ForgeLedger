@@ -1,4 +1,14 @@
-const { test, expect, openApp, seed, nav, tableRows } = require("./helpers");
+const {
+  test,
+  expect,
+  openApp,
+  seed,
+  stored,
+  nav,
+  tableRows,
+  fillForm,
+  submitForm,
+} = require("./helpers");
 
 // Older backups carry hand-entered `complete` and `spent` on projects; both
 // must be ignored in favour of values calculated from linked miniatures.
@@ -84,11 +94,11 @@ test("projects table shows calculated columns", async ({ page }) => {
     "Models owned",
     "Target model count",
     "Spent",
-    "Target date",
+    "Target date ▲", // projects open sorted by target date
     "Actions",
   ]);
   await expect(tableRows(page).first().locator("td")).toHaveText([
-    "Linked",
+    /^Linked/, // then its rewards, and Add reward
     "",
     "",
     "25%",
@@ -128,4 +138,64 @@ test("with no target, progress is measured against models owned", async ({
     ],
   });
   await expect(page.locator("#projectSummary")).toContainText("Unlinked40%");
+});
+
+test.describe("rewards on the projects page", () => {
+  test.beforeEach(async ({ page }) => {
+    await seed(page, {
+      projects: [
+        { id: "p", name: "Army", target: "4" },
+        { id: "q", name: "Other", target: "4" },
+      ],
+      miniatures: [
+        { id: "m", name: "Squad", project: "p", quantity: "4", painted: "2" },
+      ],
+      wishlist: [
+        { id: "w1", name: "Paint set", rewardFor: "p", rewardAt: "50" },
+        { id: "w2", name: "Big knight", rewardFor: "p" },
+        { id: "w3", name: "Not a reward" },
+      ],
+    });
+    await nav(page, "projects");
+  });
+  const under = (page, name) =>
+    tableRows(page).filter({ hasText: name }).locator(".under");
+
+  test("each project shows its rewards under its name", async ({ page }) => {
+    await expect(under(page, "Army").locator(".rewardchip")).toHaveText([
+      "Paint set Unlocked",
+      "Big knight Unlocks at 100%",
+    ]);
+    await expect(under(page, "Other").locator(".rewardchip")).toHaveCount(0);
+  });
+
+  test("Add reward opens the wishlist form for that project, and stays here", async ({
+    page,
+  }) => {
+    await page.getByRole("button", { name: "Add reward for Other" }).click();
+    await expect(page.locator("#modalTitle")).toHaveText("Add wishlist item");
+    await expect(page.locator('#formFields [name="rewardFor"]')).toHaveValue(
+      "q",
+    );
+    await expect(page.locator('#formFields [name="rewardAt"]')).toHaveValue(
+      "100",
+    );
+    await fillForm(page, { name: "Dragon" });
+    await submitForm(page);
+    // Still on the projects page, now showing the new reward.
+    await expect(page.locator("#title")).toHaveText("Army projects");
+    await expect(under(page, "Other").locator(".rewardchip")).toHaveText([
+      "Dragon Unlocks at 100%",
+    ]);
+    const added = (await stored(page)).wishlist.at(-1);
+    expect(added).toMatchObject({
+      name: "Dragon",
+      rewardFor: "q",
+      rewardAt: "100",
+    });
+    // The projects table wasn't replaced by the wishlist.
+    await expect(page.locator("#content thead th").first()).toHaveText(
+      "Project name",
+    );
+  });
 });
