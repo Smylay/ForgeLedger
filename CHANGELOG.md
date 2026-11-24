@@ -4,6 +4,10 @@ What changed in each version of ForgeLedger. Backups from every earlier version 
 
 ## Unreleased
 
+- **A paint catalogue** of about 5,300 paints from 15 brands. In the paint form, find a paint by name or code, and its brand, range, type and colour fill in. Quick add on the paints page picks from it too.
+- **Plan a recipe with paints you don't own yet,** from your wishlist or the catalogue. Saving adds them to your paints as Empty, with a quantity of 0, and to your wishlist, so Bought restocks them.
+- **More paint types:** Standard, Glaze, Dry, Air and Effect, to match the catalogue.
+- **The example data's paint ranges** are now product lines, instead of repeating the type.
 - **Suggestions as you type** in the brand, range, faction and game system boxes: what you've entered before, most used first, then common brands and game systems. Range suggestions follow the brand. You can still type anything.
 - **Tools and miniatures have a Brand,** with their own suggestions.
 - **Each list opens sorted** so what needs attention comes first: paints by lowest stock, tools by worst condition, miniatures by least finished, projects by soonest target date, the wishlist by highest priority. Click a column header to sort another way.

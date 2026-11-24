@@ -13,11 +13,18 @@ function demoData(base = new Date()) {
       p = (x) => String(x).padStart(2, "0");
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   };
+  // A range is a brand's product line; these are made up, like the brand.
+  let ranges = {
+    Primer: "Undercoat Sprays",
+    "Shade/Wash": "Washes",
+    Metallic: "Metals",
+    Technical: "Effects",
+  };
   let paint = (id, name, type, colour, stock, price, quantity = "1") => ({
     id,
     name,
     brand: "Demo Paint Co.",
-    range: type,
+    range: ranges[type] || "Studio Colours",
     colour,
     type,
     quantity,

@@ -30,6 +30,9 @@ Keep it runnable from `file://`. Browsers refuse to load ES module scripts from 
   - Open the served copy with `openSite(page)`, not `page.goto(SITE)`. `/` is `index.html`, which forwards to the app, and `openSite()` waits for that; otherwise the next step can run on the page being replaced.
   - `npm test` runs Chromium only. `npm run test:all` adds Firefox and WebKit; install them first with `npx playwright install firefox webkit`. CI runs all three.
   - Import `test` and `expect` from `./helpers`, not from `@playwright/test`, so the fixtures apply. `helpers.js` also has helpers for seeding data, filling forms, downloads, and imports.
+  - After importing a backup, wait for it to finish before the next step: use `importAndWait()`, or wait for the import's toast. Import works in the background and ends by going to the dashboard, which would undo a page change made meanwhile.
+  - In WebKit, Enter in a box whose suggestions are showing closes them instead of submitting. Test quick add with Enter where there are no suggestions (e.g. tools).
+- **Paint catalogue:** `npm run catalogue` rewrites `data/paint-catalogue.js` from `data/sources/miniature_paints.json` (see Paint catalogue). Run it after changing the source; `tests/catalogue.spec.js` fails while the file is out of date. Both files are in `.prettierignore`.
 - **Example data:** `npm run example` rewrites `examples/forgeledger-example.json` from `js/demo.js` (see Example data). Run it after changing `demo.js`; `tests/demo.spec.js` fails while the file is out of date.
 - **Formatting:** Prettier, configured in `.prettierrc`: 2-space indent, 80-column lines, and 120 columns for HTML. Run `npm run format` to format or `npm run format:check` to check. Format before committing.
 
@@ -37,27 +40,28 @@ Keep it runnable from `file://`. Browsers refuse to load ES module scripts from 
 
 The code lives in plain `<script>` files that share the global scope. They aren't ES modules, which can't load from `file://`. `forgeledger_v2.html` loads them in this order:
 
-| File            | Contents                                                                                                                 |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `util.js`       | helpers with no app state: `id()`, `esc()`, `safeColour()`, `safeUrl()`, `toast()`, `download()`, `today()`, `refocus()` |
-| `schema.js`     | `APP_VERSION`, storage keys and other constants, `defaults`, `defs`, `column()`, link helpers, `projectStats()`          |
-| `skillguide.js` | `LEVELS`, the `TECHNIQUES` library, `nextStep()`, `practiceNext()` and other skill rules                                 |
-| `demo.js`       | the example data (`demoData()`, `demoPhotos()`, `DEMO_FILE_DATE`), and the offer to load, clear or keep it               |
-| `storage.js`    | load, validate, repair, migrate, `save()`, `commit()`, `commitWithUndo()`, backup age                                    |
-| `paints.js`     | paint stock helpers (`isLow()`, `lowRecipePaints()`, `stockFromPercent()`), and "Used in"                                |
-| `photos.js`     | miniature photos in IndexedDB (open, store, shrink, show, tidy, their part of backups), and the photo viewer             |
-| `autosave.js`   | auto-save to a file the user picked: the remembered handle, writes after each save, its status                           |
-| `settings.js`   | Settings: currencies and `money()`, the theme, the shortcuts switch, Erase all data                                      |
-| `wishlist.js`   | adding low paints to the wishlist, the Bought button, and rewards                                                        |
-| `queue.js`      | the painting queue: stages and split counts, drawing an item, Next, +1, Split, Move 1, reordering, the completion prompt |
-| `stages.js`     | the stage editor, and moving items when stages change                                                                    |
-| `skills.js`     | the skills page: cards, sliders, the skill profile, practice suggestions, the technique picker                           |
-| `backup.js`     | JSON backup and import, and CSV export                                                                                   |
-| `render.js`     | nav and page switching, the dashboard, list tables, sorting, deadline markers, alerts                                    |
-| `suggest.js`    | suggestions as you type: common brands and game systems, plus values you've used                                         |
-| `forms.js`      | `inputAttrs`, `fieldHtml()`, `openForm()`, `submit()`                                                                    |
-| `actions.js`    | quick changes in every list: delete with Undo, one-tap levels, +/− counts, quick add                                     |
-| `app.js`        | mutable state, `db = load()`, event wiring, start-up                                                                     |
+| File            | Contents                                                                                                                        |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `util.js`       | helpers with no app state: `id()`, `esc()`, `safeColour()`, `safeUrl()`, `toast()`, `download()`, `today()`, `refocus()`        |
+| `schema.js`     | `APP_VERSION`, storage keys and other constants, `defaults`, `defs`, `column()`, link helpers, `projectStats()`                 |
+| `skillguide.js` | `LEVELS`, the `TECHNIQUES` library, `nextStep()`, `practiceNext()` and other skill rules                                        |
+| `demo.js`       | the example data (`demoData()`, `demoPhotos()`, `DEMO_FILE_DATE`), and the offer to load, clear or keep it                      |
+| `storage.js`    | load, validate, repair, migrate, `save()`, `commit()`, `commitWithUndo()`, backup age                                           |
+| `paints.js`     | paint stock helpers (`isLow()`, `lowRecipePaints()`, `stockFromPercent()`), and "Used in"                                       |
+| `photos.js`     | miniature photos in IndexedDB (open, store, shrink, show, tidy, their part of backups), and the photo viewer                    |
+| `autosave.js`   | auto-save to a file the user picked: the remembered handle, writes after each save, its status                                  |
+| `settings.js`   | Settings: currencies and `money()`, the theme, the shortcuts switch, Erase all data                                             |
+| `wishlist.js`   | adding low paints to the wishlist, the Bought button, and rewards                                                               |
+| `queue.js`      | the painting queue: stages and split counts, drawing an item, Next, +1, Split, Move 1, reordering, the completion prompt        |
+| `stages.js`     | the stage editor, and moving items when stages change                                                                           |
+| `skills.js`     | the skills page: cards, sliders, the skill profile, practice suggestions, the technique picker                                  |
+| `backup.js`     | JSON backup and import, and CSV export                                                                                          |
+| `render.js`     | nav and page switching, the dashboard, list tables, sorting, deadline markers, alerts                                           |
+| `suggest.js`    | suggestions as you type: common brands and game systems, plus values you've used                                                |
+| `catalogue.js`  | the paint catalogue: loading it, searching it, the paint form's Find box, quick add, planning recipes with paints you don't own |
+| `forms.js`      | `inputAttrs`, `fieldHtml()`, `openForm()`, `submit()`                                                                           |
+| `actions.js`    | quick changes in every list: delete with Undo, one-tap levels, +/− counts, quick add                                            |
+| `app.js`        | mutable state, `db = load()`, event wiring, start-up                                                                            |
 
 - **Files are grouped by feature.** A feature's drawing and its actions live together, e.g. everything about the queue is in `queue.js`. `render.js` and `actions.js` hold only what every list shares.
 
@@ -67,7 +71,7 @@ The code lives in plain `<script>` files that share the global scope. They aren'
   - Declaring a `let` or `const` name twice is a `SyntaxError` that stops the app loading.
   - A second `function` with a name already used is worse: it silently replaces the first.
   - `tests/code.spec.js` fails if two files declare the same top-level name.
-- **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `upgraded`, `completing`, `buying`, `editingStages`, `viewing`, `newRewards`, `photoDbOpen`, `photoCheck`, `photoUrls`, `autoSave`, `formSection` and `toastTimer`.
+- **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `upgraded`, `completing`, `buying`, `editingStages`, `viewing`, `newRewards`, `photoDbOpen`, `photoCheck`, `photoUrls`, `autoSave`, `formSection`, `catalogue` and `toastTimer`.
 
 To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 
@@ -118,7 +122,8 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
   - `atMost` names another field this one can't exceed; for example, painted count can't exceed model count. `submit()` checks it with `setCustomValidity`.
   - `doneWhen(record)` on a `date` field turns on deadline markers for that date (see below). Markers stop once `doneWhen` returns true.
   - `stepper: true` on a `count` field shows it in the table with − and + buttons (see Quick edits).
-  - `suggest` on a text field gives it suggestions as you type (see Suggestions): the name of a common list in `SUGGESTION_LISTS`, or `true` for your own values only. `suggestBy` narrows them to records whose named field matches the form's (range, by brand). `suggestFrom` lists the collections to take your values from, if not just this one (faction: miniatures and projects).
+  - `suggest` on a text field gives it suggestions as you type (see Suggestions): the name of a common list in `SUGGESTION_LISTS`, or `true` for your own values only. `suggestBy` narrows them to records whose named field matches the form's (range, by brand). `suggestFrom` lists the collections to take your values from, if not just this one (faction: miniatures and projects). `suggestMore(formValues)` adds values from elsewhere, after yours, such as the catalogue's ranges for the brand.
+  - `plan: true` on the recipe's `links` field adds the box for paints you don't own yet (see Paint catalogue).
   - `tones` on a `scale` field colours each option's button when chosen: `good`, `mid`, `bad` or `none`, one per option. `highFirst: true` means the options run from most to least, like paint stock, so sorting reverses them.
   - Each type maps to an input (`inputAttrs` for plain `<input>`s) and a display format (`cellText()` / `cellHtml()`). Blank values display as blank.
 
@@ -141,6 +146,7 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 - `computed`: read-only columns calculated from other data, such as `projectStats()` for projects. A computed column is `{ label, type, value(record), html(record) }`, and `column(d, key)` resolves keys from both `fields` and `computed`. `html` is optional: the table shows it instead of `value`, which search, sorting and CSV still use.
 - `defaultSort` (optional): `{ key, dir }`, the sort a list opens with (see Sorting).
 - `under` (optional): `(record) => html` shown under the record's name in the table, e.g. a project's rewards.
+- `formIntro` (optional): `() => html` shown above the form's fields, e.g. the paint form's Find box.
 - `filter`: the key of the field the filter dropdown filters on.
   - The dropdown lists the field's `options`. A field without options gets the values currently in use, e.g. project game systems.
   - The choice survives saves and resets when you change section.
@@ -154,9 +160,19 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 - **The order:** your own values first, most used first, with case differences counted as one; then the common values from `SUGGESTION_LISTS` you haven't used.
 - **Which fields:** paint, tool and miniature brand (each with its own common list), paint range (by brand), faction (shared by miniatures and projects) and game system (with common game systems).
-- **Paint brands** are spelt as in `miniature_paints.json`, so the paint catalogue can fill them in later.
+- **Paint brands** are spelt as in the paint catalogue, and once it has loaded, its brands and each brand's ranges are offered too (`suggestMore` on the field: `catalogueBrands()`, `catalogueRanges()`).
 - **Range follows brand:** when the brand box changes, `updateSuggestions()` (from the form's `input` handler in `app.js`) redraws the range list. If you've used that brand, only its ranges are offered.
 - Suggestions are stored values, so they're escaped like everything else.
+
+**Paint catalogue.** About 5,300 paints from 15 brands, with range, code, type and colour. The code is in `catalogue.js`.
+
+- **The data.** `data/sources/miniature_paints.json` is the source as supplied; `data/sources/README.md` says where it came from and holds the licence credits. `scripts/make-catalogue.js` builds `data/paint-catalogue.js` from it, a script defining `PAINT_CATALOGUE` (brands, ranges and types once each, then one short array per paint). It tidies as it goes: varnishes, mediums and thinners get no colour, a paint listed twice in one range becomes one entry with both codes, names lose double spaces and bottle sizes, and types become the app's paint types.
+- **Loading.** `data/` is outside `js/`, so the page doesn't load it at start-up. `loadCatalogue()` adds it as a `<script>` the first time it's needed, which works from `file://`, and keeps it in `catalogue` (state in `app.js`). If it can't load, the Find box says so and nothing else changes.
+- **Searching.** `findInCatalogue(text)` finds up to 30 paints whose name, brand, range or code contains every word typed, names starting with the text first. Each paint has a unique `label`, like "Mephiston Red · Citadel Base", which suggestion lists offer and `catalogueEntry()` looks up.
+- **The paint form** opens with a Find box (`defs.paints.formIntro`, `catalogueFindHtml()`). Picking a paint fills in name, brand, range, type and colour (`fillPaintForm()`), leaving stock, quantity, price and notes alone.
+- **Quick add on the paints page** suggests catalogue paints (`#quickCatalogue`). Picking one adds it straight away, with its details, as Full with quantity 1 (`quickCatalogueRecord()`). Straight away, because while suggestions show, WebKit (Safari) takes Enter to close them instead of submitting. Anything else is added by name, as before.
+- **Enter in the Find and plan boxes** picks a suggestion and never saves the form (a `keydown` handler in `app.js`).
+- **Planning a recipe with paints you don't own.** The miniature form's Recipe paints field has `plan: true`, which adds a box offering your wishlist's paints (category Paint, not yet linked to a paint) and the catalogue. A pick adds a pending option to the recipe, valued `wish:<id>` or `cat:<label>`. `submit()` calls `planPaints()` inside its `commit()`, which turns each into a paint with stock Empty and quantity 0, linked from the wishlist item (a new one for catalogue paints), so Bought restocks it. A catalogue paint you already have, by brand and name, is used instead. Cancelling adds nothing.
 
 **Sorting.** Column headers are buttons (`data-sort`). Clicking one sorts the visible rows by that column, and clicking it again reverses the order. The sort resets when you change section.
 
@@ -249,7 +265,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 **Bought.** Each wishlist row has a Bought button (`data-bought`, `bought()`). Whatever happens, the item comes off the wishlist, in one `commitWithUndo` with the rest (`buy()`).
 
-- **Restocks.** An item whose `paint` link points at a paint that still exists sets that paint's `stock` to Full. Quantity and price aren't changed.
+- **Restocks.** An item whose `paint` link points at a paint that still exists sets that paint's `stock` to Full. A quantity of "0" (a paint planned but not owned) becomes "1"; otherwise quantity and price aren't changed.
 - **Paint, Tool and Miniature items** are added to that list (`BOUGHT_TO`), built by `boughtRecord()`:
   - they keep the item's `name`, `price` and `notes`, and an http(s) `url` is added to the notes as "Bought from …";
   - new paints start with quantity 1 and stock Full, tools with quantity 1 and condition New, and miniatures with status Unbuilt.

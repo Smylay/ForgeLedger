@@ -63,7 +63,11 @@ function buy(w, to, paint) {
   return commitWithUndo(
     () => {
       db.wishlist = db.wishlist.filter((x) => x.id !== w.id);
-      if (paint) paint.stock = "Full";
+      if (paint) {
+        paint.stock = "Full";
+        // A paint you planned with but didn't own (quantity 0) is one now.
+        if (paint.quantity === "0") paint.quantity = "1";
+      }
       if (record) db[to].push(record);
     },
     () =>

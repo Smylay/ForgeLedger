@@ -81,10 +81,21 @@ const defs = {
     sub: "Brands, ranges, stock and replacement warnings",
     fields: [
       { key: "name", label: "Paint name", required: true },
-      { key: "brand", label: "Brand", suggest: "paintBrands" },
+      {
+        key: "brand",
+        label: "Brand",
+        suggest: "paintBrands",
+        suggestMore: () => catalogueBrands(),
+      },
       // Range is the product line, e.g. Vallejo Model Color; its suggestions
       // follow the brand.
-      { key: "range", label: "Range", suggest: true, suggestBy: "brand" },
+      {
+        key: "range",
+        label: "Range",
+        suggest: true,
+        suggestBy: "brand",
+        suggestMore: (obj) => catalogueRanges(obj.brand),
+      },
       { key: "colour", label: "Colour / hex", type: "color" },
       {
         key: "type",
@@ -94,11 +105,16 @@ const defs = {
           "Primer",
           "Base",
           "Layer",
+          "Standard",
           "Shade/Wash",
           "Contrast/Speedpaint",
+          "Glaze",
+          "Ink",
+          "Dry",
+          "Air",
           "Metallic",
           "Technical",
-          "Ink",
+          "Effect",
           "Medium",
           "Other",
         ],
@@ -131,6 +147,7 @@ const defs = {
     },
     columns: ["name", "brand", "range", "type", "quantity", "stock", "usedin"],
     swatch: "colour", // show this colour beside each paint's name
+    formIntro: () => catalogueFindHtml(), // Find in the paint catalogue
     // Each list opens sorted so what needs attention comes first: here, the
     // lowest stock. Clicking a column header still sorts by that column.
     defaultSort: { key: "stock", dir: 1 },
@@ -217,7 +234,13 @@ const defs = {
         },
         type: "money",
       },
-      { key: "paints", label: "Recipe paints", type: "links", to: "paints" },
+      {
+        key: "paints",
+        label: "Recipe paints",
+        type: "links",
+        to: "paints",
+        plan: true, // add paints you don't own yet (catalogue.js)
+      },
       { key: "recipe", label: "Recipe steps", type: "textarea" },
       { key: "notes", label: "Notes", type: "textarea" },
     ],

@@ -136,6 +136,10 @@ function show(k) {
       input.placeholder = `Quick add ${what}…`;
       input.setAttribute("aria-label", `Quick add ${what}, by name`);
     }
+    // On the paints page, quick add suggests catalogue paints.
+    let quick = document.querySelector("#listView .quickadd input");
+    if (k === "paints") quick.setAttribute("list", "quickCatalogue");
+    else quick.removeAttribute("list");
   }
   render();
 }

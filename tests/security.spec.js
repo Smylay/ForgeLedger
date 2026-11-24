@@ -9,6 +9,7 @@ const {
   tableRows,
   downloadText,
   importBackup,
+  importAndWait,
 } = require("./helpers");
 
 // Breaks out of an HTML attribute and sets window[flag] if it runs.
@@ -103,7 +104,7 @@ test("records with unusual ids can still be edited and deleted", async ({
   page,
 }, testInfo) => {
   const odd = `a"b'c<d>&e`;
-  await importBackup(page, { paints: [{ id: odd, name: "Odd" }] }, testInfo);
+  await importAndWait(page, { paints: [{ id: odd, name: "Odd" }] }, testInfo);
   await nav(page, "paints");
   await page.click("button[data-edit]");
   await fillForm(page, { name: "Renamed" });
@@ -118,7 +119,7 @@ test("records with unusual ids can still be edited and deleted", async ({
 test("a skill level that isn't a number shows as 0", async ({
   page,
 }, testInfo) => {
-  await importBackup(
+  await importAndWait(
     page,
     { skills: [{ id: "s", name: "Odd", level: "lots" }] },
     testInfo,
@@ -129,7 +130,7 @@ test("a skill level that isn't a number shows as 0", async ({
 
 test.describe("wishlist links", () => {
   test("only http(s) addresses become links", async ({ page }, testInfo) => {
-    await importBackup(
+    await importAndWait(
       page,
       {
         wishlist: [
@@ -205,7 +206,7 @@ test("CSV export can't smuggle spreadsheet formulas", async ({ page }) => {
 });
 
 test("CSV export leaves negative numbers alone", async ({ page }, testInfo) => {
-  await importBackup(
+  await importAndWait(
     page,
     { tools: [{ id: "1", name: "Refund", price: "-4.50" }] },
     testInfo,
@@ -219,7 +220,7 @@ test("CSV export leaves negative numbers alone", async ({ page }, testInfo) => {
 test("a bought wishlist item carries nothing that can run", async ({
   page,
 }, testInfo) => {
-  await importBackup(
+  await importAndWait(
     page,
     {
       wishlist: [
@@ -250,7 +251,7 @@ test("a bought wishlist item carries nothing that can run", async ({
 });
 
 test("photo ids and names can't run script", async ({ page }, testInfo) => {
-  await importBackup(
+  await importAndWait(
     page,
     {
       schemaVersion: 5,
@@ -278,7 +279,7 @@ test("photo ids and names can't run script", async ({ page }, testInfo) => {
 });
 
 test("rewards can't run script", async ({ page }, testInfo) => {
-  await importBackup(
+  await importAndWait(
     page,
     {
       schemaVersion: 5,
@@ -319,7 +320,7 @@ test("rewards can't run script", async ({ page }, testInfo) => {
 });
 
 test("the Used in list can't run script", async ({ page }, testInfo) => {
-  await importBackup(
+  await importAndWait(
     page,
     {
       paints: [{ id: attack("usedPaintId"), name: attack("usedPaint") }],
@@ -352,7 +353,7 @@ test("the Used in list can't run script", async ({ page }, testInfo) => {
 });
 
 test("suggestions can't run script", async ({ page }, testInfo) => {
-  await importBackup(
+  await importAndWait(
     page,
     {
       paints: [
@@ -391,4 +392,38 @@ test("suggestions can't run script", async ({ page }, testInfo) => {
     ),
   );
   expect(ran).toEqual([]);
+});
+
+test("planning recipe paints can't run script", async ({ page }, testInfo) => {
+  await importAndWait(
+    page,
+    {
+      wishlist: [
+        {
+          id: attack("planWishId"),
+          name: attack("planWish"),
+          category: "Paint",
+        },
+      ],
+    },
+    testInfo,
+  );
+  await nav(page, "miniatures");
+  await page.click("#addBtn");
+  await fillForm(page, { name: "Mini" });
+  await page.fill("#planPaint", "x");
+  await expect(page.locator("#planList option").first()).toBeAttached();
+  const label = await page
+    .locator("#planList option")
+    .first()
+    .getAttribute("value");
+  await page.fill("#planPaint", label);
+  await page.click('#itemForm button[type="submit"]');
+  await page.waitForTimeout(200);
+  const ran = await page.evaluate(() =>
+    ["planWishId", "planWish"].filter((f) => window[f]),
+  );
+  expect(ran).toEqual([]);
+  // The paint it became is named like the wishlist item, as text.
+  expect((await stored(page)).paints[0].name).toBe(attack("planWish"));
 });

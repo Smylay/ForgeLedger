@@ -22,7 +22,7 @@ function fieldHtml(f, obj) {
   if (f.type === "links") {
     let chosen = asList(v),
       all = db[f.to];
-    return `<label class="full">${f.label}<select ${name} multiple size="${Math.min(6, Math.max(3, all.length))}">${all.map((r) => `<option value="${esc(r.id)}" ${chosen.includes(r.id) ? "selected" : ""}>${esc(optionLabel(r))}</option>`).join("")}</select><small class="muted">${all.length ? "Ctrl-click (⌘-click on a Mac) to pick several." : `No ${defs[f.to].title.toLowerCase()} yet.`}</small></label>`;
+    return `<label class="full">${f.label}<select ${name} multiple size="${Math.min(6, Math.max(3, all.length))}">${all.map((r) => `<option value="${esc(r.id)}" ${chosen.includes(r.id) ? "selected" : ""}>${esc(optionLabel(r))}</option>`).join("")}</select><small class="muted">${all.length ? "Ctrl-click (⌘-click on a Mac) to pick several." : `No ${defs[f.to].title.toLowerCase()} yet.`}</small></label>${f.plan ? planPaintHtml() : ""}`;
   }
   if (f.type === "textarea")
     return `<label class="full">${f.label}<textarea ${name}>${esc(v)}</textarea></label>`;
@@ -45,10 +45,10 @@ function openForm(sec = section, obj = {}) {
   editId = obj.id || null;
   document.querySelector("#modalTitle").textContent =
     (editId ? "Edit " : "Add ") + d.noun;
-  document.querySelector("#formFields").innerHTML = d.fields
-    .map((f) => fieldHtml(f, obj))
-    .join("");
+  document.querySelector("#formFields").innerHTML =
+    (d.formIntro?.() || "") + d.fields.map((f) => fieldHtml(f, obj)).join("");
   document.querySelector("#modal").showModal();
+  catalogueForForm(document.querySelector("#itemForm"));
 }
 function submit(e) {
   e.preventDefault();
@@ -89,6 +89,8 @@ function submit(e) {
   if (formSection === "skills" && (!prev || skillLevel(prev) !== o.level))
     o.changed = today();
   let saved = commit(() => {
+    // Recipe paints you don't own yet become paints now (catalogue.js).
+    for (let f of d.fields) if (f.plan) o[f.key] = planPaints(o[f.key]);
     let arr = db[formSection],
       i = arr.findIndex((x) => x.id === o.id);
     // Merge, so fields the form doesn't show (like a queue item's stage

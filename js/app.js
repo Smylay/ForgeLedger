@@ -21,6 +21,8 @@ let memoryOnly = false, // storage is blocked: changes live in memory only
 let db = load(),
   section = "dashboard",
   formSection = null, // the collection the add/edit form saves to
+  // The paint catalogue (catalogue.js): its load, and its paints once loaded.
+  catalogue = { load: null, paints: null, byLabel: null },
   editId = null;
 if (upgraded) save();
 // What each row and notice button does, by its data-* attribute. Buttons
@@ -82,6 +84,9 @@ for (let form of document.querySelectorAll(".quickadd"))
     if (form.id === "skillAdd") addSkill(form);
     else quickAdd(form);
   };
+// Quick add on the paints page suggests catalogue paints (catalogue.js).
+document.querySelector("#listView .quickadd").oninput = (e) =>
+  quickCatalogueInput(e.target);
 // Choosing "Other" in the skill picker shows a box for the name.
 document.querySelector("#skillAdd select").onchange = (e) => {
   let input = e.target.form.elements.name,
@@ -91,12 +96,20 @@ document.querySelector("#skillAdd select").onchange = (e) => {
   if (other) input.focus();
 };
 document.querySelector("#itemForm").onsubmit = submit;
+// Enter in the catalogue and plan boxes picks a suggestion; it doesn't save
+// the form.
+document.querySelector("#itemForm").onkeydown = (e) => {
+  if (e.key === "Enter" && ["catalogueFind", "planPaint"].includes(e.target.id))
+    e.preventDefault();
+};
 document.querySelector("#itemForm").oninput = (e) => {
   let form = e.currentTarget;
   for (let el of form.elements) el.setCustomValidity?.(""); // re-check on save
   if (e.target.type === "color")
     form.querySelector(`[data-nocolour="${e.target.name}"]`).checked = false;
   if (e.target.name) updateSuggestions(form, e.target.name);
+  if (e.target.id === "catalogueFind") catalogueFindInput(e.target);
+  if (e.target.id === "planPaint") planPaintInput(e.target);
 };
 // Runs as the button is clicked; the dialog closes itself afterwards.
 document.querySelector("#completeForm").onsubmit = (e) => {

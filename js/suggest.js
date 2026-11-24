@@ -128,10 +128,20 @@ function suggestions(f, sec, obj = {}) {
   let yours = [...counts.values()]
     .sort((a, b) => b.n - a.n || a.v.localeCompare(b.v))
     .map((e) => e.v);
-  let common = (SUGGESTION_LISTS[f.suggest] || []).filter(
-    (v) => !counts.has(v.toLowerCase()),
-  );
-  return [...yours, ...common];
+  // Then values from elsewhere, like the paint catalogue's ranges for the
+  // brand, then the common list; each value once.
+  let more = [
+      ...(f.suggestMore?.(obj) || []),
+      ...(SUGGESTION_LISTS[f.suggest] || []),
+    ],
+    seen = new Set(counts.keys()),
+    rest = [];
+  for (let v of more)
+    if (!seen.has(v.toLowerCase())) {
+      seen.add(v.toLowerCase());
+      rest.push(v);
+    }
+  return [...yours, ...rest];
 }
 // The <datalist> for a field that suggests values.
 function suggestHtml(f, sec, obj) {
@@ -150,4 +160,15 @@ function updateSuggestions(form, changed) {
       let list = form.querySelector(`#suggest-${f.key}`);
       if (list) list.outerHTML = suggestHtml(f, formSection, values);
     }
+}
+// Redraw every suggestion list in the form, e.g. once the paint catalogue
+// has loaded.
+function refreshSuggestions(form) {
+  let d = defs[formSection];
+  if (!d) return;
+  let values = Object.fromEntries(new FormData(form));
+  for (let f of d.fields) {
+    let list = f.suggest && form.querySelector(`#suggest-${f.key}`);
+    if (list) list.outerHTML = suggestHtml(f, formSection, values);
+  }
 }

@@ -144,6 +144,19 @@ async function importBackup(page, content, testInfo, name = "backup.json") {
   await page.setInputFiles("#importFile", file);
 }
 
+// Import a backup and wait until it has finished. Import reads the file and
+// stores any photos in the background, then goes to the dashboard, so the
+// next step could otherwise run first, and be undone.
+async function importAndWait(page, content, testInfo, name) {
+  await page.evaluate(
+    () => (document.querySelector("#toastText").textContent = ""),
+  );
+  await importBackup(page, content, testInfo, name);
+  await base
+    .expect(page.locator("#toastText"))
+    .toContainText("Backup imported");
+}
+
 // An image drawn in the page, as a file for an <input type="file">.
 async function imageFile(page, name, w, h, colour = "#c33") {
   const b64 = await page.evaluate(
@@ -181,4 +194,5 @@ module.exports = {
   tableRows,
   downloadText,
   importBackup,
+  importAndWait,
 };

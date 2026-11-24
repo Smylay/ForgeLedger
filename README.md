@@ -4,8 +4,9 @@ ForgeLedger is an offline-first tracker for miniature wargaming. It keeps your p
 
 ## Features
 
+- **A paint catalogue** of about 5,300 paints from 15 brands: find one by name or code, and its brand, range, type and colour fill in. Quick add on the paints page picks from it too.
 - **Paints** with brand, range, colour and type (including Primer and Shade/Wash), and a stock level (Full, Good, Half, Low or Empty) that you set with one tap. Low stock shows on the dashboard, with one-click restock to the wishlist. "Used in" lists the miniatures whose recipe uses a paint.
-- **Miniatures** with model and painted counts, status, army project, recipes built from your own paints, and photos from your computer or phone camera.
+- **Miniatures** with model and painted counts, status, army project, recipes built from your paints, and photos from your computer or phone camera. Plan a recipe with paints you don't own yet, from your wishlist or the catalogue, and they go on your wishlist.
 - **Tools** with a condition, from New to Replace soon.
 - **Army projects** whose progress and spend are calculated from their miniatures, with overdue and due-soon markers. Progress counts work in progress: a model halfway through its painting stages counts as half done. Each project shows its rewards, and you can add one from there.
 - **A painting queue** linked to your miniatures. Each item has a stage progress bar, a one-tap Next stage button, and a +1 counter for the current stage that moves the item on once every model is done. Split an item by stage when its models are at different points, such as 2 priming and 3 basecoating. Rename, reorder, add or remove the stages for the whole queue, or give one item stages of its own. Reorder it by dragging, or with the Top and arrow buttons. Completing an item can mark its miniature complete.
@@ -66,7 +67,7 @@ The version (1.0.0) is shown in the sidebar and in Settings. Backups record the 
 
 ForgeLedger is a set of static files, so any web server can host it. The server stores nothing. Each visitor's data stays in their own browser, as described in [Your data](#your-data).
 
-The app needs only `index.html`, `forgeledger_v2.html`, `styles.css` and the `js` folder. You can serve the whole repository folder, or just those files. Use any one of the options below, then open `http://<server-address>:8080/`.
+The app needs only `index.html`, `forgeledger_v2.html`, `styles.css`, the `js` folder and `data/paint-catalogue.js`. You can serve the whole repository folder, or just those files. Use any one of the options below, then open `http://<server-address>:8080/`.
 
 - **Python**, for quick use on your home network:
 
@@ -128,6 +129,10 @@ Pull requests are welcome. Before you open one:
 ## Roadmap
 
 See [ROADMAP.md](ROADMAP.md).
+
+## Credits
+
+The paint catalogue comes from [Arcturus5404/miniature-paints](https://github.com/Arcturus5404/miniature-paints) (MIT licence) and, for Citadel, [SimoGecko/CitadelColours](https://github.com/SimoGecko/CitadelColours). See [data/sources/README.md](data/sources/README.md). Its colours are approximations.
 
 ## Licence
 
