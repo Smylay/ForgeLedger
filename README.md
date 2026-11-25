@@ -51,7 +51,7 @@ Your data is kept by your browser, not in ForgeLedger's files, so replacing the 
 
 Keep it in the same folder. Chrome and Edge find your data wherever the files are, but Firefox and Safari may keep a local file's data with its folder, so a copy somewhere else can open empty. If that happens, **Import** the backup from step 1. A hosted copy keeps its data as long as its address stays the same.
 
-Backups from older versions always import into newer ones. A backup made by a newer version won't import into an older one, so update before importing it.
+Backups from older versions always import into newer ones. A backup made by a newer version won't import into an older one, so update before importing it. Going from 1.x to 2.0, keep the backup from step 1: once 2.0 has opened your data, 1.x can't.
 
 ## Settings
 
@@ -61,7 +61,7 @@ Open **Settings** at the bottom of the sidebar (top right on phones and tablets)
 - **Currency:** how prices are shown, for example €4.50 or 4,50 kr. Amounts aren't converted. The currency is saved with your data, so it's in your backups.
 - **Auto-save to a file,** **keyboard shortcuts** and **Erase all data,** as described above.
 
-The version (1.0.0) is shown in the sidebar and in Settings. Backups record the version that made them. A backup made by a newer version than yours is refused, so update first. See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
+The version is shown in the sidebar and in Settings. Backups record the version that made them. A backup made by a newer version than yours is refused, so update first. See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
 
 ## Hosting on your own server
 
