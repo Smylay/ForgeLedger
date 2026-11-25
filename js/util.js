@@ -51,6 +51,12 @@ function download(text, name, type = "application/json") {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 // Today's date as YYYY-MM-DD in local time, the format date inputs use.
+// A price as a number to add up: blank, junk or negative counts as 0, so one
+// bad value can't spoil a total.
+function amount(v) {
+  let n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
 function today() {
   let d = new Date(),
     p = (n) => String(n).padStart(2, "0");

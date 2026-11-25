@@ -57,12 +57,8 @@ function showUsedIn(pid) {
 function restocks(p) {
   return Array.isArray(p?.restocks) ? p.restocks.filter(isRecord) : [];
 }
-function restockPrice(r) {
-  let n = Number(r.price);
-  return Number.isFinite(n) && n > 0 ? n : 0;
-}
 function restockSpend(p) {
-  return restocks(p).reduce((a, r) => a + restockPrice(r), 0);
+  return restocks(p).reduce((a, r) => a + amount(r.price), 0);
 }
 // Record a restock bought today.
 function addRestock(p, price) {
@@ -75,7 +71,7 @@ function restocksHtml(p) {
   let list = restocks(p),
     rows = list
       .map((r, i) => {
-        let price = restockPrice(r),
+        let price = amount(r.price),
           date =
             (["string", "number"].includes(typeof r.date) && esc(r.date)) ||
             "no date";
