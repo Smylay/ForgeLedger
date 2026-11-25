@@ -58,7 +58,7 @@ test.describe("loaded", () => {
       projects: "2",
       queue: "4",
       skills: "11",
-      wishlist: "5",
+      wishlist: "6",
     });
     expect((await stored(page)).demo).toBe(true);
   });

@@ -92,8 +92,22 @@ function renderNav() {
 // The section named by the page address (#/paints), or "dashboard" for
 // anything else. hasOwn stops names like "toString" from matching.
 function sectionFromHash() {
-  let k = location.hash.replace(/^#\/?/, "");
+  let k = location.hash.replace(/^#\/?/, "").split("/")[0];
   return Object.hasOwn(defs, k) ? k : "dashboard";
+}
+// The project a project page's address names (#/projects/<id>), or "".
+function projectFromHash() {
+  let m = location.hash.match(/^#\/?projects\/(.+)$/);
+  try {
+    return m ? decodeURIComponent(m[1]) : "";
+  } catch {
+    return ""; // not valid percent-encoding
+  }
+}
+// The address of a project's page. Ids are untrusted: encode them here, and
+// escape the result like any value put in HTML.
+function projectHref(pid) {
+  return "#/projects/" + encodeURIComponent(pid);
 }
 // Go to a section: update the address (adding a history entry) and show it.
 // The hashchange this causes finds the section already showing.
@@ -102,11 +116,18 @@ function go(k) {
   if (location.hash !== "#/" + k) location.hash = "#/" + k;
   show(k);
 }
-// Draw a section: "dashboard" or a key of `defs`.
-function show(k) {
+// Draw a section: "dashboard" or a key of `defs`; for "projects", `pid`
+// can name a project to show its page instead of the list.
+function show(k, pid = "") {
   let d = defs[k];
   for (let dialog of document.querySelectorAll("dialog[open]")) dialog.close();
   section = k;
+  openProject =
+    k === "projects" && pid && db.projects.some((p) => p.id === pid)
+      ? pid
+      : null;
+  // An address naming a project that isn't there shows the list.
+  if (pid && !openProject) history.replaceState(null, "", "#/" + k);
   editId = null;
   document.querySelector("#search").value = "";
   document.querySelector("#filter").innerHTML = ""; // resets the filter
@@ -125,9 +146,13 @@ function show(k) {
     ? d.sub
     : "Your hobby at a glance";
   document
-    .querySelector("#" + (d ? d.view || "listView" : "dashboard"))
+    .querySelector(
+      "#" +
+        (openProject ? "projectView" : d ? d.view || "listView" : "dashboard"),
+    )
     .classList.add("active");
-  document.querySelector("#addBtn").style.display = d ? "inline-block" : "none";
+  document.querySelector("#addBtn").style.display =
+    d && !openProject ? "inline-block" : "none";
   if (d) {
     let what = `${/^[aeiou]/i.test(d.noun) ? "an" : "a"} ${d.noun}`;
     for (let input of document.querySelectorAll(
@@ -147,6 +172,7 @@ function render() {
   if (section === "dashboard") renderDashboard();
   else if (section === "queue") renderQueue();
   else if (section === "skills") renderSkills();
+  else if (openProject) renderProject();
   else renderList();
 }
 function renderDashboard() {
@@ -201,7 +227,7 @@ function renderProjectSummary() {
           let st = projectStats(p),
             due = dueBadge(p.deadline, projectDone(p)),
             pc = st.percent;
-          return `<div class="project"><div class="projectfoot"><b>${esc(p.name)}${due ? " " + due : ""}</b><span>${pc}%</span></div><div class="chart"><div class="bar" style="width:${pc}%"></div></div><small class="muted">${st.painted} of ${st.goal} models painted · ${st.models} owned · ${money(st.spent)} / ${money(p.budget)}</small></div><br>`;
+          return `<div class="project"><div class="projectfoot"><b><a class="plink" href="${esc(projectHref(p.id))}">${esc(p.name)}</a>${due ? " " + due : ""}</b><span>${pc}%</span></div><div class="chart"><div class="bar" style="width:${pc}%"></div></div><small class="muted">${st.painted} of ${st.goal} models painted · ${st.models} owned · ${money(st.spent)} / ${money(p.budget)}</small></div><br>`;
         })
         .join("")
     : '<div class="empty">No army projects yet.</div>';
@@ -339,6 +365,13 @@ function cellHtml(f, x) {
     let badge = dueBadge(v, f.doneWhen(x));
     return esc(cellText(f, x)) + (badge ? " " + badge : "");
   }
+  // A project links to its page.
+  if (f.type === "link" && f.to === "projects") {
+    let r = linked(f, v);
+    return r
+      ? `<a class="plink" href="${esc(projectHref(r.id))}">${esc(r.name)}</a>`
+      : "";
+  }
   if (f.type === "links")
     return linkedAll(f, v)
       .map(
@@ -381,7 +414,7 @@ function rowHtml(d, x) {
     .map((k) => column(d, k))
     .map(
       (c) =>
-        `<td>${c.key === "name" && d.swatch ? swatchHtml(x[d.swatch]) : ""}${c.key === "name" && d.photos && photoIds(x).length ? `<span class="withthumb">${coverHtml(x)}<span>${cellHtml(c, x)}</span></span>` : cellHtml(c, x)}${c.key === "name" && d.under ? d.under(x) : ""}</td>`,
+        `<td>${c.key === "name" && d.swatch ? swatchHtml(x[d.swatch]) : ""}${c.key === "name" && d.photos && photoIds(x).length ? `<span class="withthumb">${coverHtml(x)}<span>${cellHtml(c, x)}</span></span>` : c.key === "name" && d.page ? `<a class="plink" href="${esc(projectHref(x.id))}">${cellHtml(c, x)}</a>` : cellHtml(c, x)}${c.key === "name" && d.under ? d.under(x) : ""}</td>`,
     )
     .join("");
   return `<tr data-row="${esc(x.id)}">${cells}<td class="rowacts">${section === "wishlist" ? `<button data-bought="${esc(x.id)}" aria-label="Bought: ${esc(x.name)}">Bought</button>` : ""}<button data-edit="${esc(x.id)}">Edit</button><button class="del" data-del="${esc(x.id)}">Delete</button>${section === "miniatures" ? addButtonsHtml(x) : ""}${d.photos ? photosButtonHtml(x) : ""}</td></tr>`;

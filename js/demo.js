@@ -40,9 +40,9 @@ function demoData(base = new Date()) {
         phase,
       })),
     );
-  // The first painted squad model has the squad's photo.
+  // The first painted squad model has a name, and the squad's photo.
   let squad = cards("squad", ["Painting", 5], ["Detailing", 3], ["Done", 2]);
-  squad[8].photo = "demo-photo-1";
+  Object.assign(squad[8], { name: "Sergeant Vorn", photo: "demo-photo-1" });
   let skill = (name, level, changed, goal = "") => ({
     id: "s-" + name.toLowerCase().replace(/[^a-z]+/g, "-"),
     name,
@@ -325,6 +325,19 @@ function demoData(base = new Date()) {
         price: "32.00",
         url: "",
         notes: "",
+      },
+      {
+        id: "w-support",
+        name: "Iron Guard support squad",
+        category: "Miniature",
+        priority: "High",
+        project: "a-iron",
+        paint: "",
+        rewardFor: "",
+        rewardAt: "",
+        price: "40.00",
+        url: "",
+        notes: "To round the strike force out.",
       },
       {
         id: "w-chapel",

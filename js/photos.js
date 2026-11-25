@@ -223,9 +223,9 @@ function photosFromBackup(photos) {
 // (`viewing.card`, from the board). It shows the chosen photo large, a
 // strip of thumbnails to pick from, and buttons to add, make cover and
 // remove.
-function openPhotos(mid) {
+function openPhotos(mid, index = 0) {
   if (db.miniatures.some((x) => x.id === mid))
-    openViewer({ id: mid, index: 0, url: "" });
+    openViewer({ id: mid, index, url: "" });
 }
 function openCardPhoto(qid, cid) {
   let q = db.queue.find((x) => x.id === qid);

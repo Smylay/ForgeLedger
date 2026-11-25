@@ -20,6 +20,7 @@ let memoryOnly = false, // storage is blocked: changes live in memory only
   toastTimer;
 let db = load(),
   section = "dashboard",
+  openProject = null, // the project whose page is showing (project.js), if any
   formSection = null, // the collection the add/edit form saves to
   // The paint catalogue (catalogue.js): its load, and its paints once loaded.
   catalogue = { load: null, paints: null, byLabel: null },
@@ -52,9 +53,10 @@ const BUTTON_ACTIONS = {
       : b.dataset.demo === "clear"
         ? clearDemo()
         : keepDemo(),
-  photos: (b) => openPhotos(b.dataset.photos),
+  photos: (b) => openPhotos(b.dataset.photos, Number(b.dataset.at) || 0),
   usedin: (b) => showUsedIn(b.dataset.usedin),
   addreward: (b) => addReward(b.dataset.addreward),
+  projectwish: (b) => openForm("wishlist", { project: b.dataset.projectwish }),
   toolwish: (b) =>
     toolWish(b.dataset.toolwish, b.closest("[data-card]")?.dataset.card),
   toolbought: (b) =>
@@ -64,6 +66,7 @@ const BUTTON_ACTIONS = {
   qview: (b) => setQueueMode(b.dataset.qview),
   unit: (b) => toggleUnit(b.dataset.unit, b.dataset.from),
   mphoto: (b) => openCardPhoto(b.dataset.q, b.dataset.mphoto),
+  mname: (b) => startRename(b),
   move: (b) =>
     stepCards(
       b.dataset.move,
@@ -297,7 +300,8 @@ document.querySelector("#queueContent").addEventListener("pointerdown", (e) => {
 // release. ◀ and ▶ do the same without dragging.
 document.querySelector("#queueContent").addEventListener("pointerdown", (e) => {
   let el = e.target.closest(".mcard, .unithead");
-  if (!el || e.button !== 0 || e.target.closest(".arrow, .mphoto")) return;
+  if (!el || e.button !== 0 || e.target.closest(".arrow, .mphoto, input"))
+    return;
   if (e.pointerType !== "mouse" && !e.target.closest(".grip")) return;
   let x0 = e.clientX,
     y0 = e.clientY,
@@ -384,9 +388,11 @@ document.addEventListener("keydown", (e) => {
 });
 // Back, forward, and typed or bookmarked addresses.
 window.addEventListener("hashchange", () => {
-  if (sectionFromHash() !== section) show(sectionFromHash());
+  let k = sectionFromHash(),
+    pid = projectFromHash();
+  if (k !== section || (pid || null) !== openProject) show(k, pid);
 });
-show(sectionFromHash());
+show(sectionFromHash(), projectFromHash());
 renderBackupState();
 renderAlerts();
 tidyPhotos().catch(() => {}); // delete stored photos nothing uses

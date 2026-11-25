@@ -63,6 +63,7 @@ The code lives in plain `<script>` files that share the global scope. They aren'
 | `queue.js`      | the painting queue: phases, model cards, Add 1/Add all, moving cards, the board and list views, reordering, the completion prompt    |
 | `stages.js`     | the phase editor (Edit board), and moving cards when phases change                                                                   |
 | `skills.js`     | the skills page: cards, sliders, the skill profile, practice suggestions, the technique picker                                       |
+| `project.js`    | a project's own page (`#/projects/<id>`): its progress, miniatures and board status, photos, wishlist items and rewards              |
 | `backup.js`     | JSON backup and import, and CSV export                                                                                               |
 | `render.js`     | nav and page switching, the dashboard, list tables, sorting, deadline markers, alerts                                                |
 | `suggest.js`    | suggestions as you type: common brands and game systems, plus values you've used                                                     |
@@ -79,7 +80,7 @@ The code lives in plain `<script>` files that share the global scope. They aren'
   - Declaring a `let` or `const` name twice is a `SyntaxError` that stops the app loading.
   - A second `function` with a name already used is worse: it silently replaces the first.
   - `tests/code.spec.js` fails if two files declare the same top-level name.
-- **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `upgraded`, `completing`, `buying`, `openUnits`, `viewing`, `newRewards`, `photoDbOpen`, `photoCheck`, `photoUrls`, `autoSave`, `formSection`, `catalogue` and `toastTimer`.
+- **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `upgraded`, `completing`, `buying`, `openUnits`, `openProject`, `viewing`, `newRewards`, `photoDbOpen`, `photoCheck`, `photoUrls`, `autoSave`, `formSection`, `catalogue` and `toastTimer`.
 
 To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 
@@ -91,7 +92,8 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 - **Back, forward and typed addresses** fire `hashchange`, which calls `show()` for the section in `sectionFromHash()`.
   - Unknown names fall back to the dashboard. `Object.hasOwn` stops names like `toString` from matching.
   - The slash is optional: `#paints` works too.
-- **Reloading** keeps the current section.
+- **A project's page** is `#/projects/<id>` (see Project pages). `sectionFromHash()` reads the part before any `/`, and `projectFromHash()` the id after `projects/`. `show(k, pid)` shows the page when `pid` names a project that exists, setting `openProject`; otherwise the list, and an address naming a missing project is replaced with `#/projects`. Build its address with `projectHref()`, which encodes the id; escape it like any value.
+- **Reloading** keeps the current section, or project page.
 - **Clicks on nav links.** The click listener handles plain left-clicks itself. Ctrl, Cmd and Shift clicks are left to the browser, so they open a new tab or window.
 - **`index.html` only forwards** to `forgeledger_v2.html`, keeping the hash. The app file keeps its old name, so data saved by earlier versions stays at the same `file://` location.
 
@@ -156,6 +158,7 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 - `computed`: read-only columns calculated from other data, such as `projectStats()` for projects. A computed column is `{ label, type, value(record), html(record) }`, and `column(d, key)` resolves keys from both `fields` and `computed`. `html` is optional: the table shows it instead of `value`, which search, sorting and CSV still use.
 - `defaultSort` (optional): `{ key, dir }`, the sort a list opens with (see Sorting).
 - `under` (optional): `(record) => html` shown under the record's name in the table, e.g. a project's rewards.
+- `page: true` (optional, projects only): each record's name in the table links to its own page.
 - `formIntro` (optional): `() => html` shown above the form's fields, e.g. the paint form's Find box.
 - `formOutro` (optional): `(record) => html` shown below the form's fields, e.g. a paint's restocks.
 - `formSave` (optional): `(o, prev, formData)`, called by `submit()` before saving, for inputs outside `fields` or data kept with the record: it takes their values out of `o` and applies them, e.g. `saveRestocks()`, or a queue item's cards (`saveQueueEntry()`).
@@ -217,7 +220,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 **Accessibility and layout.**
 
-- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the empty dashboard's example data offer and notice, the add/edit form, the completion prompt, the board with a unit open, the queue list, the Bought prompt, the reward notice, the board editor, the photo viewer, the keyboard shortcuts list and Settings. It runs at desktop and phone sizes in the dark theme, and at desktop size in the light theme and each colour theme. The colour themes run in Chromium only, since contrast doesn't depend on the browser. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
+- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, a project's page, the empty dashboard's example data offer and notice, the add/edit form, the completion prompt, the board with a unit open and a model being renamed, the queue list, the Bought prompt, the reward notice, the board editor, the photo viewer, the keyboard shortcuts list and Settings. It runs at desktop and phone sizes in the dark theme, and at desktop size in the light theme and each colour theme. The colour themes run in Chromium only, since contrast doesn't depend on the browser. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
 - **Colours are tokens.** Every colour in `styles.css` is a custom property on `:root` (the dark theme), except white text on strong backgrounds. The light theme sets every token again in `:root[data-theme="light"]`, and the same values again for `:root[data-theme="system"]` inside `@media (prefers-color-scheme: light)`. CSS can't share one block between the two, so `tests/settings.spec.js` checks that the light blocks match each other and set every token the dark one does.
   - **Colour themes** are blocks like `:root[data-theme="forest"]`, after the light ones. The dark ones (Forest, Ocean, Amethyst) set only the backgrounds, lines, `--muted` and the accent, and take the rest from `:root`; Parchment is light, so it sets every token. `tests/settings.spec.js` checks that they set only known tokens, that Parchment sets them all, and that every theme in `THEMES` is offered.
   - A new colour needs a token, with a light value that keeps text at 4.5:1 on the backgrounds it's used on, and a Parchment value too. Text colours have their own tokens where a fill colour would be too light, such as `--gold-text` and `--danger-text`.
@@ -232,7 +235,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - The page grid uses `minmax(0, 1fr)`, so wide content can't widen the page.
   - `tests/layout.spec.js` checks that every section fits a 375px screen.
 
-**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`). For a `<button>`, it runs the entry in `BUTTON_ACTIONS` (in `app.js`) for each `data-*` attribute the button has: `edit`, `del`, `sort`, `scale`, `step`, `recovery`, `wish`, `wishall`, `bought`, `unreward`, `demo`, `photos`, `usedin`, `addreward`, `toolwish`, `toolbought`, `addone`, `addall`, `qview`, `unit`, `move`, `mphoto`, `top`, `up` and `down`.
+**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`). For a `<button>`, it runs the entry in `BUTTON_ACTIONS` (in `app.js`) for each `data-*` attribute the button has: `edit`, `del`, `sort`, `scale`, `step`, `recovery`, `wish`, `wishall`, `bought`, `unreward`, `demo`, `photos`, `usedin`, `addreward`, `toolwish`, `toolbought`, `addone`, `addall`, `qview`, `unit`, `move`, `mphoto`, `mname`, `projectwish`, `top`, `up` and `down`.
 
 - `edit` and `del` work in every section because they act on the current section.
 - To add a new row action, render a button with a new `data-*` attribute and add an entry to `BUTTON_ACTIONS` that calls a named function in the feature's file.
@@ -289,6 +292,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 - **Paint, Tool and Miniature items** are added to that list (`BOUGHT_TO`), built by `boughtRecord()`:
   - they keep the item's `name`, `price` and `notes`, and an http(s) `url` is added to the notes as "Bought from …";
   - new paints start with quantity 1 and stock Full, tools with quantity 1 and condition New, and miniatures with status Unbuilt.
+- **A miniature bought for a project** (the item's `project`) joins that project.
 - **Other categories,** or none, open `#boughtDialog` to ask where the item goes: Paints, Tools, Miniatures, or nowhere.
   - Terrain suggests Miniatures; anything else suggests nowhere.
   - Apply runs on the form's `submit`, like the completion prompt. `buying` holds the item's id and row while the dialog is open.
@@ -329,7 +333,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 - **The offer.** While the app is empty (`!hasUserData()`), the dashboard's `#startNotice` offers "Load example data" (`data-demo="load"`, `loadDemo()`). It's only offered into an empty app, so it never replaces anything.
 - **`demoData(base)`** builds the data. Dates count from `base`, so markers like "Due in 5 days" show whenever it's loaded. It sets a top-level `demo: true`.
-- **`demoPhotos()`** draws the two example photos on a canvas, as the same records `photoFromFile()` makes, so the repository needs no image files. They're stored before the data is committed; one is also a painted squad model's photo. If they can't be stored, the miniatures and models get no photos.
+- **`demoPhotos()`** draws the two example photos on a canvas, as the same records `photoFromFile()` makes, so the repository needs no image files. They're stored before the data is committed; one is also the photo of a painted squad model, which has a name. If they can't be stored, the miniatures and models get no photos.
 - **While `db.demo` is set,** `#startNotice` offers:
   - "Clear it and start fresh" (`clearDemo()`): back to `defaults`, with Undo;
   - "Keep it" (`keepDemo()`): removes the flag.
@@ -375,9 +379,11 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 - **The board** (`boardHtml()`): a column per phase, `.phase` with `data-phase`. In each, the units with models there, in queue order (`unitHtml()`): a heading with the unit's name and count, and ◀ ▶ that move all of its models in that phase.
   - A unit with more than one model there opens to list them (`data-unit`, `toggleUnit()`; open units are `openUnits`, keyed by id and phase). Each model card (`.mcard`, `data-mcard`) is numbered by its place in the unit and has its own photo button (see Photos) and ◀ ▶. A unit with one model in a phase has the photo button on its heading.
   - In a narrow column (laptops), a model card wraps its ◀ ▶ onto a second line.
+  - **Model names.** A model shows its name (`cardName()`, at most `MAX_MODEL_NAME`, 40, characters), else its number in the unit, `#3` (`cardLabel()`). The label is a button (`.mname`, `data-mname` with `data-q`, `modelLabelHtml()`); `startRename()` swaps it for a box (`.mrename`). Enter or leaving the box saves with Undo (`renameModel()`); Esc puts it back; a blank name brings the number back. `modelName()` gives the full name, "Kael (Squad)" or "Squad #3", for labels, toasts and the photo viewer. A unit's heading with one of its several models in that column shows that model's label too. The board's name style is scoped to `button.mname`: the skill profile has its own `.mname`.
   - ◀ ▶ (`data-move`, `data-from`, `data-dir`, and `data-mcard` for one model, `stepCards()`) move cards with Undo. Moving one model opens its unit in the new phase, so it stays in view and keeps focus.
-  - **Dragging** (pointer events, in `app.js`): a unit's heading moves all its models in that phase; a card moves one. A mouse drags from anywhere but the arrows and photo buttons; a finger or pen uses the ⠿ grip (`touch-action: none`), so the board still scrolls. Nothing starts until the pointer moves 6px, so a click is still a click, and the click that ends a drag is swallowed. A copy (`.ghost`) follows the pointer and the column under it gets `.drop`. WCAG 2.2's dragging rule is met by ◀ ▶.
+  - **Dragging** (pointer events, in `app.js`): a unit's heading moves all its models in that phase; a card moves one. A mouse drags from anywhere but the arrows, photo buttons and the rename box; a finger or pen uses the ⠿ grip (`touch-action: none`), so the board still scrolls. Nothing starts until the pointer moves 6px, so a click is still a click, and the click that ends a drag is swallowed. A copy (`.ghost`) follows the pointer and the column under it gets `.drop`. WCAG 2.2's dragging rule is met by ◀ ▶.
   - The board scrolls sideways inside itself when its columns don't fit (`grid-auto-columns: minmax(150px, 1fr)`).
+  - A column's units and model cards are only as wide as the column (`grid-template-columns: minmax(0, 1fr)` on `.phasebody` and `.mcards`), so a long name is cut short rather than pushing into the next column.
 - **Moving cards** (`moveCards()`) goes through `commitQueue()`, so the miniature follows. When a move leaves every model of a linked unit Done, the completion prompt opens.
 - **The list** (`queueItemHtml()`): units in priority order, each with its model count, due date, a progress bar (each step filled with the share of models past it; `aria-valuetext` is `countsText()`, e.g. "Priming 2 · Painting 1"), low recipe paints, and Top, ↑, ↓, Edit and Delete. Reordering (`reorderQueue()`, `moveQueueItem()`, or dragging the ⠿ handle) sets the order the board shows units in.
 - **Add 1 and Add all** on a miniature's row (`data-addone`, `data-addall`, `addModels()`, buttons from `addButtonsHtml()` in `render.js`) put its models on the board, in its queue item (made at the end of the queue if it has none), with Undo.
@@ -395,6 +401,12 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - `applyPhases()` saves them to `queueStages` and moves every card in one `commitWithUndo`: `phaseMap()` maps each old phase to its new name, and a deleted phase to the next kept (else the one before). Miniatures whose models moved follow.
 - **`queueWork(q)`** is a unit's work in models for project progress: each card counts its phase's share of the board (To do 0, Done 1), added as whole steps and divided once, so ten models at 3/5 make exactly 6.
 
+**Project pages** (`project.js`). Each project has a page, like the dashboard for one project, at `#/projects/<id>` (see Pages and addresses). `render()` calls `renderProject()` while `openProject` is set; it sets the page title itself, so an edit shows at once, and goes back to the list if the project is gone.
+
+- **What it shows:** four metrics (progress, painted of owned, spent of budget, target date); the progress bar, with where the project's models are on the board (`cardsText()`); each of its miniatures (`projectMinis()`) with status, painted count, where its models are, low recipe paints, and Add 1, Add all and Photos; units on the board for the project with no miniature; every photo of its miniatures and of those units' models (`data-photos` with `data-at`, or `data-mphoto`); its wishlist items and rewards (`projectWishes()`), with Bought (rewards once unlocked), expected cost, Add wishlist item (`data-projectwish`, a wishlist form with the project chosen) and Add reward; and its notes.
+- **Units on a project** (`projectUnits()`) are those linked to it, or to one of its miniatures.
+- The header's Add item is hidden; Edit project edits it in place. "← All projects" is a nav link.
+
 **Completing a unit.** When a move leaves every model of a unit Done (`entryDone()`) and the unit links to a miniature, `askComplete()` opens `#completeDialog`. It offers to mark the miniature complete, with painted count equal to its model count, and to take the unit off the board. Apply runs on the dialog form's `submit`, not its `close`, so the change happens during the click. The painted count has already followed the board by then, so the prompt's own change is the Complete status.
 
 **The add/edit form.** `openForm(sec, obj)` opens the form for collection `sec` on any page, and `submit()` saves to `db[formSection]`; the page's own `section` isn't changed. So "Add reward" on the projects page opens a wishlist form, and saving redraws the projects page. `obj` is the record to edit, or, without an `id`, starting values for a new one. If saving fails, the form stays open so nothing typed is lost.
@@ -406,13 +418,14 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
   - `miniatures.project` and `queue.project` point at projects.
   - `queue.miniature` points at a miniature. It's set when a miniature is queued from its row; items queued before this field existed have none.
-  - `queue.cards` is not a link: it's the unit's model cards, `{ id, phase }`, plus an optional `photo` id (see The painting board and Photos). The top-level `queueStages` holds the board's phases between To do and Done.
+  - `queue.cards` is not a link: it's the unit's model cards, `{ id, phase }`, plus an optional `photo` id and `name` (see The painting board and Photos). The top-level `queueStages` holds the board's phases between To do and Done.
   - `queue.stage`, `queue.stageDone`, `queue.split` and `queue.stages` are from schema 5 and earlier. The 5 → 6 migration turned them into cards; they stay in old records, unread.
   - `miniatures.photos` is not a link: it's an array of photo ids in IndexedDB, cover first (see Photos). It's optional.
   - `tools.brand` and `miniatures.brand` are optional text fields, added after 1.0.0; older records have none. They're in the form and search, not the tables.
   - `miniatures.paints` is a `links` array of the paints in its recipe. The older free-text `recipe` field is still there, labelled "Recipe steps".
   - `skills.changed` is not a link: it's the date the skill's level last changed (see Skills). It's optional.
   - `wishlist.rewardFor` points at the project a reward belongs to, and `wishlist.rewardAt` is the percent it unlocks at (see Rewards).
+  - `wishlist.project` points at a project the item is for; it shows on the project's page. It's optional, added in 2.0.
   - The top-level `demo` is `true` while example data is loaded (see Example data). It's optional.
   - `paints.restocks` is not a link: it's an optional list of `{ date, price }`, one per pot bought again (see Restocks). Read it with `restocks()`, which drops anything that isn't an object.
   - `wishlist.paint` points at the paint a wishlist item restocks. `addToWishlist()` sets it when a low paint is added from the dashboard, and the dashboard uses it to show "On wishlist".
@@ -441,6 +454,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - The dashboard's Rewards card lists every reward, unlocked first, with Bought on unlocked ones.
   - The projects table shows each project's rewards under its name (`projectRewardsHtml()`, through `defs.projects.under`), with an "Add reward" button (`data-addreward`, `addReward()`) that opens a wishlist form for that project at 100%.
 - **Used in.** The paints table's computed "Used in" column counts the miniatures whose recipe (`paints`) includes each paint (`usedIn()`, in `paints.js`). Its button (`data-usedin`) opens `#usedInDialog`, which lists them with their project and status. Sorting by it puts unused paints first.
+- **Links to projects.** A `link` field to projects (a miniature's project, say) shows as a link to the project's page (`cellHtml()`), as do project names on the dashboard and in the projects table.
 - The dashboard's "Recorded spend" adds up `price` across paints, tools, and miniatures, plus every paint's restocks (`recordedSpend()`). Each `price` is added as entered; it is not multiplied by `quantity`. The spend card says how much of it went on restocks.
 - **Add prices up with `amount()`** (`util.js`), never `Number(x.price || 0)`: it counts a blank, junk or negative price as 0. A single `NaN` would make the whole total `NaN`, which `money()` shows as 0. Recorded spend, wishlist exposure and a project's spend use it.
 - **Restocks** (`paints.js`). A paint's `restocks` list records pots bought again, `{ date, price }`, with the date as `YYYY-MM-DD` and the price as typed.
