@@ -208,7 +208,7 @@ test("the last model reaching Done asks about its miniature", async ({
   });
   await nav(page, "queue");
   await head(page, "Detailing", "Squad")
-    .getByRole("button", { name: "Move Squad on to Done" })
+    .getByRole("button", { name: "Move Squad #1 on to Done" })
     .click();
   await expect(page.locator("#completeDialog")).toBeVisible();
   await expect(page.locator("#completeText")).toHaveText(

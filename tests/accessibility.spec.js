@@ -234,6 +234,11 @@ for (const run of [
       await page.locator('[data-unit="q3"][data-from="Priming"]').click();
       await expect(page.locator("#queueContent .mcard")).toHaveCount(2);
       expect(await violations(page)).toEqual([]);
+      // Renaming a model.
+      await page.locator("#queueContent .mcard button.mname").first().click();
+      await expect(page.locator("#queueContent input.mrename")).toBeFocused();
+      expect(await violations(page)).toEqual([]);
+      await page.keyboard.press("Escape");
       await page.click('[data-qview="list"]');
       await expect(page.locator("#queueContent .qitem")).toHaveCount(3);
       expect(await violations(page)).toEqual([]);
@@ -257,6 +262,17 @@ for (const run of [
       await expect(
         page.locator("#queueContent .mcard .mphoto img").first(),
       ).toHaveAttribute("src", /^blob:/);
+      expect(await violations(page)).toEqual([]);
+    });
+
+    test("a project's page has no accessibility violations", async ({
+      page,
+    }) => {
+      await nav(page, "projects");
+      await page.locator("#content a.plink").first().click();
+      await expect(
+        page.locator("#projectContent .pmini").first(),
+      ).toBeVisible();
       expect(await violations(page)).toEqual([]);
     });
 

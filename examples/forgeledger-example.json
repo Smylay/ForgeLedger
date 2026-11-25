@@ -293,7 +293,12 @@
         { "id": "card-squad-2-1", "phase": "Detailing" },
         { "id": "card-squad-2-2", "phase": "Detailing" },
         { "id": "card-squad-2-3", "phase": "Detailing" },
-        { "id": "card-squad-3-1", "phase": "Done", "photo": "demo-photo-1" },
+        {
+          "id": "card-squad-3-1",
+          "phase": "Done",
+          "name": "Sergeant Vorn",
+          "photo": "demo-photo-1"
+        },
         { "id": "card-squad-3-2", "phase": "Done" }
       ],
       "due": "2027-01-20",
@@ -478,6 +483,19 @@
       "price": "32.00",
       "url": "",
       "notes": ""
+    },
+    {
+      "id": "w-support",
+      "name": "Iron Guard support squad",
+      "category": "Miniature",
+      "priority": "High",
+      "project": "a-iron",
+      "paint": "",
+      "rewardFor": "",
+      "rewardAt": "",
+      "price": "40.00",
+      "url": "",
+      "notes": "To round the strike force out."
     },
     {
       "id": "w-chapel",

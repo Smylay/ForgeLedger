@@ -43,6 +43,7 @@ const MAX_PHASE_NAME = 40; // characters
 // Most model cards one queue item can have, so a junk model count in a
 // backup can't fill the board with thousands of cards.
 const MAX_MODELS = 500;
+const MAX_MODEL_NAME = 40; // characters, for a model's name on the board
 // Which way the painting queue page opens, "board" or "list". Kept per
 // browser, outside the data.
 const QUEUE_VIEW_KEY = "forgeledger_v2_queueview";
@@ -335,6 +336,7 @@ const defs = {
     ],
     filter: "system",
     under: (p) => projectRewardsHtml(p), // rewards, under the name
+    page: true, // each name links to its own page (project.js)
     defaultSort: { key: "deadline", dir: 1 }, // soonest target date first
   },
   queue: {
@@ -398,6 +400,8 @@ const defs = {
         options: ["Low", "Medium", "High"],
         tones: ["none", "mid", "bad"],
       },
+      // Anything you need for a project; it shows on the project's page.
+      { key: "project", label: "Project", type: "link", to: "projects" },
       { key: "paint", label: "Restocks paint", type: "link", to: "paints" },
       {
         key: "rewardFor",

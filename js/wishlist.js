@@ -91,7 +91,8 @@ function boughtRecord(to, w) {
     r = { id: id(), name: w.name, price: w.price || "", notes };
   if (to === "paints") return { ...r, quantity: "1", stock: "Full" };
   if (to === "tools") return { ...r, quantity: "1", condition: "New" };
-  return { ...r, status: "Unbuilt" }; // its model count isn't known
+  // Its model count isn't known. A project's item joins the project.
+  return { ...r, status: "Unbuilt", ...(w.project && { project: w.project }) };
 }
 // After a row goes, focus the Bought button now in its place (or the last
 // one), else the quick-add box.

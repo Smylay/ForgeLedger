@@ -146,7 +146,7 @@ test.describe("rewards", () => {
   const notice = (page) => page.locator("#rewardNotice");
   // Moves the last model on to Painting: 6 models, 60%.
   const plusOne = (page) =>
-    page.getByRole("button", { name: "Move Squad on to Painting" });
+    page.getByRole("button", { name: "Move Squad #10 on to Painting" });
 
   test.beforeEach(async ({ page }) => seed(page, data));
 

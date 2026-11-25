@@ -509,6 +509,75 @@ test("values that can't become text don't stop a page drawing", async ({
   await expect(tableRows(page)).toHaveCount(1);
 });
 
+test("a project's page, and model names on the board, can't run script", async ({
+  page,
+}, testInfo) => {
+  const pid = attack("projectId");
+  await importAndWait(
+    page,
+    {
+      projects: [
+        {
+          id: pid,
+          name: attack("projectName"),
+          faction: attack("faction"),
+          system: attack("system"),
+          deadline: attack("deadline"),
+          budget: attack("budget"),
+          notes: attack("notes"),
+        },
+      ],
+      miniatures: [
+        {
+          id: attack("miniId"),
+          name: attack("miniName"),
+          project: pid,
+          status: attack("status"),
+          quantity: attack("quantity"),
+          painted: attack("painted"),
+          photos: [attack("photoId")],
+        },
+      ],
+      queue: [
+        {
+          id: attack("unitId"),
+          name: attack("unitName"),
+          project: pid,
+          cards: [
+            { id: attack("cardId"), phase: "Painting", name: attack("model") },
+            { id: "c2", phase: "Painting", photo: attack("cardPhoto") },
+          ],
+        },
+      ],
+      wishlist: [
+        {
+          id: attack("wishId"),
+          name: attack("wishName"),
+          project: pid,
+          category: attack("category"),
+          priority: attack("priority"),
+          price: attack("price"),
+        },
+      ],
+    },
+    testInfo,
+  );
+  await nav(page, "projects");
+  await page.locator("#content a.plink").click();
+  await expect(page.locator("#projectContent .pmini")).toHaveCount(2);
+  await expect(page.locator("#projectContent .gallery button")).toHaveCount(2);
+  await nav(page, "queue");
+  await page.locator("#queueContent button.unitname").click();
+  await page.locator("#queueContent button.mname").first().click();
+  await expect(page.locator("#queueContent input.mrename")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(200);
+  const ran = await page.evaluate(() =>
+    Object.keys(window).filter((k) => k.startsWith("xss_")),
+  );
+  expect(ran).toEqual([]);
+});
+
 test("unit and phase names on the board can't run script", async ({
   page,
 }, testInfo) => {
