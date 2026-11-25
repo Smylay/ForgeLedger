@@ -1061,9 +1061,12 @@ dialog::backdrop {
 .phase h3 .count {
   color: var(--muted);
 }
+/* minmax(0, 1fr), here and in .mcards: a column is as wide as the board
+   gives it, never as wide as its longest name, which is cut short instead. */
 .phasebody {
   padding: 8px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
 }
 .phase .none {
@@ -1127,6 +1130,7 @@ button.unitname[aria-expanded="true"]::before {
   margin: 0;
   padding: 0 6px 6px 20px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 4px;
 }
 .mcard {
