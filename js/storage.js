@@ -4,6 +4,15 @@
 function isRecord(x) {
   return x !== null && typeof x === "object" && !Array.isArray(x);
 }
+// Parse saved or imported data. Keys named toString or valueOf are dropped
+// wherever they are: JSON can't hold functions, so such a key would make
+// String() or Number() throw on the object holding it, stopping a page from
+// drawing. No field has either name.
+function parseData(text) {
+  return JSON.parse(text, (k, v) =>
+    k === "toString" || k === "valueOf" ? undefined : v,
+  );
+}
 
 // Say why `data` can't be used as ForgeLedger data, or return "" if it can.
 // Imports with a problem are rejected; saved data with one is repaired.
@@ -81,7 +90,7 @@ function load() {
   }
   if (raw === null) return structuredClone(defaults);
   try {
-    data = JSON.parse(raw);
+    data = parseData(raw);
   } catch {
     data = undefined;
   }

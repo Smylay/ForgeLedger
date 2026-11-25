@@ -46,7 +46,9 @@ function openForm(sec = section, obj = {}) {
   document.querySelector("#modalTitle").textContent =
     (editId ? "Edit " : "Add ") + d.noun;
   document.querySelector("#formFields").innerHTML =
-    (d.formIntro?.() || "") + d.fields.map((f) => fieldHtml(f, obj)).join("");
+    (d.formIntro?.() || "") +
+    d.fields.map((f) => fieldHtml(f, obj)).join("") +
+    (d.formOutro?.(obj) || "");
   document.querySelector("#modal").showModal();
   catalogueForForm(document.querySelector("#itemForm"));
 }
@@ -82,12 +84,16 @@ function submit(e) {
   }
   o.id = editId || id();
   let prev = db[formSection].find((x) => x.id === o.id);
+  // Boxes outside the fields, e.g. a paint's restocks, update the record
+  // their own way and come out of it.
+  d.formSave?.(o, prev, fd);
   // A queue item moved to another stage starts that stage's count again.
   if (formSection === "queue" && prev && prev.stage !== o.stage)
     o.stageDone = 0;
   // Skills record when their level last changed, for practice suggestions.
   if (formSection === "skills" && (!prev || skillLevel(prev) !== o.level))
     o.changed = today();
+  let note = "";
   let saved = commit(() => {
     // Recipe paints you don't own yet become paints now (catalogue.js).
     for (let f of d.fields) if (f.plan) o[f.key] = planPaints(o[f.key]);
@@ -104,10 +110,12 @@ function submit(e) {
       if (prev.stage !== o.stage) delete q.split;
       else storeSplit(q, splitCounts(q));
     }
+    // A queue item keeps its miniature in step (queue.js).
+    if (formSection === "queue") note = syncMiniature(q);
   });
   if (!saved) return; // keep the form open so nothing typed is lost
   document.querySelector("#modal").close();
-  toast("Saved");
+  toast(note ? `Saved; ${note}` : "Saved");
   renderNav();
   render();
   if (

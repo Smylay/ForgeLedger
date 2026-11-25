@@ -158,6 +158,8 @@ const defs = {
     columns: ["name", "brand", "range", "type", "quantity", "stock", "usedin"],
     swatch: "colour", // show this colour beside each paint's name
     formIntro: () => catalogueFindHtml(), // Find in the paint catalogue
+    formOutro: (p) => restocksHtml(p), // its restocks (paints.js)
+    formSave: (o, prev, fd) => saveRestocks(o, prev, fd),
     // Each list opens sorted so what needs attention comes first: here, the
     // lowest stock. Clicking a column header still sorts by that column.
     defaultSort: { key: "stock", dir: 1 },

@@ -164,17 +164,22 @@ function applyStages(qid, rows) {
   if (qid && !q) return true;
   let names = rows.map((r) => r.name),
     plan = stageMap(queueStages(q).slice(1, -1), rows),
-    moved = 0;
+    moved = 0,
+    synced = 0;
   commitWithUndo(
     () => {
       if (q) q.stages = names;
       else db.queueStages = names;
-      for (let t of q ? [q] : db.queue.filter((x) => !ownStages(x)))
+      for (let t of q ? [q] : db.queue.filter((x) => !ownStages(x))) {
         if (remapStages(t, plan)) moved++;
+        // Items moved on can move their miniature on too (queue.js).
+        if (syncMiniature(t)) synced++;
+      }
     },
     () =>
       (q ? `Saved the stages for "${q.name}"` : "Saved the default stages") +
-      (moved ? `; ${moved} item(s) moved on from a deleted stage` : ""),
+      (moved ? `; ${moved} item(s) moved on from a deleted stage` : "") +
+      (synced ? `; ${synced} miniature(s) updated` : ""),
   );
   return true; // close the editor even if saving failed: commit said why
 }
@@ -193,7 +198,8 @@ function useDefaultStages(qid) {
       map[s] = def[Math.min(i, def.length - 1)];
       deleted.add(s);
     });
-  commitWithUndo(
+  commitQueue(
+    q,
     () => {
       delete q.stages;
       remapStages(q, { map, deleted });

@@ -55,7 +55,7 @@ The code lives in plain `<script>` files that share the global scope. They aren'
 | `skillguide.js` | `LEVELS`, the `TECHNIQUES` library, `nextStep()`, `practiceNext()` and other skill rules                                                   |
 | `demo.js`       | the example data (`demoData()`, `demoPhotos()`, `DEMO_FILE_DATE`), and the offer to load, clear or keep it                                 |
 | `storage.js`    | load, validate, repair, migrate, `save()`, `commit()`, `commitWithUndo()`, backup age                                                      |
-| `paints.js`     | paint stock helpers (`isLow()`, `lowRecipePaints()`, `stockFromPercent()`), and "Used in"                                                  |
+| `paints.js`     | paint stock helpers (`isLow()`, `lowRecipePaints()`, `stockFromPercent()`), "Used in", and restocks                                        |
 | `photos.js`     | miniature photos in IndexedDB (open, store, shrink, show, tidy, their part of backups), and the photo viewer                               |
 | `autosave.js`   | auto-save to a file the user picked: the remembered handle, writes after each save, its status                                             |
 | `settings.js`   | Settings: currencies and `money()`, the theme, the shortcuts switch, Erase all data                                                        |
@@ -112,6 +112,7 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 - **Saving an upgrade.** When `load()` upgrades saved data from an older schema, it sets `upgraded`, and `app.js` saves once at start-up so storage holds the current schema. Repaired data is not saved until the user changes something, so the damaged original is never replaced first.
 - **Missing fields.** Existing records are never rewritten field by field, so every reader must tolerate missing or blank fields.
 - **Untrusted values.** Field values in imported data are not checked. Treat them as untrusted.
+  - **Read data with `parseData()`,** not `JSON.parse`. It drops keys named `toString` or `valueOf` anywhere in the data: JSON can't hold functions, so an object with such a key makes `String()` and `Number()` throw, which would stop a page drawing. No field has either name. `load()` (and so the two-tab reload) and import use it; the recovery copy of damaged data is saved before parsing, so it keeps the original text.
 - **Blocked storage.** If storage is blocked, `memoryOnly` is set: the app works in memory and says nothing is saved.
 - **Two tabs.** A `storage` event listener reloads `db` when another tab saves, so two open tabs don't overwrite each other.
 - **Photos live in IndexedDB,** not in `db` (see Photos). `localStorage` holds only each miniature's photo ids.
@@ -155,6 +156,8 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 - `defaultSort` (optional): `{ key, dir }`, the sort a list opens with (see Sorting).
 - `under` (optional): `(record) => html` shown under the record's name in the table, e.g. a project's rewards.
 - `formIntro` (optional): `() => html` shown above the form's fields, e.g. the paint form's Find box.
+- `formOutro` (optional): `(record) => html` shown below the form's fields, e.g. a paint's restocks.
+- `formSave` (optional): `(o, prev, formData)`, called by `submit()` before saving, for inputs outside `fields`: it takes their values out of `o` and applies them, e.g. `saveRestocks()`.
 - `filter`: the key of the field the filter dropdown filters on.
   - The dropdown lists the field's `options`. A field without options gets the values currently in use, e.g. project game systems.
   - The choice survives saves and resets when you change section.
@@ -277,7 +280,9 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 **Bought.** Each wishlist row has a Bought button (`data-bought`, `bought()`). Whatever happens, the item comes off the wishlist, in one `commitWithUndo` with the rest (`buy()`).
 
-- **Restocks.** An item whose `paint` link points at a paint that still exists sets that paint's `stock` to Full. A quantity of "0" (a paint planned but not owned) becomes "1"; otherwise quantity and price aren't changed.
+- **Restocks.** An item whose `paint` link points at a paint that still exists sets that paint's `stock` to Full.
+  - A quantity of "0" (a paint planned but not owned) becomes "1", and a paint with no price takes the item's: it's the first pot, not a restock.
+  - Otherwise quantity and price aren't changed, and `addRestock()` records the purchase in the paint's `restocks` (see Restocks below). The toast names the price.
 - **Paint, Tool and Miniature items** are added to that list (`BOUGHT_TO`), built by `boughtRecord()`:
   - they keep the item's `name`, `price` and `notes`, and an http(s) `url` is added to the notes as "Bought from …";
   - new paints start with quantity 1 and stock Full, tools with quantity 1 and condition New, and miniatures with status Unbuilt.
@@ -368,11 +373,15 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - When the count reaches the total, the item moves to the next stage and the count starts again at 0. Reaching Complete opens the completion prompt.
   - From "Not started", +1 starts the first stage.
   - Next stage and changing the stage in the form also reset the count.
-  - +1 doesn't change the miniature's own `painted` count. The completion prompt sets that.
+  - +1 changes the miniature only through the sync below: models done in the last stage count as painted.
 - **Going back,** for an item taken too far. Both are shown from the first stage on, Complete included, and not while split.
   - **Back: <stage>** (`data-back`, `prevStage()`) moves the item to the previous stage, its count at 0, with Undo. It undoes Next.
   - **−1 done** (`data-minus`, `minusOneDone()`) undoes +1 exactly, with Undo. With models done in the current stage, one fewer is done; otherwise the item goes back a stage, with all but one model done there. From the first stage it goes back to Not started.
   - Neither changes the miniature or opens a prompt; a miniature already marked complete stays so.
+- **Keeping the miniature in step.** Every queue action goes through `commitQueue(q, change, message)`, a `commitWithUndo` that calls `syncMiniature(q)` in the same commit, so Undo reverts both, and the toast adds what changed on the miniature. The form's save, the stage editor and "Use the default stages" call it too.
+  - `syncMiniature()` reads the item's models by stage (`splitCounts()`, or `splitFrom()` for an item that isn't split, so models done in a stage count at the next). It sets the status to Built once every model is past the building stage, Primed once every model is past priming, and In progress once any model has finished a stage after priming. Stages are found by name, as for queueing (`BUILD_STAGE`, `PRIME_STAGE`); without them, the status isn't changed.
+  - The painted count rises to the models at Complete, up to the miniature's model count.
+  - It only moves forward: a status is never lowered, Complete is left to the completion prompt, and the painted count never drops. A blank or unknown status counts as below Unbuilt.
 - **Progress bar fill.** Finished stages are full, the current stage is filled as far as its count, and later stages are empty.
 - **Reordering.** Top, ↑ and ↓ (`data-top`, `data-up`, `data-down`) go through `reorderQueue()`, then `moveQueueItem(from, to)`. Dragging the handle (pointer events, in `app.js`) does too.
   - While dragging, the list doesn't change; a `drop-before` or `drop-after` line shows where the item will land, and the move is saved on release. Moving the dragged element would release its pointer capture.
@@ -421,6 +430,8 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 Apply runs on the dialog form's `submit`, not its `close`, so the change happens during the click.
 
+By the time it opens, the miniature's painted count has already followed the queue (see Keeping the miniature in step), so the prompt's own change is the Complete status.
+
 **The add/edit form.** `openForm(sec, obj)` opens the form for collection `sec` on any page, and `submit()` saves to `db[formSection]`; the page's own `section` isn't changed. So "Add reward" on the projects page opens a wishlist form, and saving redraws the projects page. `obj` is the record to edit, or, without an `id`, starting values for a new one. If saving fails, the form stays open so nothing typed is lost.
 **Data semantics:**
 
@@ -439,6 +450,7 @@ Apply runs on the dialog form's `submit`, not its `close`, so the change happens
   - `skills.changed` is not a link: it's the date the skill's level last changed (see Skills). It's optional.
   - `wishlist.rewardFor` points at the project a reward belongs to, and `wishlist.rewardAt` is the percent it unlocks at (see Rewards).
   - The top-level `demo` is `true` while example data is loaded (see Example data). It's optional.
+  - `paints.restocks` is not a link: it's an optional list of `{ date, price }`, one per pot bought again (see Restocks). Read it with `restocks()`, which drops anything that isn't an object.
   - `wishlist.paint` points at the paint a wishlist item restocks. `addToWishlist()` sets it when a low paint is added from the dashboard, and the dashboard uses it to show "On wishlist".
 
   Older data can still hold links to deleted records; these display blank, and saving the record clears them. Imported `links` values may not be arrays; `asList()` treats anything else as empty.
@@ -465,5 +477,9 @@ Apply runs on the dialog form's `submit`, not its `close`, so the change happens
   - The dashboard's Rewards card lists every reward, unlocked first, with Bought on unlocked ones.
   - The projects table shows each project's rewards under its name (`projectRewardsHtml()`, through `defs.projects.under`), with an "Add reward" button (`data-addreward`, `addReward()`) that opens a wishlist form for that project at 100%.
 - **Used in.** The paints table's computed "Used in" column counts the miniatures whose recipe (`paints`) includes each paint (`usedIn()`, in `paints.js`). Its button (`data-usedin`) opens `#usedInDialog`, which lists them with their project and status. Sorting by it puts unused paints first.
-- The dashboard's "Recorded spend" adds up `price` across paints, tools, and miniatures. Each `price` is added as entered; it is not multiplied by `quantity`.
+- The dashboard's "Recorded spend" adds up `price` across paints, tools, and miniatures, plus every paint's restocks (`recordedSpend()`). Each `price` is added as entered; it is not multiplied by `quantity`. The spend card says how much of it went on restocks.
+- **Restocks** (`paints.js`). A paint's `restocks` list records pots bought again, `{ date, price }`, with the date as `YYYY-MM-DD` and the price as typed.
+  - Bought on a restock adds one (`addRestock()`), dated today with the wishlist item's price.
+  - The paint form lists them below its fields when editing (`formOutro`, `restocksHtml()`), each with a Remove box, plus a box to record one bought today. `saveRestocks()` (`formSave`) applies them on save and takes the boxes out of the record. Saving without using them leaves the stored list as it is.
+  - `restockPrice()` counts only a finite positive price, so junk adds nothing; dates show only when they're text or a number.
 - Prices are shown in the currency chosen in Settings (see Settings), GBP by default.

@@ -41,6 +41,8 @@ const data = {
       type: "Base",
       remaining: "10",
       colour: "#111111",
+      // So the paint form shows its restocks.
+      restocks: [{ date: "2026-01-10", price: "3.5" }],
     },
   ],
   tools: [
@@ -309,6 +311,18 @@ for (const run of [
       await page.click("#addBtn");
       await page.fill("#planPaint", "black");
       await expect(page.locator("#planList option").first()).toBeAttached();
+      expect(await violations(page)).toEqual([]);
+    });
+
+    test("a paint's restocks in its form have no accessibility violations", async ({
+      page,
+    }) => {
+      await nav(page, "paints");
+      await page
+        .getByRole("row", { name: /Black/ })
+        .locator("button[data-edit]")
+        .click();
+      await expect(page.locator("#formFields .restocks li")).toHaveCount(1);
       expect(await violations(page)).toEqual([]);
     });
 
