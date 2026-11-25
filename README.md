@@ -4,7 +4,7 @@ ForgeLedger is an offline-first tracker for miniature wargaming. It keeps your p
 
 ## Features
 
-- **A paint catalogue** of about 5,300 paints from 15 brands: find one by name or code, and its brand, range, type and colour fill in. Quick add on the paints page picks from it too.
+- **A paint catalogue** of about 5,300 paints from 16 brands: find one by name or code, and its brand, range, type and colour fill in. Quick add on the paints page picks from it too.
 - **Paints** with brand, range, colour and type (including Primer and Shade/Wash), and a stock level (Full, Good, Half, Low or Empty) that you set with one tap. Low stock shows on the dashboard, with one-click restock to the wishlist. "Used in" lists the miniatures whose recipe uses a paint.
 - **Miniatures** with model and painted counts, status, army project, recipes built from your paints, and photos from your computer or phone camera. Plan a recipe with paints you don't own yet, from your wishlist or the catalogue, and they go on your wishlist.
 - **Tools** with a condition, from New to Replace soon.

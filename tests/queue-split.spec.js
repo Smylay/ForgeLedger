@@ -62,7 +62,7 @@ test("splitting keeps the progress so far, with Undo", async ({ page }) => {
     stageDone: 2,
   });
   await expect(item(page, 0).locator(".splitrow")).toHaveText(
-    "Basecoating 3Move 1 to DetailingDetailing 2Move 1 to Basing",
+    "Basecoating 3Move 1 to DetailingBack 1Detailing 2Move 1 to BasingBack 1",
   );
   await expect(toggle(page, 0)).toBeFocused();
   // Next and +1 make way for the per-stage buttons.
@@ -137,7 +137,40 @@ test("the last model reaching Complete asks about the miniature", async ({
   await expect(page.locator("#completeDialog")).toBeVisible();
   await page.click('#completeDialog button[value="skip"]');
   await expect(item(page, 0).locator("button[data-split]")).toHaveCount(0);
-  await expect(item(page, 0).locator(".splitrow")).toHaveCount(0);
+  // One can still go back.
+  await expect(item(page, 0).locator(".splitrow")).toHaveText(
+    "Complete 5Back 1",
+  );
+  await item(page, 0)
+    .getByRole("button", { name: "Back 1 to Basing from Complete, Squad" })
+    .click();
+  expect(await queued(page, 0)).toMatchObject({
+    split: { Basing: 1, Complete: 4 },
+    stage: "Basing",
+    stageDone: 4,
+  });
+});
+
+test("Back 1 moves a model back a stage, with Undo", async ({ page }) => {
+  // Mixed: Priming 2, Basecoating 3.
+  const back1 = item(page, 2).getByRole("button", {
+    name: "Back 1 to Priming from Basecoating, Mixed",
+  });
+  await back1.click();
+  expect(await queued(page, 2)).toMatchObject({
+    split: { Priming: 3, Basecoating: 2 },
+    stage: "Priming",
+    stageDone: 2,
+  });
+  await expect(page.locator("#toastText")).toHaveText(
+    '"Mixed": 1 back to Priming (Priming 3 · Basecoating 2)',
+  );
+  await expect(back1).toBeFocused();
+  // Split items go back per stage, not with Back or −1.
+  await expect(item(page, 2).locator("button[data-back]")).toHaveCount(0);
+  await expect(item(page, 2).locator("button[data-minus]")).toHaveCount(0);
+  await page.click("#toastAction");
+  expect((await queued(page, 2)).split).toEqual({ Priming: 2, Basecoating: 3 });
 });
 
 test("joining puts every model at the least advanced stage", async ({

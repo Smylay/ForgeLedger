@@ -7,7 +7,8 @@ What changed in each version of ForgeLedger. Backups from every earlier version 
 - **Skills have a difficulty,** Easy, Medium, Hard or Expert, and Practice next suggests easier techniques first.
 - **Techniques show the tools they need,** whether you have them, and Add to wishlist and Bought buttons for ones you don't.
 - **Two Thin Coats Dark Arts** in the paint catalogue (30 paints, names only; no colours have been published).
-- **A paint catalogue** of about 5,300 paints from 15 brands. In the paint form, find a paint by name or code, and its brand, range, type and colour fill in. Quick add on the paints page picks from it too.
+- **Dirty Down** in the paint catalogue: 6 effects, such as Rust, Moss and Gore, and 10 ageing sprays (names only; no colours have been published).
+- **A paint catalogue** of about 5,300 paints from 16 brands. In the paint form, find a paint by name or code, and its brand, range, type and colour fill in. Quick add on the paints page picks from it too.
 - **Plan a recipe with paints you don't own yet,** from your wishlist or the catalogue. Saving adds them to your paints as Empty, with a quantity of 0, and to your wishlist, so Bought restocks them.
 - **More paint types:** Standard, Glaze, Dry, Air and Effect, to match the catalogue.
 - **The example data's paint ranges** are now product lines, instead of repeating the type.

@@ -6,6 +6,11 @@
         "brands": ["Two Thin Coats (Duncan Rhodes)"],
         "range": "Dark Arts",
         "detail": "Names and the acrylic, metallic and ink split from Paint Vault's Dark Arts listing (paint-vault.com/brand/two-thin-coats/dark-arts), as found in November 2026. One review names a metallic 'Ancient Brass' where Paint Vault has 'Ancient Iron'."
+      },
+      {
+        "brands": ["Dirty Down"],
+        "range": "Effects, Ageing Spray",
+        "detail": "Names from retailer and manufacturer listings found by web search in November 2026 (dirtydown.co.uk product pages for the water-soluble rust paints and the ageing spray range; retailers for Moss, Verdigris, Gore and Snot). Effects are 25ml pots; Ageing Spray is 400ml aerosols. No colours are published, and the products are semi-transparent effects. The Snot & Gore thinner is left out."
       }
     ]
   },
@@ -278,6 +283,150 @@
       "code": null,
       "hex": null,
       "type": "ink",
+      "discontinued": false
+    },
+    {
+      "brand": "Dirty Down",
+      "range": "Effects",
+      "name": "Rust",
+      "code": null,
+      "hex": null,
+      "type": "effect",
+      "discontinued": false
+    },
+    {
+      "brand": "Dirty Down",
+      "range": "Effects",
+      "name": "Yellow Rust",
+      "code": null,
+      "hex": null,
+      "type": "effect",
+      "discontinued": false
+    },
+    {
+      "brand": "Dirty Down",
+      "range": "Effects",
+      "name": "Moss",
+      "code": null,
+      "hex": null,
+      "type": "effect",
+      "discontinued": false
+    },
+    {
+      "brand": "Dirty Down",
+      "range": "Effects",
+      "name": "Verdigris",
+      "code": null,
+      "hex": null,
+      "type": "effect",
+      "discontinued": false
+    },
+    {
+      "brand": "Dirty Down",
+      "range": "Effects",
+      "name": "Gore",
+      "code": null,
+      "hex": null,
+      "type": "effect",
+      "discontinued": false
+    },
+    {
+      "brand": "Dirty Down",
+      "range": "Effects",
+      "name": "Snot",
+      "code": null,
+      "hex": null,
+      "type": "effect",
+      "discontinued": false
+    },
+    {
+      "brand": "Dirty Down",
+      "range": "Ageing Spray",
+      "name": "Soot Black",
+      "code": null,
+      "hex": null,
+      "type": "effect",
+      "discontinued": false
+    },
+    {
+      "brand": "Dirty Down",
+      "range": "Ageing Spray",
+      "name": "Black",
+      "code": null,
+      "hex": null,
+      "type": "effect",
+      "discontinued": false
+    },
+    {
+      "brand": "Dirty Down",
+      "range": "Ageing Spray",
+      "name": "Grey",
+      "code": null,
+      "hex": null,
+      "type": "effect",
+      "discontinued": false
+    },
+    {
+      "brand": "Dirty Down",
+      "range": "Ageing Spray",
+      "name": "Dark Brown",
+      "code": null,
+      "hex": null,
+      "type": "effect",
+      "discontinued": false
+    },
+    {
+      "brand": "Dirty Down",
+      "range": "Ageing Spray",
+      "name": "Mid Brown",
+      "code": null,
+      "hex": null,
+      "type": "effect",
+      "discontinued": false
+    },
+    {
+      "brand": "Dirty Down",
+      "range": "Ageing Spray",
+      "name": "Ash Blonde",
+      "code": null,
+      "hex": null,
+      "type": "effect",
+      "discontinued": false
+    },
+    {
+      "brand": "Dirty Down",
+      "range": "Ageing Spray",
+      "name": "Rust",
+      "code": null,
+      "hex": null,
+      "type": "effect",
+      "discontinued": false
+    },
+    {
+      "brand": "Dirty Down",
+      "range": "Ageing Spray",
+      "name": "Nicotine Yellow",
+      "code": null,
+      "hex": null,
+      "type": "effect",
+      "discontinued": false
+    },
+    {
+      "brand": "Dirty Down",
+      "range": "Ageing Spray",
+      "name": "Khaki",
+      "code": null,
+      "hex": null,
+      "type": "effect",
+      "discontinued": false
+    },
+    {
+      "brand": "Dirty Down",
+      "range": "Ageing Spray",
+      "name": "Mould",
+      "code": null,
+      "hex": null,
+      "type": "effect",
       "discontinued": false
     }
   ]
