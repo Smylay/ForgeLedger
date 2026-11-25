@@ -8,7 +8,7 @@ const KEY = "forgeledger_v2_data";
 const SCHEMA_VERSION = 6;
 // The app's version, shown in Settings and the sidebar, and written into
 // backups (as `appVersion`).
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "2.0.0";
 const BACKUP_KEY = "forgeledger_v2_last_backup";
 // "off" when the user has turned single-key shortcuts off (kept outside
 // the data, like the last backup time).
