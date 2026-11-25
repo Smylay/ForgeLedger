@@ -1,13 +1,14 @@
 // The paint catalogue. Built by scripts/make-catalogue.js from
-// data/sources/miniature_paints.json: don't edit it by hand.
+// data/sources/miniature_paints.json and additions.json: don't edit it
+// by hand.
 // Sources and licences: data/sources/README.md.
 //
 // Each paint is [brand, range, name, code, hex, type, discontinued]:
 // brand, range and type index the lists below, hex is RRGGBB or empty
 // for no colour, and discontinued is 1 or 0.
 const PAINT_CATALOGUE = {
-  brands: ["AK Interactive","AMMO by Mig","Citadel","Coat d'Arms","Formula P3 (Privateer Press)","Foundry","Green Stuff World","Kimera Kolors","Monument Hobbies (Pro Acryl)","Reaper","Scale75","The Army Painter","Turbo Dork","Two Thin Coats (Duncan Rhodes)","Vallejo"],
-  ranges: ["3rd Gen AFV","3rd Gen Air","3rd Gen Auxiliary","3rd Gen Figures","3rd Gen Ink","3rd Gen Intense","3rd Gen Metallic","3rd Gen Pastel","3rd Gen Primer","3rd Gen Standard","AFV (legacy)","Air (legacy)","Figures (legacy)","General","Naval","Acrylics","Primers","Washes","Air","Base","Contrast","Dry","Layer","Shade","Spray","Technical","Brushscape","Fantasy","Fantasy Ink Wash","Military","World War II","Formula P3","Formula P3 Wash","Foundry Paint System","Acrylic Colors","Candy Ink Metallic","Chameleon Colorshift","Dipping Inks","Fluor Metallic","Gloss Surface Primer","Intensity Ink","Matt Surface Primer","Metallic Colors","Wash Ink","Danilo Cartacci Signature Set","Expansion Set 1","Michal Pisarski Signature Set","Pure Pigments","Pro Acryl","Pro Acryl Primer","Pro Acryl Signature Series","Pro Acryl Transparent","Pro Acryl Wash","MSP Bones","MSP Core Colors","MSP Core Colors Wash","MSP Pathfinder","MSP Primer","Artist","Fantasy & Games","FX","Inktensity","Instant Colors","Metal n' Alchemy","Scalecolor","Soil Works","Warfront","Colour Primer (spray)","D&D Undead Set","D&D Underdark Set","Metallic Colours Set","Quickshade Washes","Skin Tones Set","Speedpaint 1.0","Speedpaint 2.0","Warpaints (original)","Warpaints Air","Warpaints Fanatic","Warpaints Fanatic Wash","Warpaints Tone","Warpaints Wash","Metallic / Turboshift","Wave 1","Wave 2","Wave 3","Game Air","Game Color","Game Color Special FX","Game Color Wash","Hobby Paint (spray)","Liquid Gold","Mecha Color","Metal Color","Model Air","Model Color","Nocturna Models","Panzer Aces","Premium Airbrush Color","Surface Primer","Wash FX","Weathering FX","Xpress Color","Xpress Color Intense"],
+  brands: ["AK Interactive","AMMO by Mig","Citadel","Coat d'Arms","Formula P3 (Privateer Press)","Foundry","Green Stuff World","Kimera Kolors","Monument Hobbies (Pro Acryl)","Reaper","Scale75","The Army Painter","Turbo Dork","Two Thin Coats (Duncan Rhodes)","Vallejo","Dirty Down"],
+  ranges: ["3rd Gen AFV","3rd Gen Air","3rd Gen Auxiliary","3rd Gen Figures","3rd Gen Ink","3rd Gen Intense","3rd Gen Metallic","3rd Gen Pastel","3rd Gen Primer","3rd Gen Standard","AFV (legacy)","Air (legacy)","Figures (legacy)","General","Naval","Acrylics","Primers","Washes","Air","Base","Contrast","Dry","Layer","Shade","Spray","Technical","Brushscape","Fantasy","Fantasy Ink Wash","Military","World War II","Formula P3","Formula P3 Wash","Foundry Paint System","Acrylic Colors","Candy Ink Metallic","Chameleon Colorshift","Dipping Inks","Fluor Metallic","Gloss Surface Primer","Intensity Ink","Matt Surface Primer","Metallic Colors","Wash Ink","Danilo Cartacci Signature Set","Expansion Set 1","Michal Pisarski Signature Set","Pure Pigments","Pro Acryl","Pro Acryl Primer","Pro Acryl Signature Series","Pro Acryl Transparent","Pro Acryl Wash","MSP Bones","MSP Core Colors","MSP Core Colors Wash","MSP Pathfinder","MSP Primer","Artist","Fantasy & Games","FX","Inktensity","Instant Colors","Metal n' Alchemy","Scalecolor","Soil Works","Warfront","Colour Primer (spray)","D&D Undead Set","D&D Underdark Set","Metallic Colours Set","Quickshade Washes","Skin Tones Set","Speedpaint 1.0","Speedpaint 2.0","Warpaints (original)","Warpaints Air","Warpaints Fanatic","Warpaints Fanatic Wash","Warpaints Tone","Warpaints Wash","Metallic / Turboshift","Wave 1","Wave 2","Wave 3","Game Air","Game Color","Game Color Special FX","Game Color Wash","Hobby Paint (spray)","Liquid Gold","Mecha Color","Metal Color","Model Air","Model Color","Nocturna Models","Panzer Aces","Premium Airbrush Color","Surface Primer","Wash FX","Weathering FX","Xpress Color","Xpress Color Intense","Dark Arts","Effects","Ageing Spray"],
   types: ["Primer","Base","Layer","Standard","Shade/Wash","Contrast/Speedpaint","Glaze","Ink","Dry","Air","Metallic","Technical","Effect"],
   paints: [
     [0,0,"3b Au/zb Au","AK11387","1F2211",3,0],
@@ -5279,5 +5280,51 @@ const PAINT_CATALOGUE = {
     [14,102,"Phoenix Orange","72.478","B1401E",5,0],
     [14,102,"Seraph Red","72.479","6B1411",5,0],
     [14,102,"Viking Grey","72.483","45515D",5,0],
+    [13,103,"Cherubic White","","",3,0],
+    [13,103,"Altar Ivory","","",3,0],
+    [13,103,"Divination White","","",3,0],
+    [13,103,"Blight Cream","","",3,0],
+    [13,103,"Pustule Ochre","","",3,0],
+    [13,103,"Malign Yellow","","",3,0],
+    [13,103,"Abhorrent Ochre","","",3,0],
+    [13,103,"Dystopian Dust","","",3,0],
+    [13,103,"Archon Orange","","",3,0],
+    [13,103,"Crypt Grey","","",3,0],
+    [13,103,"Masque Flesh","","",3,0],
+    [13,103,"Diablo Red","","",3,0],
+    [13,103,"Cinderborn Brown","","",3,0],
+    [13,103,"Grindhouse Orange","","",3,0],
+    [13,103,"Flayer Red","","",3,0],
+    [13,103,"Betrayer Green","","",3,0],
+    [13,103,"Cultmaster Green","","",3,0],
+    [13,103,"Noir Brown","","",3,0],
+    [13,103,"Blood Red Sky","","",3,0],
+    [13,103,"Diabolical Green","","",3,0],
+    [13,103,"Animus Black","","",3,0],
+    [13,103,"Ironclad Silver","","",10,0],
+    [13,103,"Ancient Iron","","",10,0],
+    [13,103,"Old Brown Metal","","",10,0],
+    [13,103,"White Ink","","",7,0],
+    [13,103,"Tobacco Ink","","",7,0],
+    [13,103,"Warm Brown Ink","","",7,0],
+    [13,103,"Deep Red Ink","","",7,0],
+    [13,103,"Brown Ink","","",7,0],
+    [13,103,"Black Ink","","",7,0],
+    [15,104,"Rust","","",12,0],
+    [15,104,"Yellow Rust","","",12,0],
+    [15,104,"Moss","","",12,0],
+    [15,104,"Verdigris","","",12,0],
+    [15,104,"Gore","","",12,0],
+    [15,104,"Snot","","",12,0],
+    [15,105,"Soot Black","","",12,0],
+    [15,105,"Black","","",12,0],
+    [15,105,"Grey","","",12,0],
+    [15,105,"Dark Brown","","",12,0],
+    [15,105,"Mid Brown","","",12,0],
+    [15,105,"Ash Blonde","","",12,0],
+    [15,105,"Rust","","",12,0],
+    [15,105,"Nicotine Yellow","","",12,0],
+    [15,105,"Khaki","","",12,0],
+    [15,105,"Mould","","",12,0],
   ],
 };

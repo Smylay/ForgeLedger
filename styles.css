@@ -129,6 +129,90 @@
     --pill-soon: #fbefc9;
   }
 }
+/* Colour themes (Settings). The dark ones change only the backgrounds,
+   lines, muted text and accent, and take the rest from dark above;
+   Parchment is light, so it sets every token, like Light. Each keeps text
+   at 4.5:1 on its backgrounds, and white on --accent-strong. */
+:root[data-theme="forest"] {
+  --bg: #0e1411;
+  --panel: #16201a;
+  --panel2: #1e2a22;
+  --side: #101813;
+  --muted: #9fb3a5;
+  --line: #2c3d32;
+  --chip: #2c3d32;
+  --field: #0d130f;
+  --well: #0a0f0c;
+  --accent: #5cc285;
+  --accent-strong: #2b7a4b;
+}
+:root[data-theme="ocean"] {
+  --bg: #0c1219;
+  --panel: #131c27;
+  --panel2: #1a2533;
+  --side: #0e1620;
+  --muted: #9eb0c4;
+  --line: #2a3a4d;
+  --chip: #2a3a4d;
+  --field: #0b1118;
+  --well: #090e14;
+  --accent: #45bfd2;
+  --accent-strong: #1c7584;
+}
+:root[data-theme="amethyst"] {
+  --bg: #120f18;
+  --panel: #1b1724;
+  --panel2: #241f30;
+  --side: #14111b;
+  --muted: #afa3c2;
+  --line: #362f45;
+  --chip: #362f45;
+  --field: #110e16;
+  --well: #0d0b12;
+  --accent: #b98af5;
+  --accent-strong: #7445b8;
+}
+:root[data-theme="parchment"] {
+  color-scheme: light;
+  --bg: #f4eee2;
+  --panel: #fffbf3;
+  --panel2: #eee5d3;
+  --side: #e9dfca;
+  --text: #2a2118;
+  --strong: #150f08;
+  --muted: #5f5240;
+  --line: #d3c5a9;
+  --chip: #e2d6bd;
+  --field: #fffdf8;
+  --well: #e5dac4;
+  --accent: #9a3a1c;
+  --accent-strong: #8e3418;
+  --gold: #c98f00;
+  --gold-text: #6e4f00;
+  --green: #376b35;
+  --blue: #1a5a9c;
+  --danger: #b8281f;
+  --danger-text: #9c2019;
+  --del: #a3231b;
+  --pressed: #d9e4ef;
+  --meter-track: #c9d3dc;
+  --swatch-line: #0004;
+  --backdrop: #0006;
+  --shadow: 0 10px 30px #0001;
+  --tone-good: #2f6b2d;
+  --tone-good-line: #255a23;
+  --tone-mid: #7d5e10;
+  --tone-mid-line: #6b500c;
+  --tone-bad: #b02a24;
+  --tone-bad-line: #962520;
+  --tone-none: #2b5c8f;
+  --tone-none-line: #234d78;
+  --pill-bad: #f7dcd6;
+  --pill-good: #dcebd3;
+  --pill-good-text: #1f5a22;
+  --pill-locked: #e6dccb;
+  --pill-soon: #f6e7bf;
+}
 * {
   box-sizing: border-box;
 }
@@ -772,6 +856,24 @@ dialog::backdrop {
   padding-bottom: 10px;
   border-bottom: 1px solid var(--line);
 }
+/* A skill card's difficulty, and the tools its technique needs. */
+.skill .diff {
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.needs {
+  margin-top: 6px;
+  font-size: 13px;
+}
+.needs ul {
+  display: grid;
+  gap: 2px;
+  margin: 2px 0 0;
+  padding-left: 18px;
+}
+.needs .rowacts {
+  margin-left: 6px;
+}
 /* "Used in": the miniatures whose recipe uses a paint. */
 .usedinlist {
   display: grid;
@@ -943,9 +1045,16 @@ dialog::backdrop {
   padding: 4px 8px;
   font-size: 13px;
 }
-.qactions .btn[aria-pressed="true"] {
+.qsteps .btn[aria-pressed="true"] {
   background: var(--pressed);
   border-color: var(--blue);
+}
+/* Under the progress bar: Next, +1, -1, Back and Split by stage. */
+.qsteps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
 }
 .qactions {
   display: flex;
@@ -954,17 +1063,17 @@ dialog::backdrop {
   justify-content: flex-end;
   gap: 6px;
 }
-.qactions .btn {
+.qsteps .btn {
   min-height: 32px;
   padding: 5px 10px;
 }
-.qactions .btn:disabled {
+.qsteps .btn:disabled {
   opacity: 0.5;
   cursor: default;
 }
 /* After the 32px rules above, so it wins on touch screens. */
 @media (pointer: coarse) {
-  .qactions .btn,
+  .qsteps .btn,
   .splitstage .btn {
     min-width: 44px;
     min-height: 44px;

@@ -1,5 +1,5 @@
 // Builds data/paint-catalogue.js, the paint catalogue the app loads, from
-// data/sources/miniature_paints.json. Run with `npm run catalogue` after
+// data/sources/miniature_paints.json and data/sources/additions.json. Run with `npm run catalogue` after
 // changing the source; tests/catalogue.spec.js fails while it's out of date.
 //
 // It tidies the source as it goes:
@@ -14,6 +14,9 @@ const path = require("path");
 
 const ROOT = path.join(__dirname, "..");
 const SOURCE = path.join(ROOT, "data", "sources", "miniature_paints.json");
+// Paints added to the source, e.g. ranges it doesn't have yet. Their hex
+// may be null where no colour has been published.
+const ADDITIONS = path.join(ROOT, "data", "sources", "additions.json");
 const OUT = path.join(ROOT, "data", "paint-catalogue.js");
 
 // The source's types, and the app's paint types they become.
@@ -70,7 +73,7 @@ function build(source) {
       code = p.code ? String(p.code) : "",
       key = [p.brand, p.range, name.toLowerCase()].join("\u0000");
     if (!TYPES[p.type]) throw new Error(`Unknown type ${p.type} for ${name}`);
-    if (!/^#[0-9A-Fa-f]{6}$/.test(p.hex))
+    if (p.hex !== null && !/^#[0-9A-Fa-f]{6}$/.test(p.hex))
       throw new Error(`Bad colour ${p.hex} for ${name}`);
     const earlier = seen.get(key);
     if (earlier) {
@@ -83,7 +86,7 @@ function build(source) {
       index(ranges, p.range),
       name,
       code,
-      hasColour(name) ? p.hex.slice(1).toUpperCase() : "",
+      p.hex && hasColour(name) ? p.hex.slice(1).toUpperCase() : "",
       types.indexOf(TYPES[p.type]),
       p.discontinued ? 1 : 0,
     ];
@@ -96,7 +99,8 @@ function build(source) {
 function render(catalogue) {
   return [
     "// The paint catalogue. Built by scripts/make-catalogue.js from",
-    "// data/sources/miniature_paints.json: don't edit it by hand.",
+    "// data/sources/miniature_paints.json and additions.json: don't edit it",
+    "// by hand.",
     "// Sources and licences: data/sources/README.md.",
     "//",
     "// Each paint is [brand, range, name, code, hex, type, discontinued]:",
@@ -114,8 +118,11 @@ function render(catalogue) {
   ].join("\n");
 }
 
+// The source, with the additions after it.
 function readSource() {
-  return JSON.parse(fs.readFileSync(SOURCE, "utf8"));
+  const source = JSON.parse(fs.readFileSync(SOURCE, "utf8")),
+    additions = JSON.parse(fs.readFileSync(ADDITIONS, "utf8"));
+  return { paints: [...source.paints, ...additions.paints] };
 }
 
 module.exports = { build, render, readSource, OUT, TYPES };

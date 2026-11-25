@@ -27,7 +27,7 @@ test("data/paint-catalogue.js is up to date with its source", () => {
 
 test("the catalogue is tidy", async ({ page }) => {
   const { brands, ranges, types, paints } = build(readSource());
-  expect(brands).toHaveLength(15);
+  expect(brands).toHaveLength(16);
   expect(paints.length).toBeGreaterThan(5000);
   // Collect anything wrong, then check once: thousands of expect() calls
   // are slow.
@@ -112,6 +112,40 @@ test.describe("in the app", () => {
       type: "Technical",
       colour: "",
     });
+  });
+
+  test("Two Thin Coats Dark Arts paints are there, without colours", async ({
+    page,
+  }) => {
+    await nav(page, "paints");
+    await page.click("#addBtn");
+    const label = await pick(
+      page,
+      "#catalogueFind",
+      "#catalogueList",
+      "flayer",
+    );
+    expect(label).toBe("Flayer Red · Two Thin Coats (Duncan Rhodes) Dark Arts");
+    await expect(page.locator('[data-nocolour="colour"]')).toBeChecked();
+    await expect(page.locator('#formFields [name="type"]')).toHaveValue(
+      "Standard",
+    );
+  });
+
+  test("Dirty Down effects are there, without colours", async ({ page }) => {
+    await nav(page, "paints");
+    await page.click("#addBtn");
+    const label = await pick(
+      page,
+      "#catalogueFind",
+      "#catalogueList",
+      "dirty down yellow rust",
+    );
+    expect(label).toBe("Yellow Rust · Dirty Down Effects");
+    await expect(page.locator('[data-nocolour="colour"]')).toBeChecked();
+    await expect(page.locator('#formFields [name="type"]')).toHaveValue(
+      "Effect",
+    );
   });
 
   test("codes find paints too", async ({ page }) => {

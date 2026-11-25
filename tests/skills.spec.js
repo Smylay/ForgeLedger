@@ -107,12 +107,22 @@ test.describe("adding skills", () => {
     const options = await pick(page)
       .locator("option")
       .evaluateAll((os) => os.map((o) => o.textContent));
-    // 20 in the library, 10 already there on a new install.
-    expect(options).toHaveLength(12);
-    expect(options[0]).toBe("Add a technique…");
-    expect(options).toContain("Priming");
-    expect(options).not.toContain("Layering");
-    expect(options.at(-1)).toBe("Other: name your own…");
+    // 20 in the library, 10 already there on a new install; easiest first,
+    // each with its difficulty.
+    expect(options).toEqual([
+      "Add a technique…",
+      "Assembly & conversions · Easy",
+      "Priming · Easy",
+      "Basecoating · Easy",
+      "Contrast & speed paints · Easy",
+      "Metallics · Easy",
+      "Basing · Easy",
+      "Varnishing · Easy",
+      "Zenithal highlighting · Medium",
+      "Faces & eyes · Hard",
+      "Freehand · Expert",
+      "Other: name your own…",
+    ]);
   });
 
   test("adding a technique saves it, with Undo, and drops it from the list", async ({
@@ -282,27 +292,48 @@ test.describe("profile and practice suggestions", () => {
     expect(await practice(page)).toEqual([
       "Weathering · Not changed in 8 weeks",
       "Freehand · Not changed in 6 weeks",
-      "Basing · Not tried yet",
+      "Basing · Easy, not tried yet",
     ]);
     await expect(page.locator("#practice li").first()).toContainText(
       "Layer effects: rust under chips",
     );
   });
 
-  test("suggestions show your goal for a skill of your own", async ({
+  test("easier techniques come first; your own skills count as Medium", async ({
     page,
   }) => {
     await setSlider(page, "Weathering", 6);
     await setSlider(page, "Freehand", 7);
     await setSlider(page, "Basing", 3);
+    // Each step of difficulty counts as two levels: Basing (Easy, 3) ranks
+    // 3, Sculpting (yours, so Medium, 2) 4, Layering (Medium, 4) 6, and
+    // Freehand (Expert, 7) 13.
     expect(await practice(page)).toEqual([
-      "Sculpting · One of your lowest",
-      "Basing · One of your lowest",
-      "Layering · One of your lowest",
+      "Basing · Easy, at 3/9",
+      "Sculpting · At 2/9",
+      "Layering · Medium, at 4/9",
     ]);
-    await expect(page.locator("#practice li").first()).toContainText(
+    // A skill of your own shows your goal.
+    await expect(page.locator("#practice li").nth(1)).toContainText(
       "Finish a bust",
     );
+  });
+
+  test("an Easy skill a few levels up comes before a Hard one not tried", async ({
+    page,
+  }) => {
+    await seed(page, {
+      schemaVersion: 3,
+      skills: [
+        { id: "g", name: "Glazing", level: 0, changed: day(0) },
+        { id: "d", name: "Drybrushing", level: 3, changed: day(0) },
+      ],
+    });
+    await nav(page, "skills");
+    expect(await practice(page)).toEqual([
+      "Drybrushing · Easy, at 3/9",
+      "Glazing · Hard, not tried yet",
+    ]);
   });
 
   test("the profile and suggestions update as a slider moves", async ({
@@ -310,7 +341,7 @@ test.describe("profile and practice suggestions", () => {
   }) => {
     await setSlider(page, "Basing", 8);
     expect((await profile(page))[1]).toEqual(["Basing", "8 · Expert", "88.9%"]);
-    expect(await practice(page)).not.toContain("Basing · Not tried yet");
+    expect(await practice(page)).not.toContain("Basing · Easy, not tried yet");
   });
 
   test("say so when there's nothing to suggest", async ({ page }) => {
@@ -329,5 +360,114 @@ test.describe("profile and practice suggestions", () => {
     await expect(page.locator("#skillProfile")).toHaveText(
       "No skills yet. Add one above.",
     );
+  });
+});
+
+test.describe("difficulty and tools", () => {
+  test.beforeEach(async ({ page }) => {
+    await seed(page, {
+      schemaVersion: 3,
+      skills: [
+        { id: "a", name: "Airbrushing", level: 1 },
+        { id: "w", name: "Wet blending", level: 0 },
+        { id: "f", name: "Freehand", level: 0 },
+        { id: "o", name: "Sculpting", level: 2 },
+      ],
+      tools: [{ id: "t", name: "Iwata airbrush", category: "Airbrush" }],
+      wishlist: [{ id: "x", name: "Big wet palette", category: "Tool" }],
+    });
+    await nav(page, "skills");
+  });
+  const needs = (page, name) =>
+    card(page, name)
+      .locator(".needs li")
+      .evaluateAll((items) =>
+        items.map((li) =>
+          [
+            li.querySelector("b").textContent,
+            li.querySelector(".muted").textContent,
+          ].join(" "),
+        ),
+      );
+
+  test("cards show the technique's difficulty", async ({ page }) => {
+    await expect(card(page, "Airbrushing").locator(".diff")).toHaveText(
+      "Medium",
+    );
+    await expect(card(page, "Freehand").locator(".diff")).toHaveText("Expert");
+    // A skill of your own has none.
+    await expect(card(page, "Sculpting").locator(".diff")).toHaveCount(0);
+  });
+
+  test("cards list the tools a technique needs, and whether you have them", async ({
+    page,
+  }) => {
+    expect(await needs(page, "Airbrushing")).toEqual([
+      "Airbrush · you have Iwata airbrush",
+      "Compressor · not in your tools",
+    ]);
+    expect(await needs(page, "Wet blending")).toEqual([
+      "Wet palette · on your wishlist",
+    ]);
+    // A tool you have has no buttons; one on your wishlist has only Bought.
+    await expect(
+      card(page, "Airbrushing").getByRole("button", {
+        name: "Bought: Airbrush",
+      }),
+    ).toHaveCount(0);
+    await expect(
+      card(page, "Wet blending").getByRole("button", {
+        name: "Add to wishlist: Wet palette",
+      }),
+    ).toHaveCount(0);
+    await expect(card(page, "Sculpting").locator(".needs")).toHaveCount(0);
+  });
+
+  test("Add to wishlist adds the tool, with Undo", async ({ page }) => {
+    await card(page, "Airbrushing")
+      .getByRole("button", { name: "Add to wishlist: Compressor" })
+      .click();
+    await expect(page.locator("#toastText")).toHaveText(
+      'Added "Compressor" to your wishlist',
+    );
+    expect((await stored(page)).wishlist.at(-1)).toMatchObject({
+      name: "Compressor",
+      category: "Tool",
+    });
+    expect(await needs(page, "Airbrushing")).toContain(
+      "Compressor · on your wishlist",
+    );
+    await page.click("#toastAction");
+    expect((await stored(page)).wishlist).toHaveLength(1);
+  });
+
+  test("Bought adds the tool, and takes it off the wishlist", async ({
+    page,
+  }) => {
+    await card(page, "Wet blending")
+      .getByRole("button", { name: "Bought: Wet palette" })
+      .click();
+    await expect(page.locator("#toastText")).toHaveText(
+      'Bought "Big wet palette": it\'s in your tools',
+    );
+    const data = await stored(page);
+    expect(data.wishlist).toHaveLength(0);
+    expect(data.tools.at(-1)).toMatchObject({
+      name: "Big wet palette",
+      category: "Other",
+      condition: "New",
+      quantity: "1",
+    });
+    expect(await needs(page, "Wet blending")).toEqual([
+      "Wet palette · you have Big wet palette",
+    ]);
+    // One not on the wishlist is added by its own name.
+    await card(page, "Freehand")
+      .getByRole("button", { name: "Bought: Detail brush" })
+      .click();
+    expect((await stored(page)).tools.at(-1)).toMatchObject({
+      name: "Detail brush",
+      category: "Brush",
+    });
   });
 });

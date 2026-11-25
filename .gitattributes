@@ -1,0 +1,20 @@
+# What a download holds. GitHub builds release "Source code" downloads and
+# Code > Download ZIP with `git archive`, which leaves out everything
+# marked export-ignore here: tests, build scripts, the catalogue's source
+# data and notes for developers. Downloads hold just the app, its example
+# backup, and the user docs and licences. Developers clone the repository.
+# tests/release.spec.js checks what's left.
+/.github export-ignore
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/.prettierignore export-ignore
+/.prettierrc export-ignore
+/CLAUDE.md export-ignore
+/ForgeLedger[[:space:]]Bugs.txt export-ignore
+/ROADMAP.md export-ignore
+/package.json export-ignore
+/package-lock.json export-ignore
+/playwright.config.js export-ignore
+/scripts export-ignore
+/tests export-ignore
+/data/sources/*.json export-ignore

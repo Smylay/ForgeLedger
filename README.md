@@ -4,24 +4,24 @@ ForgeLedger is an offline-first tracker for miniature wargaming. It keeps your p
 
 ## Features
 
-- **A paint catalogue** of about 5,300 paints from 15 brands: find one by name or code, and its brand, range, type and colour fill in. Quick add on the paints page picks from it too.
+- **A paint catalogue** of about 5,300 paints from 16 brands: find one by name or code, and its brand, range, type and colour fill in. Quick add on the paints page picks from it too.
 - **Paints** with brand, range, colour and type (including Primer and Shade/Wash), and a stock level (Full, Good, Half, Low or Empty) that you set with one tap. Low stock shows on the dashboard, with one-click restock to the wishlist. "Used in" lists the miniatures whose recipe uses a paint.
 - **Miniatures** with model and painted counts, status, army project, recipes built from your paints, and photos from your computer or phone camera. Plan a recipe with paints you don't own yet, from your wishlist or the catalogue, and they go on your wishlist.
 - **Tools** with a condition, from New to Replace soon.
 - **Army projects** whose progress and spend are calculated from their miniatures, with overdue and due-soon markers. Progress counts work in progress: a model halfway through its painting stages counts as half done. Each project shows its rewards, and you can add one from there.
-- **A painting queue** linked to your miniatures. Each item has a stage progress bar, a one-tap Next stage button, and a +1 counter for the current stage that moves the item on once every model is done. Split an item by stage when its models are at different points, such as 2 priming and 3 basecoating. Rename, reorder, add or remove the stages for the whole queue, or give one item stages of its own. Reorder it by dragging, or with the Top and arrow buttons. Completing an item can mark its miniature complete.
-- **Painting skills** rated 0–9, with a name for each level (4 is Competent). Pick from a library of 20 techniques, each with a next step for your level, or add your own. A skill profile shows every level at a glance, and Practice next suggests what to work on: skills you haven't updated in a month, then your lowest.
+- **A painting queue** linked to your miniatures. Each item has a stage progress bar, a one-tap Next stage button, and a +1 counter for the current stage that moves the item on once every model is done. Taken one too far? Back and −1 step it back. Split an item by stage when its models are at different points, such as 2 priming and 3 basecoating. Rename, reorder, add or remove the stages for the whole queue, or give one item stages of its own. Reorder it by dragging, or with the Top and arrow buttons. Queueing a miniature starts it where its status and painted count say it is, and completing an item can mark its miniature complete.
+- **Painting skills** rated 0–9, with a name for each level (4 is Competent). Pick from a library of 20 techniques, each with a difficulty (Easy to Expert), the tools it needs and a next step for your level, or add your own. A technique's card says whether you have its tools, with Add to wishlist and Bought. A skill profile shows every level at a glance, and Practice next suggests what to work on: skills you haven't updated in a month, then easier and lower ones.
 - **A wishlist** with priorities, prices and product links. Make an item a reward that unlocks when a project reaches a percentage you choose. Tap Bought to restock a paint, or to move the item into your paints, tools or miniatures.
 - **Suggestions as you type** for brands, paint ranges, factions and game systems: the ones you've used, then common ones. You can still type anything.
 - **Quick edits without the form:** one-tap stock, status, condition and priority; + and − buttons on paint quantities, model counts and painted counts; and a quick-add box on every page: type a name and press Enter.
 - **Keyboard shortcuts:** N to add, Q to quick-add, / to search, and 1 to 8 to change page. Press ? for the list, which also turns them off.
 - **Search, filters and sortable columns** in every list, and Undo for deletes. Each list opens with what needs attention first: lowest paint stock, worst tool condition, least finished miniatures, soonest project deadline, highest wishlist priority.
 - **JSON backup and restore**, CSV export of any list, and auto-save to a backup file in Chrome and Edge.
-- **Settings** for a dark or light theme (or match your device), the currency prices are shown in, auto-save, keyboard shortcuts, and erasing all your data.
+- **Settings** for a dark or light theme (or match your device), or a colour theme (Forest, Ocean, Amethyst or Parchment), the currency prices are shown in, auto-save, keyboard shortcuts, and erasing all your data.
 
 ## Quick start
 
-1. Download this repository (**Code > Download ZIP**) and unzip it, or clone it.
+1. Download the latest version from [Releases](https://github.com/Smylay/ForgeLedger/releases) (**Source code (zip)**, under Assets) and unzip it. It holds just the app, its example data and these instructions.
 2. Double-click `index.html` to open it in your browser.
 
 You don't need to install anything, build anything, or be online.
@@ -57,7 +57,7 @@ Backups from older versions always import into newer ones. A backup made by a ne
 
 Open **Settings** at the bottom of the sidebar (top right on phones and tablets).
 
-- **Theme:** Dark, Light, or Match my device. It's kept in this browser only, not in backups.
+- **Theme:** Dark, Light, Match my device, or a colour theme: Forest, Ocean and Amethyst (dark green, blue and purple) or Parchment (light and warm). It's kept in this browser only, not in backups.
 - **Currency:** how prices are shown, for example €4.50 or 4,50 kr. Amounts aren't converted. The currency is saved with your data, so it's in your backups.
 - **Auto-save to a file,** **keyboard shortcuts** and **Erase all data,** as described above.
 
@@ -67,7 +67,7 @@ The version (1.0.0) is shown in the sidebar and in Settings. Backups record the 
 
 ForgeLedger is a set of static files, so any web server can host it. The server stores nothing. Each visitor's data stays in their own browser, as described in [Your data](#your-data).
 
-The app needs only `index.html`, `forgeledger_v2.html`, `styles.css`, the `js` folder and `data/paint-catalogue.js`. You can serve the whole repository folder, or just those files. Use any one of the options below, then open `http://<server-address>:8080/`.
+The app needs only `index.html`, `forgeledger_v2.html`, `styles.css`, the `js` folder and `data/paint-catalogue.js`. A download from Releases holds just those, plus the docs and example data, so you can serve its folder as it is. Use any one of the options below, then open `http://<server-address>:8080/`.
 
 - **Python**, for quick use on your home network:
 
@@ -103,6 +103,8 @@ Things to know:
 
 ForgeLedger is plain HTML, CSS and JavaScript, with no framework and no build step. `package.json` lists development tools only: Playwright for tests and Prettier for formatting. You need [Node.js](https://nodejs.org/); CI uses version 22.
 
+Clone the repository to work on it. Downloads (Releases, and **Code > Download ZIP**) leave out the tests, tools and developer notes; `.gitattributes` lists what they leave out.
+
 ```sh
 npm install
 npx playwright install chromium
@@ -121,6 +123,7 @@ GitHub Actions runs the tests in all three browsers, plus the format check, on e
 
 Pull requests are welcome. Before you open one:
 
+- **Open it against the `dev` branch.** `main` only gets releases, merged from `dev`.
 - **Make the tests and the format check pass**, and add tests for what you change.
 - **Keep the app runnable by double-clicking `index.html`.** Browsers block ES modules and service workers from local files, so don't introduce modules, a bundler or a service worker.
 - **Keep old data loading.** People restore backups made by older versions, so don't rename or repurpose stored fields. Add new fields as optional.

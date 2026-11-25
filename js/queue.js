@@ -1,6 +1,7 @@
 // The painting queue: each item's stages and split counts, drawing an
-// item, and its actions: Next stage, +1, Split by stage, Move 1,
-// reordering and the completion prompt. The stage editor is stages.js.
+// item, and its actions: Next stage and Back, +1 and -1, Split by stage,
+// Move 1 and Back 1, reordering and the completion prompt. The stage editor
+// is stages.js.
 "use strict";
 
 // The default middle stages: as edited, else as shipped.
@@ -193,21 +194,26 @@ function queueProgressHtml(v, name) {
     )
     .join("")}</div>`;
 }
-// Split: each stage that has models, with a button to move one on.
+// Split: each stage that has models, with buttons to move one on, and one
+// back. Shown when every model is at Complete too, so one can go back.
 function queueSplitHtml(v, qid, name) {
-  let { stages, last, split, counts, done } = v;
-  if (!split || done) return "";
+  let { stages, last, split, counts } = v;
+  if (!split) return "";
+  let on = (s, j) =>
+    `<button class="btn" data-adv="${qid}" data-from="${j}" aria-label="Move 1 to ${esc(stages[j + 1])} from ${esc(s)}, ${name}">Move 1 to ${esc(stages[j + 1])}</button>`;
+  let back = (s, j) =>
+    `<button class="btn" data-moveback="${qid}" data-from="${j}" aria-label="Back 1 to ${esc(stages[j - 1])} from ${esc(s)}, ${name}">Back 1</button>`;
   return `<div class="splitrow" role="group" aria-label="Models by stage, ${name}">${stages
     .map((s, j) =>
       counts[j]
-        ? `<span class="splitstage">${esc(s)} <b>${counts[j]}</b>${j < last ? `<button class="btn" data-adv="${qid}" data-from="${j}" aria-label="Move 1 to ${esc(stages[j + 1])} from ${esc(s)}, ${name}">Move 1 to ${esc(stages[j + 1])}</button>` : ""}</span>`
+        ? `<span class="splitstage">${esc(s)} <b>${counts[j]}</b>${j < last ? on(s, j) : ""}${j > 0 ? back(s, j) : ""}</span>`
         : "",
     )
     .join("")}</div>`;
 }
-// Next stage and +1 (not while split), the Split by stage toggle, and the
-// row buttons.
-function queueButtonsHtml(v, i, qid, name) {
+// The buttons under the progress bar: Next stage, +1, -1 and Back (not
+// while split), and the Split by stage toggle.
+function queueStepsHtml(v, qid, name) {
   let { stages, split, n, done, total } = v;
   let next =
     done || split
@@ -218,16 +224,28 @@ function queueButtonsHtml(v, i, qid, name) {
     done || split
       ? ""
       : `<button class="btn" data-plus="${qid}" aria-label="+1 done in ${esc(stages[Math.max(n, 1)])} for ${name}">+1 done</button>`;
+  // Going back, for an item taken too far: -1 takes back a +1, and Back
+  // returns to the previous stage. Complete items have them too.
+  let back =
+    split || n === 0
+      ? ""
+      : `<button class="btn" data-minus="${qid}" aria-label="−1 done for ${name}">−1 done</button><button class="btn" data-back="${qid}" aria-label="Back: ${esc(stages[n - 1])} for ${name}">Back: ${esc(stages[n - 1])}</button>`;
   // The toggle: off, every model is at one stage, as before.
   let splitBtn =
     done || total < 2
       ? ""
       : `<button class="btn" data-split="${qid}" aria-pressed="${split}" aria-label="Split by stage: ${name}">Split by stage</button>`;
-  return `${next}${plus}${splitBtn}<span class="rowacts"><button data-top="${i}" aria-label="Move ${name} to top">Top</button><button data-up="${i}" aria-label="Move ${name} up">↑</button><button data-down="${i}" aria-label="Move ${name} down">↓</button><button data-stages="${qid}" aria-label="Stages for ${name}">Stages</button><button data-edit="${qid}">Edit</button><button class="del" data-del="${qid}">Delete</button></span>`;
+  let all = next + plus + back + splitBtn;
+  return all ? `<div class="qsteps">${all}</div>` : "";
+}
+// The row buttons, on the right: reordering, Stages, Edit and Delete.
+function queueRowActsHtml(i, qid, name) {
+  return `<span class="rowacts"><button data-top="${i}" aria-label="Move ${name} to top">Top</button><button data-up="${i}" aria-label="Move ${name} up">↑</button><button data-down="${i}" aria-label="Move ${name} down">↓</button><button data-stages="${qid}" aria-label="Stages for ${name}">Stages</button><button data-edit="${qid}">Edit</button><button class="del" data-del="${qid}">Delete</button></span>`;
 }
 // One queue item: drag handle, position, details with a stage progress
-// bar, then its actions. Buttons carry the item id (next, plus) or its
-// position (top, up, down), which the click listener in app.js reads.
+// bar and the buttons that move it on or back, then its row buttons.
+// Buttons carry the item id (next, plus) or its position (top, up, down),
+// which the click listener in app.js reads.
 function queueItemHtml(q, i) {
   let v = queueState(q),
     { stages, split, n, done, total, working, status } = v,
@@ -243,7 +261,7 @@ function queueItemHtml(q, i) {
   let lowLine = low.length
     ? `<div class="warnline">Low paint: ${low.map((p) => `${esc(p.name)} (${esc(p.stock)})`).join(", ")}</div>`
     : "";
-  return `<div class="qitem" data-index="${i}"><span class="handle" aria-hidden="true" title="Drag to reorder">⠿</span><div class="qnum">${i + 1}</div><div class="qbody"><b>${name}</b><div class="muted">${details}</div>${queueProgressHtml(v, name)}${countLine}${queueSplitHtml(v, qid, name)}${lowLine}</div><div class="qactions">${queueButtonsHtml(v, i, qid, name)}</div></div>`;
+  return `<div class="qitem" data-index="${i}"><span class="handle" aria-hidden="true" title="Drag to reorder">⠿</span><div class="qnum">${i + 1}</div><div class="qbody"><b>${name}</b><div class="muted">${details}</div>${queueProgressHtml(v, name)}${countLine}${queueStepsHtml(v, qid, name)}${queueSplitHtml(v, qid, name)}${lowLine}</div><div class="qactions">${queueRowActsHtml(i, qid, name)}</div></div>`;
 }
 function renderQueue() {
   document.querySelector("#queueContent").innerHTML = db.queue.length
@@ -279,6 +297,27 @@ function nextStage(qid) {
   if (to === "Complete") askComplete(q);
 }
 
+// Back: the previous stage, with Undo, its count starting at 0. It undoes
+// Next, for an item taken too far.
+function prevStage(qid) {
+  let q = db.queue.find((x) => x.id === qid);
+  if (!q || isSplit(q)) return;
+  let stages = queueStages(q),
+    n = stageIndex(q);
+  if (n === 0) return;
+  let to = stages[n - 1];
+  let saved = commitWithUndo(
+    () => {
+      q.stage = to;
+      q.stageDone = 0;
+    },
+    () => `Moved "${q.name}" back to ${to}`,
+  );
+  if (!saved) return;
+  let id = CSS.escape(qid);
+  refocus(`[data-back="${id}"]`, `[data-next="${id}"]`, `[data-edit="${id}"]`);
+}
+
 // +1: one more model done in a queue item's current stage, with Undo.
 // From "Not started" it starts the first stage. When every model is done
 // the item moves on to the next stage, whose count starts at 0; reaching
@@ -311,6 +350,35 @@ function plusOneDone(qid) {
     `[data-edit="${CSS.escape(qid)}"]`,
   );
   if (advance && to === "Complete") askComplete(q);
+}
+
+// -1: takes back one +1, with Undo. With models done in the current stage,
+// one fewer is done; otherwise the item goes back to the previous stage,
+// with all but one model done there (from the first stage, back to Not
+// started). So it undoes +1 exactly, even one that moved the item on.
+function minusOneDone(qid) {
+  let q = db.queue.find((x) => x.id === qid);
+  if (!q || isSplit(q)) return;
+  let stages = queueStages(q),
+    n = stageIndex(q),
+    total = queueTotal(q),
+    count = n < stages.length - 1 ? stageDoneCount(q) : 0;
+  if (n === 0) return;
+  let to = count ? n : n - 1,
+    left = count ? count - 1 : to === 0 ? 0 : total - 1;
+  let saved = commitWithUndo(
+    () => {
+      q.stage = stages[to];
+      q.stageDone = left;
+    },
+    () =>
+      to === 0
+        ? `"${q.name}": back to Not started`
+        : `"${q.name}": ${stages[to]} ${left} of ${total} done`,
+  );
+  if (!saved) return;
+  let id = CSS.escape(qid);
+  refocus(`[data-minus="${id}"]`, `[data-plus="${id}"]`, `[data-edit="${id}"]`);
 }
 
 // Split by stage: on, the models done in the current stage are counted at
@@ -361,6 +429,32 @@ function moveOneOn(qid, from) {
   if (q.stage === "Complete") askComplete(q);
 }
 
+// Split: move one model from stage `from` back to the one before, with
+// Undo.
+function moveOneBack(qid, from) {
+  let q = db.queue.find((x) => x.id === qid);
+  if (!q || !isSplit(q)) return;
+  let stages = queueStages(q),
+    counts = splitCounts(q);
+  if (!(from > 0 && from < stages.length && counts[from] > 0)) return;
+  counts[from]--;
+  counts[from - 1]++;
+  let saved = commitWithUndo(
+    () => storeSplit(q, counts),
+    () => `"${q.name}": 1 back to ${stages[from - 1]} (${splitText(q)})`,
+  );
+  if (!saved) return;
+  let id = CSS.escape(qid);
+  // Stay on this stage's button while it has models, else follow the model.
+  refocus(
+    `[data-moveback="${id}"][data-from="${from}"]`,
+    `[data-moveback="${id}"][data-from="${from - 1}"]`,
+    `[data-adv="${id}"][data-from="${from - 1}"]`,
+    `[data-split="${id}"]`,
+    `[data-edit="${id}"]`,
+  );
+}
+
 // A linked queue item was just marked Complete: ask whether to update its
 // miniature and whether to take it off the queue.
 function askComplete(q) {
@@ -406,24 +500,63 @@ function applyComplete() {
   );
 }
 
-// A miniature's Queue button: add it to the end of the queue, linked to it.
+// Where a newly queued miniature starts, from what its row already says:
+// Built starts after the building stage; Primed and In progress after
+// priming (else after building); Complete at Complete. Painted models are
+// done, so they start at Complete, and a part-painted unit is split.
+// Stages are editable, so they're found by name; a list with no
+// "build" or "prim" stage starts at Not started. Only a Complete status,
+// or every model painted, starts an item at Complete.
+const QUEUE_START = {
+  Built: [/build|assembl/i],
+  Primed: [/prim/i, /build|assembl/i],
+  "In progress": [/prim/i, /build|assembl/i],
+};
+// One count per default stage, adding up to the miniature's model count.
+function queueStart(m) {
+  let stages = queueStages(),
+    last = stages.length - 1,
+    total = Number(m.quantity) || 1,
+    painted = Math.min(total, Math.max(0, Math.floor(Number(m.painted) || 0))),
+    after = Object.hasOwn(QUEUE_START, m.status) ? QUEUE_START[m.status] : [],
+    n = 0;
+  for (let re of after) {
+    let i = stages.findLastIndex((s, j) => j > 0 && j < last && re.test(s));
+    if (i > 0) {
+      n = Math.min(i + 1, last - 1);
+      break;
+    }
+  }
+  if (m.status === "Complete" || painted === total) n = last;
+  let counts = stages.map(() => 0);
+  counts[n] = n === last ? total : total - painted;
+  if (n !== last) counts[last] = painted;
+  return counts;
+}
+
+// A miniature's Queue button: add it to the end of the queue, linked to it,
+// starting from its status and painted count (queueStart), with Undo.
 function queueMiniature(mid) {
   let m = db.miniatures.find((x) => x.id === mid);
   if (!m) return;
-  let queued = commit(() =>
-    db.queue.push({
-      id: id(),
-      name: m.name,
-      miniature: m.id,
-      project: m.project || "",
-      stage: "Not started",
-      models: m.quantity || 1,
-      due: "",
-      notes: "",
-    }),
+  let q = {
+    id: id(),
+    name: m.name,
+    miniature: m.id,
+    project: m.project || "",
+    stage: "Not started",
+    models: m.quantity || 1,
+    due: "",
+    notes: "",
+  };
+  let counts = queueStart(m);
+  if (counts.filter((c) => c > 0).length > 1) storeSplit(q, counts);
+  else q.stage = queueStages(q)[counts.findIndex((c) => c > 0)];
+  commitWithUndo(
+    () => db.queue.push(q),
+    () =>
+      `Added "${q.name}" to the queue: ${isSplit(q) ? splitText(q) : q.stage}`,
   );
-  renderNav();
-  if (queued) toast("Added to queue");
 }
 // Top, ↑ and ↓ on item `i`. Focus stays on the same button of the item that
 // moved.

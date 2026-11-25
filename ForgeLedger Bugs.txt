@@ -2,11 +2,11 @@ ForgeLedger Bugs/Suggestions
 
 - We should review the codebase to see if any files are becoming over complex and ensure its built in a logical way. (done in PR #19)
 
-- Maybe we could add some themes for different colours
+- Maybe we could add some themes for different colours (done in PR #24)
 
 - Use wishlist paints when selecting on miniatures (done in PR #22)
-- Easy medium hard expert on skills with next suggestions being easy skills
-- On Skills that require a tool add a bought and wishlist tool button
+- Easy medium hard expert on skills with next suggestions being easy skills (done in PR #23)
+- On Skills that require a tool add a bought and wishlist tool button (done in PR #23)
 - Add a dropdown for common brands with other option when adding paints and tools and miniatures (done in PR #21)
 - Dropdowns in other places where possible like game system (done in PR #21)
 - What is Paint Range and why is the example just a duplicate of type? Could it be removed? (done in PR #22)

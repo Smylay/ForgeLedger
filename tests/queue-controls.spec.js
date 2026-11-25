@@ -1,5 +1,5 @@
 // Queue controls: next stage, stage progress, +1 done (counted per stage),
-// move to top and drag to reorder.
+// going back (-1 and Back), move to top and drag to reorder.
 const {
   test,
   expect,
@@ -205,7 +205,121 @@ test.describe("+1 done", () => {
   });
 });
 
+test.describe("going back", () => {
+  const minus = (page, i) => item(page, i).locator("button[data-minus]");
+  const back = (page, i) => item(page, i).locator("button[data-back]");
+  const plus = (page, i) => item(page, i).locator("button[data-plus]");
+
+  test("Back returns to the previous stage, with Undo", async ({ page }) => {
+    await expect(back(page, 0)).toHaveText("Back: Detailing");
+    await expect(back(page, 0)).toHaveAccessibleName(
+      "Back: Detailing for Squad",
+    );
+    await back(page, 0).click();
+    expect((await stored(page)).queue[0]).toMatchObject({
+      stage: "Detailing",
+      stageDone: 0,
+    });
+    await expect(page.locator("#toastText")).toHaveText(
+      'Moved "Squad" back to Detailing',
+    );
+    await expect(item(page, 0)).toContainText("Detailing: 0 of 3 done");
+    await expect(back(page, 0)).toBeFocused();
+    await page.click("#toastAction");
+    expect((await stored(page)).queue[0]).toMatchObject({
+      stage: "Basing",
+      stageDone: 1,
+    });
+  });
+
+  test("−1 takes back one done, then the +1 that moved it on", async ({
+    page,
+  }) => {
+    await expect(minus(page, 0)).toHaveText("−1 done");
+    await expect(minus(page, 0)).toHaveAccessibleName("−1 done for Squad");
+    await minus(page, 0).click();
+    expect((await stored(page)).queue[0]).toMatchObject({
+      stage: "Basing",
+      stageDone: 0,
+    });
+    await expect(page.locator("#toastText")).toHaveText(
+      '"Squad": Basing 0 of 3 done',
+    );
+    await expect(minus(page, 0)).toBeFocused();
+    // None done here: back to Detailing, with all but one model done.
+    await page.keyboard.press("Enter");
+    expect((await stored(page)).queue[0]).toMatchObject({
+      stage: "Detailing",
+      stageDone: 2,
+    });
+    await expect(item(page, 0)).toContainText("Detailing: 2 of 3 done");
+  });
+
+  test("−1 undoes +1 exactly", async ({ page }) => {
+    // Loose has one model, so +1 moves it on.
+    await plus(page, 2).click();
+    expect((await stored(page)).queue[2].stage).toBe("Basecoating");
+    await minus(page, 2).click();
+    expect((await stored(page)).queue[2]).toMatchObject({
+      stage: "Priming",
+      stageDone: 0,
+    });
+  });
+
+  test("from the first stage, −1 goes back to Not started", async ({
+    page,
+  }) => {
+    await plus(page, 1).click(); // Hero: Building 1 of 2
+    await minus(page, 1).click();
+    await minus(page, 1).click();
+    expect((await stored(page)).queue[1]).toMatchObject({
+      stage: "Not started",
+      stageDone: 0,
+    });
+    await expect(page.locator("#toastText")).toHaveText(
+      '"Hero": back to Not started',
+    );
+    // Nothing to go back to now; focus moves to +1.
+    await expect(minus(page, 1)).toHaveCount(0);
+    await expect(back(page, 1)).toHaveCount(0);
+    await expect(plus(page, 1)).toBeFocused();
+  });
+
+  test("a complete item can go back", async ({ page }) => {
+    await expect(back(page, 3)).toHaveText("Back: Basing");
+    await back(page, 3).click();
+    expect((await stored(page)).queue[3]).toMatchObject({
+      stage: "Basing",
+      stageDone: 0,
+    });
+    await expect(item(page, 3).locator("button[data-next]")).toHaveText(
+      "Next: Complete",
+    );
+  });
+
+  test("from Complete, −1 leaves all but one model done", async ({ page }) => {
+    await plus(page, 0).click();
+    await plus(page, 0).click(); // Squad: Complete
+    await page.click('#completeDialog button[value="skip"]');
+    await minus(page, 0).click();
+    expect((await stored(page)).queue[0]).toMatchObject({
+      stage: "Basing",
+      stageDone: 2,
+    });
+    await expect(page.locator("#completeDialog")).toBeHidden();
+  });
+
+  test("Not started has nothing to go back to", async ({ page }) => {
+    await expect(minus(page, 1)).toHaveCount(0);
+    await expect(back(page, 1)).toHaveCount(0);
+  });
+});
+
 test.describe("reordering", () => {
+  // Tall enough that every item's handle is on screen: a drag can't start
+  // below the window.
+  test.use({ viewport: { width: 1280, height: 1000 } });
+
   test("Top moves an item to the front and keeps focus", async ({ page }) => {
     await item(page, 2).locator("button[data-top]").focus();
     await page.keyboard.press("Enter");

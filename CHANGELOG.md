@@ -2,18 +2,43 @@
 
 What changed in each version of ForgeLedger. Backups from every earlier version still import.
 
-## Unreleased
+## 1.1.0 – 2026-11-25
 
-- **A paint catalogue** of about 5,300 paints from 15 brands. In the paint form, find a paint by name or code, and its brand, range, type and colour fill in. Quick add on the paints page picks from it too.
+A paint catalogue, colour themes, a painting queue you can step back through and that starts from each miniature's progress, and skills that know their difficulty and tools. Backups from 1.0.0 import as before, and nothing you've saved changes.
+
+### Paints
+
+- **A paint catalogue** of about 5,300 paints from 16 brands. In the paint form, find a paint by name or code, and its brand, range, type and colour fill in. Quick add on the paints page picks from it too.
+- **Two Thin Coats Dark Arts** in the paint catalogue (30 paints, names only; no colours have been published).
+- **Dirty Down** in the paint catalogue: 6 effects, such as Rust, Moss and Gore, and 10 ageing sprays (names only; no colours have been published).
 - **Plan a recipe with paints you don't own yet,** from your wishlist or the catalogue. Saving adds them to your paints as Empty, with a quantity of 0, and to your wishlist, so Bought restocks them.
 - **More paint types:** Standard, Glaze, Dry, Air and Effect, to match the catalogue.
-- **The example data's paint ranges** are now product lines, instead of repeating the type.
+- **"Used in" on paints:** how many miniatures' recipes use each paint, and which ones.
+
+### Painting queue
+
+- **Queueing a miniature starts where it is:** a Built miniature starts after Building, a Primed or In progress one after Priming, and painted models count as Complete, so a part-painted unit is split by stage. Undo takes it off again.
+- **Go back in the painting queue** when an item's been taken too far: Back returns to the previous stage, −1 takes back a +1, and split items have Back 1 for each stage. Complete items can go back too.
+- **Queue buttons sit under each item's progress bar,** so the details have room.
+
+### Skills
+
+- **Skills have a difficulty,** Easy, Medium, Hard or Expert, and Practice next suggests easier techniques first.
+- **Techniques show the tools they need,** whether you have them, and Add to wishlist and Bought buttons for ones you don't.
+
+### Everywhere
+
+- **Colour themes:** Forest, Ocean and Amethyst (dark green, blue and purple) and Parchment (light and warm), in Settings alongside Dark and Light. Each is checked for contrast.
+- **Each list opens sorted** so what needs attention comes first: paints by lowest stock, tools by worst condition, miniatures by least finished, projects by soonest target date, the wishlist by highest priority. Click a column header to sort another way.
 - **Suggestions as you type** in the brand, range, faction and game system boxes: what you've entered before, most used first, then common brands and game systems. Range suggestions follow the brand. You can still type anything.
 - **Tools and miniatures have a Brand,** with their own suggestions.
-- **Each list opens sorted** so what needs attention comes first: paints by lowest stock, tools by worst condition, miniatures by least finished, projects by soonest target date, the wishlist by highest priority. Click a column header to sort another way.
-- **"Used in" on paints:** how many miniatures' recipes use each paint, and which ones.
 - **Rewards on the projects page:** each project shows its rewards under its name, with an Add reward button.
 - **"Quick add"** is now the name of the button beside each quick-add box, so it's clearly different from "Add item".
+- **The example data's paint ranges** are now product lines, instead of repeating the type.
+
+### Downloads and code
+
+- **Downloads hold just the app:** a release's Source code zip, and Code > Download ZIP, leave out the tests, build tools and developer notes.
 - **How to update** without losing data, in the README.
 - **The code is reorganised by feature** (the queue, the stage editor, the wishlist, skills, Settings, backups), so each part is easier to find and change. Nothing changes in how the app works.
 

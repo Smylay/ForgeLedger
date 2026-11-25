@@ -267,11 +267,19 @@ test("stored stage lists are read safely", async ({ page }, testInfo) => {
 
 test("stage names can't run script", async ({ page }) => {
   const attack = `x"><img src=x onerror="window.stageRan=1">`;
+  // Short enough to be kept whole, for the Back button that names it.
+  const short = `"><img src=x onerror=window.stageRan=1>`;
   await seed(page, {
     schemaVersion: 4,
-    queueStages: ["Build", attack],
-    queue: [{ id: "a", name: "Item", models: "2", stage: attack }],
+    queueStages: ["Build", attack, short, "Paint"],
+    queue: [
+      { id: "a", name: "Item", models: "2", stage: attack },
+      { id: "b", name: "Later", models: "2", stage: "Paint" },
+    ],
   });
+  await expect(item(page, 1).locator("button[data-back]")).toHaveText(
+    `Back: ${short}`,
+  );
   await nav(page, "queue");
   await item(page, 0).locator("button[data-edit]").click();
   await page.keyboard.press("Escape");
