@@ -319,3 +319,34 @@ test("a second message stays up for its full time", async ({ page }) => {
   await page.waitForTimeout(900);
   await expect(page.locator("#toast")).toBeVisible();
 });
+
+test("a price that isn't a number doesn't spoil the totals", async ({
+  page,
+}) => {
+  await openApp(page);
+  await seed(page, {
+    projects: [{ id: "p", name: "Army" }],
+    paints: [
+      { id: "a", name: "A", price: "4" },
+      { id: "b", name: "B", price: "abc" },
+    ],
+    miniatures: [
+      { id: "m", name: "M", project: "p", price: "10" },
+      { id: "n", name: "N", project: "p", price: "-3" },
+    ],
+    wishlist: [
+      { id: "w", name: "W", price: "5" },
+      { id: "v", name: "V", price: "lots" },
+    ],
+  });
+  // The junk and negative prices count as nothing, not as the whole total.
+  await expect(
+    page
+      .locator("#metrics .metric", { hasText: "Recorded spend" })
+      .locator(".v"),
+  ).toHaveText("£14.00");
+  await expect(page.locator("#spendSummary")).toContainText("£5.00");
+  expect(await page.evaluate(() => projectStats(db.projects[0]).spent)).toBe(
+    10,
+  );
+});

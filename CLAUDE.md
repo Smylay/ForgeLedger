@@ -50,7 +50,7 @@ The code lives in plain `<script>` files that share the global scope. They aren'
 
 | File            | Contents                                                                                                                                   |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `util.js`       | helpers with no app state: `id()`, `esc()`, `safeColour()`, `safeUrl()`, `toast()`, `download()`, `today()`, `refocus()`                   |
+| `util.js`       | helpers with no app state: `id()`, `esc()`, `safeColour()`, `safeUrl()`, `amount()`, `toast()`, `download()`, `today()`, `refocus()`       |
 | `schema.js`     | `APP_VERSION`, storage keys and other constants, `defaults`, `defs`, `column()`, link helpers, `projectStats()`                            |
 | `skillguide.js` | `LEVELS`, the `TECHNIQUES` library, `nextStep()`, `practiceNext()` and other skill rules                                                   |
 | `demo.js`       | the example data (`demoData()`, `demoPhotos()`, `DEMO_FILE_DATE`), and the offer to load, clear or keep it                                 |
@@ -478,8 +478,9 @@ By the time it opens, the miniature's painted count has already followed the que
   - The projects table shows each project's rewards under its name (`projectRewardsHtml()`, through `defs.projects.under`), with an "Add reward" button (`data-addreward`, `addReward()`) that opens a wishlist form for that project at 100%.
 - **Used in.** The paints table's computed "Used in" column counts the miniatures whose recipe (`paints`) includes each paint (`usedIn()`, in `paints.js`). Its button (`data-usedin`) opens `#usedInDialog`, which lists them with their project and status. Sorting by it puts unused paints first.
 - The dashboard's "Recorded spend" adds up `price` across paints, tools, and miniatures, plus every paint's restocks (`recordedSpend()`). Each `price` is added as entered; it is not multiplied by `quantity`. The spend card says how much of it went on restocks.
+- **Add prices up with `amount()`** (`util.js`), never `Number(x.price || 0)`: it counts a blank, junk or negative price as 0. A single `NaN` would make the whole total `NaN`, which `money()` shows as 0. Recorded spend, wishlist exposure and a project's spend use it.
 - **Restocks** (`paints.js`). A paint's `restocks` list records pots bought again, `{ date, price }`, with the date as `YYYY-MM-DD` and the price as typed.
   - Bought on a restock adds one (`addRestock()`), dated today with the wishlist item's price.
   - The paint form lists them below its fields when editing (`formOutro`, `restocksHtml()`), each with a Remove box, plus a box to record one bought today. `saveRestocks()` (`formSave`) applies them on save and takes the boxes out of the record. Saving without using them leaves the stored list as it is.
-  - `restockPrice()` counts only a finite positive price, so junk adds nothing; dates show only when they're text or a number.
+  - Prices are added with `amount()`, so junk adds nothing; dates show only when they're text or a number.
 - Prices are shown in the currency chosen in Settings (see Settings), GBP by default.
