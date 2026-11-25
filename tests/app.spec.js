@@ -93,6 +93,7 @@ test.describe("undo delete", () => {
         await addItem(page, section, { name: "B" });
       }
       await nav(page, section);
+      if (section === "queue") await page.click('[data-qview="list"]');
       const before = await page.locator(cells).allTextContents();
       await page.locator("button[data-del]").first().click();
       await expect(page.locator(cells)).toHaveCount(before.length - 1);
@@ -140,12 +141,15 @@ test.describe("form", () => {
 });
 
 test.describe("painting queue", () => {
-  test("queue a miniature from its row", async ({ page }) => {
+  test("put a miniature's models on the board from its row", async ({
+    page,
+  }) => {
     await addItem(page, "miniatures", { name: "Squad", quantity: "5" });
-    await page.click("button[data-queue]");
+    await page.click("button[data-addall]");
     const queue = (await stored(page)).queue;
     expect(queue).toHaveLength(1);
     expect(queue[0]).toMatchObject({ name: "Squad", models: "5" });
+    expect(queue[0].cards).toHaveLength(5);
     await expect(page.locator('#nav a[data-sec="queue"] .count')).toHaveText(
       "1",
     );
@@ -154,6 +158,7 @@ test.describe("painting queue", () => {
   test("add, edit, reorder and delete queue items", async ({ page }) => {
     await addItem(page, "queue", { name: "A" });
     await addItem(page, "queue", { name: "B" });
+    await page.click('[data-qview="list"]');
     const names = async () => (await stored(page)).queue.map((q) => q.name);
 
     await page.click(".qitem:nth-child(2) button[data-up]");
@@ -163,9 +168,9 @@ test.describe("painting queue", () => {
     expect(await names()).toEqual(["B", "A"]);
 
     await page.click(".qitem:nth-child(1) button[data-edit]");
-    await fillForm(page, { stage: "Basing" });
+    await fillForm(page, { models: "3" });
     await submitForm(page);
-    expect((await stored(page)).queue[0].stage).toBe("Basing");
+    expect((await stored(page)).queue[0].cards).toHaveLength(3);
 
     await page.click(".qitem:nth-child(1) button[data-del]");
     expect(await names()).toEqual(["A"]);

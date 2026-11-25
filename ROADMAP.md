@@ -53,6 +53,29 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - **The queue keeps miniatures up to date, and restock spend (phase 26):** queue progress moves each miniature's status and painted count forward, and restocks count in Recorded spend. _(From Later.)_
 - **Version 1.2.0:** phase 26.
 
+## Version 2.0 (asked for in chat)
+
+A painting board, with a card for every model, instead of stage buttons on each queue item; photos of each model; and a page for each project.
+
+### Phase 27: The painting board (in progress)
+
+- **A board with a column per phase:** To do, Building, Priming, Painting, Detailing, Done. Edit board renames, reorders, adds and deletes phases.
+- **A card for every model.** Units group their models in each column, opening to show them. Drag a unit or a model to another phase, or use ◀ and ▶; moving back is as easy as moving on.
+- **Add 1 and Add all** on the miniatures page put models on the board, starting where the miniature's status and painted count say.
+- **The list** keeps the units' priority order, with how many models are in each phase, and nothing else to press.
+- **1.x queues move across:** each item's models become cards in the matching phase.
+
+### Phase 28: Photos of each model
+
+- A photo on a model's card, added to its miniature's photos.
+
+### Phase 29: Project pages
+
+- **A page for each project,** like the dashboard but for that project: its miniatures and where each is on the board, its progress, spend, rewards and wishlist items.
+- **A Project field on wishlist items,** so anything you need for a project shows on its page.
+
+### Then: version 2.0.0
+
 ## Releases
 
 Phases merge into `dev`; versions are released to `main`. Version 1.2.0 brought phase 26, and 1.1.0 phases 19 to 25. See [CHANGELOG.md](CHANGELOG.md).

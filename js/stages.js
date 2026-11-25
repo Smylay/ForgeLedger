@@ -1,109 +1,97 @@
-// The stage editor: the default stages, or one queue item's own, and
-// moving items when stages are renamed, reordered or deleted.
+// The phase editor (Edit board): rename, reorder, add and delete the
+// board's phases between To do and Done, moving model cards to match.
 "use strict";
 
-// The stage editor: the default list (`qid` null) or one queue item's own.
-// Rows keep the stage name they started with (`data-orig`), so Save can
-// tell a renamed stage from a deleted one.
-function openStages(qid) {
-  let q = qid ? db.queue.find((x) => x.id === qid) : null;
-  if (qid && !q) return;
-  editingStages = { qid: q ? q.id : null };
-  document.querySelector("#stagesTitle").textContent = q
-    ? `Stages for "${q.name}"`
-    : "Default stages";
-  document.querySelector("#stagesHint").textContent = q
-    ? ownStages(q)
-      ? "This item has its own stages. Not started and Complete are always first and last."
-      : "This item uses the default stages. Saving here gives it its own copy to change."
-    : "Queue items use these unless they have their own. Not started and Complete are always first and last.";
-  document.querySelector("#resetStages").hidden = !(q && ownStages(q));
-  document.querySelector("#stageList").innerHTML =
-    '<li class="fixed">Not started</li>' +
-    queueStages(q)
+// Open the editor. Rows keep the phase name they started with
+// (`data-orig`), so Save can tell a renamed phase from a deleted one.
+function openPhases() {
+  document.querySelector("#phaseList").innerHTML =
+    `<li class="fixed">${esc(FIRST_PHASE)}</li>` +
+    boardPhases()
       .slice(1, -1)
-      .map((s) => stageRowHtml(s, s))
+      .map((s) => phaseRowHtml(s, s))
       .join("") +
-    '<li class="fixed">Complete</li>';
-  numberStageRows();
-  document.querySelector("#stagesDialog").showModal();
+    `<li class="fixed">${esc(LAST_PHASE)}</li>`;
+  numberPhaseRows();
+  document.querySelector("#phasesDialog").showModal();
 }
-function stageRowHtml(name, orig) {
-  return `<li data-row${orig === null ? "" : ` data-orig="${esc(orig)}"`}><input name="stage" value="${esc(name)}" required maxlength="${MAX_STAGE_NAME}" /><button type="button" class="btn" data-sup>↑</button><button type="button" class="btn" data-sdown>↓</button><button type="button" class="btn" data-sdel>Delete</button></li>`;
+function phaseRowHtml(name, orig) {
+  return `<li data-row${orig === null ? "" : ` data-orig="${esc(orig)}"`}><input name="phase" value="${esc(name)}" required maxlength="${MAX_PHASE_NAME}" /><button type="button" class="btn" data-pup>↑</button><button type="button" class="btn" data-pdown>↓</button><button type="button" class="btn" data-pdel>Delete</button></li>`;
 }
 // Label the rows by position, and disable moves and deletes that can't
-// happen: there's always at least one stage.
-function numberStageRows() {
-  let rows = [...document.querySelectorAll("#stageList li[data-row]")];
+// happen: there's always at least one phase between To do and Done.
+function numberPhaseRows() {
+  let rows = [...document.querySelectorAll("#phaseList li[data-row]")];
   rows.forEach((li, i) => {
-    let n = `stage ${i + 1}`;
+    let n = `phase ${i + 1}`;
     li.querySelector("input").setAttribute("aria-label", `Name of ${n}`);
-    li.querySelector("[data-sup]").setAttribute("aria-label", `Move ${n} up`);
-    li.querySelector("[data-sdown]").setAttribute(
+    li.querySelector("[data-pup]").setAttribute("aria-label", `Move ${n} up`);
+    li.querySelector("[data-pdown]").setAttribute(
       "aria-label",
       `Move ${n} down`,
     );
-    li.querySelector("[data-sdel]").setAttribute("aria-label", `Delete ${n}`);
-    li.querySelector("[data-sup]").disabled = i === 0;
-    li.querySelector("[data-sdown]").disabled = i === rows.length - 1;
-    li.querySelector("[data-sdel]").disabled = rows.length === 1;
+    li.querySelector("[data-pdel]").setAttribute("aria-label", `Delete ${n}`);
+    li.querySelector("[data-pup]").disabled = i === 0;
+    li.querySelector("[data-pdown]").disabled = i === rows.length - 1;
+    li.querySelector("[data-pdel]").disabled = rows.length === 1;
   });
-  document.querySelector("#addStage").disabled = rows.length >= MAX_STAGES;
+  document.querySelector("#addPhase").disabled = rows.length >= MAX_PHASES;
 }
 // ↑, ↓ and Delete on a row. Moves shift the neighbouring row, so the
 // pressed button never leaves the page and keeps focus.
-function stageRowAction(b) {
+function phaseRowAction(b) {
   let li = b.closest("li[data-row]");
   if (!li) return;
   let prev = li.previousElementSibling,
     next = li.nextElementSibling;
-  if (b.hasAttribute("data-sup") && prev?.hasAttribute("data-row"))
+  if (b.hasAttribute("data-pup") && prev?.hasAttribute("data-row"))
     li.after(prev);
-  if (b.hasAttribute("data-sdown") && next?.hasAttribute("data-row"))
+  if (b.hasAttribute("data-pdown") && next?.hasAttribute("data-row"))
     li.before(next);
-  if (b.hasAttribute("data-sdel")) {
+  if (b.hasAttribute("data-pdel")) {
     let to = next?.hasAttribute("data-row") ? next : prev;
     li.remove();
-    numberStageRows();
-    // The neighbour's Delete, or its name when it's the last stage left.
-    let del = to?.querySelector("[data-sdel]");
+    numberPhaseRows();
+    // The neighbour's Delete, or its name when it's the last phase left.
+    let del = to?.querySelector("[data-pdel]");
     return (del?.disabled ? to.querySelector("input") : del)?.focus();
   }
-  numberStageRows();
+  numberPhaseRows();
   if (b.disabled)
-    (b.hasAttribute("data-sup")
-      ? li.querySelector("[data-sdown]")
-      : li.querySelector("[data-sup]")
+    (b.hasAttribute("data-pup")
+      ? li.querySelector("[data-pdown]")
+      : li.querySelector("[data-pup]")
     ).focus();
 }
-function addStageRow() {
-  let rows = document.querySelectorAll("#stageList li[data-row]");
-  if (rows.length >= MAX_STAGES) return;
+function addPhaseRow() {
+  let rows = document.querySelectorAll("#phaseList li[data-row]");
+  if (rows.length >= MAX_PHASES) return;
   document
-    .querySelector("#stageList li.fixed:last-child")
-    .insertAdjacentHTML("beforebegin", stageRowHtml("", null));
-  numberStageRows();
-  let all = document.querySelectorAll("#stageList li[data-row]");
+    .querySelector("#phaseList li.fixed:last-child")
+    .insertAdjacentHTML("beforebegin", phaseRowHtml("", null));
+  numberPhaseRows();
+  let all = document.querySelectorAll("#phaseList li[data-row]");
   all[all.length - 1].querySelector("input").focus();
 }
 // Save: check the names, then apply. Returns false to keep the editor open.
-function saveStages() {
-  let rows = [...document.querySelectorAll("#stageList li[data-row]")].map(
+function savePhases() {
+  let rows = [...document.querySelectorAll("#phaseList li[data-row]")].map(
       (li) => ({
         input: li.querySelector("input"),
         orig: li.hasAttribute("data-orig") ? li.dataset.orig : null,
         name: li.querySelector("input").value.trim(),
       }),
     ),
+    ends = [FIRST_PHASE.toLowerCase(), LAST_PHASE.toLowerCase()],
     seen = new Set();
   for (let r of rows) {
     let key = r.name.toLowerCase();
     let problem = !r.name
-      ? "Give this stage a name."
-      : key === "not started" || key === "complete"
-        ? `"${r.name}" is always the first or last stage.`
+      ? "Give this phase a name."
+      : ends.includes(key)
+        ? `"${r.name}" is always the first or last phase.`
         : seen.has(key)
-          ? "Another stage already has this name."
+          ? "Another phase already has this name."
           : "";
     seen.add(key);
     r.input.setCustomValidity(problem);
@@ -112,12 +100,12 @@ function saveStages() {
       return false;
     }
   }
-  return applyStages(editingStages?.qid, rows);
+  return applyPhases(rows);
 }
-// What each old stage becomes: its row's new name, or for a deleted stage
-// the next stage that's kept (else the one before it), so items at it move
-// on rather than back, and never straight to Complete.
-function stageMap(oldList, rows) {
+// What each old phase becomes: its row's new name, or for a deleted phase
+// the next phase that's kept (else the one before it), so models in it
+// move on rather than back, and never straight to Done.
+function phaseMap(oldList, rows) {
   let kept = new Map(
       rows.filter((r) => r.orig !== null).map((r) => [r.orig, r.name]),
     ),
@@ -135,75 +123,29 @@ function stageMap(oldList, rows) {
   });
   return { map, deleted };
 }
-// Rename an item's stage and split counts with `map`. Returns whether any
-// of its models were at a deleted stage.
-function remapStages(q, { map, deleted }) {
-  let moved = false;
-  if (Object.hasOwn(map, q.stage)) {
-    if (deleted.has(q.stage)) {
-      q.stageDone = 0; // its count was for the stage that's gone
-      moved = true;
-    }
-    q.stage = map[q.stage];
-  }
-  if (isSplit(q)) {
-    let split = {};
-    for (let [k, c] of Object.entries(q.split)) {
-      let n = Math.max(0, Math.floor(Number(c) || 0)),
-        to = Object.hasOwn(map, k) ? map[k] : k;
-      if (deleted.has(k) && n) moved = true;
-      split[to] = (split[to] || 0) + n;
-    }
-    q.split = split;
-    storeSplit(q, splitCounts(q)); // in step with the new order
-  }
-  return moved;
-}
-function applyStages(qid, rows) {
-  let q = qid ? db.queue.find((x) => x.id === qid) : null;
-  if (qid && !q) return true;
+// Save the phases, and move every card in one commitWithUndo. Miniatures
+// whose models moved on follow (queue.js).
+function applyPhases(rows) {
   let names = rows.map((r) => r.name),
-    plan = stageMap(queueStages(q).slice(1, -1), rows),
+    plan = phaseMap(boardPhases().slice(1, -1), rows),
     moved = 0,
     synced = 0;
   commitWithUndo(
     () => {
-      if (q) q.stages = names;
-      else db.queueStages = names;
-      for (let t of q ? [q] : db.queue.filter((x) => !ownStages(x))) {
-        if (remapStages(t, plan)) moved++;
-        // Items moved on can move their miniature on too (queue.js).
-        if (syncMiniature(t)) synced++;
+      db.queueStages = names;
+      for (let q of db.queue) {
+        for (let c of cardsOf(q))
+          if (Object.hasOwn(plan.map, c.phase)) {
+            if (plan.deleted.has(c.phase)) moved++;
+            c.phase = plan.map[c.phase];
+          }
+        if (syncMiniature(q)) synced++;
       }
     },
     () =>
-      (q ? `Saved the stages for "${q.name}"` : "Saved the default stages") +
-      (moved ? `; ${moved} item(s) moved on from a deleted stage` : "") +
+      "Saved the board" +
+      (moved ? `; ${moved} model(s) moved on from a deleted phase` : "") +
       (synced ? `; ${synced} miniature(s) updated` : ""),
   );
   return true; // close the editor even if saving failed: commit said why
-}
-// An item goes back to the default stages. A stage the default doesn't
-// have becomes the default stage in the same place.
-function useDefaultStages(qid) {
-  let q = db.queue.find((x) => x.id === qid);
-  if (!q) return;
-  let def = defaultStages(),
-    map = {},
-    deleted = new Set();
-  queueStages(q)
-    .slice(1, -1)
-    .forEach((s, i) => {
-      if (def.includes(s)) return (map[s] = s);
-      map[s] = def[Math.min(i, def.length - 1)];
-      deleted.add(s);
-    });
-  commitQueue(
-    q,
-    () => {
-      delete q.stages;
-      remapStages(q, { map, deleted });
-    },
-    () => `"${q.name}" uses the default stages again`,
-  );
 }

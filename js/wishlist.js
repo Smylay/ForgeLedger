@@ -113,7 +113,13 @@ function reward(w) {
   at = Number.isFinite(at) ? Math.max(0, Math.min(100, Math.round(at))) : 100;
   let st = projectStats(p),
     reached = st.goal > 0 ? (100 * st.progress) / st.goal : 0;
-  return { project: p, at, percent: st.percent, unlocked: reached >= at };
+  // As for percent: shares added as fractions can fall a hair short.
+  return {
+    project: p,
+    at,
+    percent: st.percent,
+    unlocked: reached + 1e-9 >= at,
+  };
 }
 function unlockedRewards() {
   return db.wishlist.filter((w) => reward(w)?.unlocked).map((w) => w.id);

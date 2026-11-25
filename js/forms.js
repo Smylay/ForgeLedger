@@ -45,6 +45,7 @@ function openForm(sec = section, obj = {}) {
   editId = obj.id || null;
   document.querySelector("#modalTitle").textContent =
     (editId ? "Edit " : "Add ") + d.noun;
+  obj = d.formStart?.(obj) ?? obj; // values to show, e.g. a count kept elsewhere
   document.querySelector("#formFields").innerHTML =
     (d.formIntro?.() || "") +
     d.fields.map((f) => fieldHtml(f, obj)).join("") +
@@ -84,12 +85,9 @@ function submit(e) {
   }
   o.id = editId || id();
   let prev = db[formSection].find((x) => x.id === o.id);
-  // Boxes outside the fields, e.g. a paint's restocks, update the record
-  // their own way and come out of it.
+  // Boxes outside the fields, e.g. a paint's restocks, and anything kept
+  // with the record, e.g. a queue item's model cards, are applied here.
   d.formSave?.(o, prev, fd);
-  // A queue item moved to another stage starts that stage's count again.
-  if (formSection === "queue" && prev && prev.stage !== o.stage)
-    o.stageDone = 0;
   // Skills record when their level last changed, for practice suggestions.
   if (formSection === "skills" && (!prev || skillLevel(prev) !== o.level))
     o.changed = today();
@@ -99,29 +97,18 @@ function submit(e) {
     for (let f of d.fields) if (f.plan) o[f.key] = planPaints(o[f.key]);
     let arr = db[formSection],
       i = arr.findIndex((x) => x.id === o.id);
-    // Merge, so fields the form doesn't show (like a queue item's stage
-    // count, or fields from older versions) survive an edit.
+    // Merge, so fields the form doesn't show (like a paint's restocks, or
+    // fields from older versions) survive an edit.
     if (i >= 0) arr[i] = { ...arr[i], ...o };
     else arr.push(o);
-    // A split queue item: choosing another stage puts every model there;
-    // otherwise keep its stage in step, as the model count may have changed.
-    let q = arr[i >= 0 ? i : arr.length - 1];
-    if (formSection === "queue" && isSplit(q)) {
-      if (prev.stage !== o.stage) delete q.split;
-      else storeSplit(q, splitCounts(q));
-    }
-    // A queue item keeps its miniature in step (queue.js).
-    if (formSection === "queue") note = syncMiniature(q);
+    // A queue item keeps its miniature in step (queue.js): its model count
+    // may have changed.
+    if (formSection === "queue")
+      note = syncMiniature(arr[i >= 0 ? i : arr.length - 1]);
   });
   if (!saved) return; // keep the form open so nothing typed is lost
   document.querySelector("#modal").close();
   toast(note ? `Saved; ${note}` : "Saved");
   renderNav();
   render();
-  if (
-    formSection === "queue" &&
-    o.stage === "Complete" &&
-    prev?.stage !== "Complete"
-  )
-    askComplete(o);
 }

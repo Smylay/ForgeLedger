@@ -2,6 +2,15 @@
 
 What changed in each version of ForgeLedger. Backups from every earlier version still import.
 
+## Unreleased
+
+- **The painting queue is a board,** with a card for every model, in columns from To do through Building, Priming, Painting and Detailing to Done. Each unit's models are grouped in a column and open to show them one by one. Drag a unit or one model to another column, or use ◀ and ▶; moving back is free. The stage buttons (Next, +1, −1, Back, Split, Move 1) are gone.
+- **Add 1 and Add all** on the miniatures page put a miniature's models on the board, where its status and painted count say they are. Queue replaces them.
+- **Edit board** renames, reorders, adds and removes columns. Items no longer have stages of their own.
+- **The List view** shows your units in priority order, with how many models are in each phase; reorder it and the board follows.
+- **Your queue moves across:** each item's models become cards in the matching column (Basecoating is now Painting, and Basing is Detailing). Backups from 1.x import the same way. A copy of ForgeLedger 1.x can't open data from this version.
+- **While every model of a miniature is on the board,** its status and painted count follow the board both ways.
+
 ## 1.2.0 – 2026-11-25
 
 The painting queue keeps your miniatures up to date, and restocks count in your spend. Backups from earlier versions import as before, and nothing you've saved changes.

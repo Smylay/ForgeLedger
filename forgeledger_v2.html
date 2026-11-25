@@ -91,17 +91,18 @@
           <div id="content"></div>
         </section>
         <section class="view" id="queueView">
-          <div class="notice">
-            Drag an item by its handle on the left, or use Top, ↑ and ↓, to change the order. Changes save
-            automatically.
+          <div class="queuetools">
+            <div class="viewtabs" role="group" aria-label="Show the queue as">
+              <button class="btn" type="button" data-qview="board" aria-pressed="true">Board</button
+              ><button class="btn" type="button" data-qview="list" aria-pressed="false">List</button>
+            </div>
+            <button class="btn" id="editBoard" type="button">Edit board</button>
           </div>
+          <div class="notice" id="queueHint"></div>
           <form class="quickadd" autocomplete="off">
             <input name="name" required /><button class="btn">Quick add</button>
           </form>
-          <div class="queuetools">
-            <button class="btn" id="stagesBtn" type="button">Edit default stages</button>
-          </div>
-          <div class="queue" id="queueContent"></div>
+          <div class="board" id="queueContent"></div>
         </section>
         <section class="view" id="skillsView">
           <div class="notice">
@@ -179,7 +180,7 @@
     </dialog>
     <dialog id="completeDialog">
       <form method="dialog" id="completeForm">
-        <div class="modalhead"><strong>Queue item complete</strong></div>
+        <div class="modalhead"><strong>Unit finished</strong></div>
         <div class="modalbody completebody">
           <p id="completeText"></p>
           <label class="check"><input type="checkbox" id="completeMini" /><span id="completeMiniLabel"></span></label>
@@ -215,15 +216,17 @@
         </div>
       </form>
     </dialog>
-    <dialog id="stagesDialog" aria-labelledby="stagesTitle">
-      <form method="dialog" id="stagesForm">
-        <div class="modalhead"><strong id="stagesTitle">Default stages</strong></div>
+    <dialog id="phasesDialog" aria-labelledby="phasesTitle">
+      <form method="dialog" id="phasesForm">
+        <div class="modalhead"><strong id="phasesTitle">Edit board</strong></div>
         <div class="modalbody">
-          <p class="muted" id="stagesHint"></p>
-          <ol class="stagelist" id="stageList"></ol>
+          <p class="muted">
+            The board's phases, in order. To do and Done are always first and last. Renaming a phase keeps its models;
+            deleting one moves them to the next phase.
+          </p>
+          <ol class="stagelist" id="phaseList"></ol>
           <div class="stagetools">
-            <button class="btn" id="addStage" type="button">Add a stage</button
-            ><button class="btn" id="resetStages" type="button" hidden>Use the default stages</button>
+            <button class="btn" id="addPhase" type="button">Add a phase</button>
           </div>
         </div>
         <div class="modalfoot">

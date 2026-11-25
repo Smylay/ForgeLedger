@@ -26,72 +26,39 @@ const dashboardPercent = (page, name) =>
 test.beforeEach(async ({ page }) => openApp(page));
 
 test.describe("progress counts work in progress", () => {
-  const army = (queue, extra = {}) => ({
-    schemaVersion: 5,
+  // The board: To do, Building, Priming, Painting, Detailing, Done, so each
+  // model counts a fifth more per phase.
+  const cards = (...groups) =>
+    groups.flatMap(([phase, n], g) =>
+      Array.from({ length: n }, (_, i) => ({ id: `c${g}-${i}`, phase })),
+    );
+  const army = (queueCards, extra = {}, more = {}) => ({
     projects: [{ id: "p", name: "Army", target: "10" }],
     miniatures: [
       { id: "m", name: "Squad", project: "p", quantity: "10", ...extra },
     ],
-    queue,
+    queue: [{ id: "q", name: "Squad", miniature: "m", cards: queueCards }],
+    ...more,
   });
 
-  test("each model counts its stage's share", async ({ page }) => {
-    // Basecoating is step 3 of 6: half done.
-    await seed(
-      page,
-      army([{ id: "q", name: "Squad", miniature: "m", stage: "Basecoating" }]),
-    );
-    await expect(dashboardPercent(page, "Army")).toHaveText("50%");
-    expect(await progressCell(page, "Army")).toBe("50%");
+  test("each model counts its phase's share", async ({ page }) => {
+    // Painting is 3 of 5: 0.6 of a model each.
+    await seed(page, army(cards(["Painting", 10])));
+    await expect(dashboardPercent(page, "Army")).toHaveText("60%");
+    expect(await progressCell(page, "Army")).toBe("60%");
   });
 
-  test("models done in a stage count at the next one", async ({ page }) => {
-    // 6 at step 3, 4 at step 4: (18 + 16) / 6 = 5.67 models, 56%.
-    await seed(
-      page,
-      army([
-        {
-          id: "q",
-          name: "Squad",
-          miniature: "m",
-          stage: "Basecoating",
-          stageDone: 4,
-        },
-      ]),
-    );
-    expect(await progressCell(page, "Army")).toBe("56%");
+  test("models in different phases count separately", async ({ page }) => {
+    // 6 at 3/5 and 4 at 4/5: (18 + 16) / 5 = 6.8 models, 68%.
+    await seed(page, army(cards(["Painting", 6], ["Detailing", 4])));
+    expect(await progressCell(page, "Army")).toBe("68%");
   });
 
-  test("a split item counts each model at its own stage", async ({ page }) => {
-    // 2 at step 2, 3 at step 4, 5 at step 6: 46 / 6 = 7.67 models, 76%.
+  test("an edited board sets the shares", async ({ page }) => {
+    // To do, A, B, C, Done: B is 2 of 4.
     await seed(
       page,
-      army([
-        {
-          id: "q",
-          name: "Squad",
-          miniature: "m",
-          stage: "Priming",
-          split: { Priming: 2, Detailing: 3, Complete: 5 },
-        },
-      ]),
-    );
-    expect(await progressCell(page, "Army")).toBe("76%");
-  });
-
-  test("an item's own stages set its steps", async ({ page }) => {
-    // Middle stages A, B, C: B is step 2 of 4.
-    await seed(
-      page,
-      army([
-        {
-          id: "q",
-          name: "Squad",
-          miniature: "m",
-          stage: "B",
-          stages: ["A", "B", "C"],
-        },
-      ]),
+      army(cards(["B", 10]), {}, { queueStages: ["A", "B", "C"] }),
     );
     expect(await progressCell(page, "Army")).toBe("50%");
   });
@@ -99,36 +66,24 @@ test.describe("progress counts work in progress", () => {
   test("painted models count fully, and the larger count wins", async ({
     page,
   }) => {
-    await seed(
-      page,
-      army([{ id: "q", name: "Squad", miniature: "m", stage: "Building" }], {
-        painted: "8",
-      }),
-    );
+    await seed(page, army(cards(["Building", 10]), { painted: "8" }));
     expect(await progressCell(page, "Army")).toBe("80%");
   });
 
   test("queue items linked only to the project count too", async ({ page }) => {
     await seed(page, {
-      schemaVersion: 5,
       projects: [{ id: "p", name: "Army", target: "8" }],
       queue: [
-        {
-          id: "q",
-          name: "Loose",
-          project: "p",
-          models: "4",
-          stage: "Complete",
-        },
+        { id: "q", name: "Loose", project: "p", cards: cards(["Done", 4]) },
       ],
     });
     expect(await progressCell(page, "Army")).toBe("50%");
   });
 
-  test("a project whose work is all complete is done", async ({ page }) => {
+  test("a project whose models are all done is done", async ({ page }) => {
     const past = new Date(Date.now() - 3 * 864e5).toLocaleDateString("en-CA");
     await seed(page, {
-      ...army([{ id: "q", name: "Squad", miniature: "m", stage: "Complete" }]),
+      ...army(cards(["Done", 10])),
       projects: [{ id: "p", name: "Army", target: "10", deadline: past }],
     });
     await expect(dashboardPercent(page, "Army")).toHaveText("100%");
@@ -137,21 +92,43 @@ test.describe("progress counts work in progress", () => {
       page.locator("#projectSummary .project", { hasText: "Army" }),
     ).not.toContainText("Overdue");
   });
+
+  test("1.x queues count the same way once they're cards", async ({ page }) => {
+    // Basecoating, 4 of 10 done, becomes Painting 6 and Detailing 4: 68%.
+    await seed(page, {
+      schemaVersion: 5,
+      ...army([]),
+      queue: [
+        {
+          id: "q",
+          name: "Squad",
+          miniature: "m",
+          stage: "Basecoating",
+          stageDone: 4,
+        },
+      ],
+    });
+    expect(await progressCell(page, "Army")).toBe("68%");
+  });
 });
 
 test.describe("rewards", () => {
   const data = {
-    schemaVersion: 5,
     projects: [{ id: "p", name: "Army", target: "10" }],
     miniatures: [{ id: "m", name: "Squad", project: "p", quantity: "10" }],
     queue: [
-      // Step 3 of 6 with 5 of 10 done: (15 + 20) / 6 = 5.83, 58%.
+      // 9 at Painting (3/5) and 1 at Priming (2/5): 5.8 models, 58%.
       {
         id: "q",
         name: "Squad",
         miniature: "m",
-        stage: "Basecoating",
-        stageDone: 5,
+        cards: [
+          ...Array.from({ length: 9 }, (_, i) => ({
+            id: `c${i}`,
+            phase: "Painting",
+          })),
+          { id: "c9", phase: "Priming" },
+        ],
       },
     ],
     wishlist: [
@@ -167,7 +144,9 @@ test.describe("rewards", () => {
     ],
   };
   const notice = (page) => page.locator("#rewardNotice");
-  const plusOne = (page) => page.locator("#queueContent button[data-plus]");
+  // Moves the last model on to Painting: 6 models, 60%.
+  const plusOne = (page) =>
+    page.getByRole("button", { name: "Move Squad on to Painting" });
 
   test.beforeEach(async ({ page }) => seed(page, data));
 
@@ -205,7 +184,7 @@ test.describe("rewards", () => {
   }) => {
     await nav(page, "queue");
     await expect(notice(page)).toBeEmpty();
-    await plusOne(page).click(); // 6 of 10 done: 60%
+    await plusOne(page).click(); // 60%
     await expect(notice(page)).toContainText(
       "Reward unlocked: Big knight. Army reached 60%.",
     );

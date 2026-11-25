@@ -5,7 +5,7 @@
 
 const KEY = "forgeledger_v2_data";
 // Bump when stored data changes shape, and add a step to migrate().
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 // The app's version, shown in Settings and the sidebar, and written into
 // backups (as `appVersion`).
 const APP_VERSION = "1.2.0";
@@ -32,17 +32,20 @@ const BACKUP_REMINDER_DAYS = 14;
 const DUE_SOON_DAYS = 14; // dates this close get a "Due in N days" marker
 // Paint stock levels, fullest first. Low and Empty count as low stock.
 const STOCK_LEVELS = ["Full", "Good", "Half", "Low", "Empty"];
-// Painting queue stages between "Not started" and "Complete", which are
-// always first and last. These are the default until it's edited.
-const DEFAULT_STAGES = [
-  "Building",
-  "Priming",
-  "Basecoating",
-  "Detailing",
-  "Basing",
-];
-const MAX_STAGES = 20; // middle stages in one list
-const MAX_STAGE_NAME = 40; // characters
+// The painting board's phases between "To do" and "Done", which are always
+// first and last. These are the default until the board is edited; edits
+// are stored in `queueStages`.
+const FIRST_PHASE = "To do";
+const LAST_PHASE = "Done";
+const DEFAULT_PHASES = ["Building", "Priming", "Painting", "Detailing"];
+const MAX_PHASES = 20; // phases between To do and Done
+const MAX_PHASE_NAME = 40; // characters
+// Most model cards one queue item can have, so a junk model count in a
+// backup can't fill the board with thousands of cards.
+const MAX_MODELS = 500;
+// Which way the painting queue page opens, "board" or "list". Kept per
+// browser, outside the data.
+const QUEUE_VIEW_KEY = "forgeledger_v2_queueview";
 const COLLECTIONS = [
   "paints",
   "tools",
@@ -337,8 +340,12 @@ const defs = {
   queue: {
     title: "Painting queue",
     noun: "queue item",
-    sub: "Prioritised models awaiting paint",
+    sub: "Every model on a board, by phase; units in priority order",
     view: "queueView",
+    formSave: (o, prev) => saveQueueEntry(o, prev), // its cards (queue.js)
+    quickNew: () => quickQueueRecord(), // quick add: one card at To do
+    // Editing shows its cards' count as its model count.
+    formStart: (q) => (q.id ? { ...q, models: String(cardsOf(q).length) } : q),
     fields: [
       { key: "name", label: "Queue item", required: true },
       {
@@ -348,19 +355,13 @@ const defs = {
         to: "miniatures",
       },
       { key: "project", label: "Army project", type: "link", to: "projects" },
-      {
-        key: "stage",
-        label: "Stage",
-        type: "select",
-        options: ["Not started", ...DEFAULT_STAGES, "Complete"],
-        optionsFor: (q) => queueStages(q), // the item's own stages
-      },
-      { key: "models", label: "Model count", type: "count" },
+      // Its model cards on the board; saving adds or removes cards to match.
+      { key: "models", label: "Models on the board", type: "count" },
       {
         key: "due",
         label: "Target date",
         type: "date",
-        doneWhen: (q) => q.stage === "Complete",
+        doneWhen: (q) => entryDone(q),
       },
       { key: "notes", label: "Notes", type: "textarea" },
     ],
@@ -490,6 +491,9 @@ function projectStats(p) {
     spent: minis.reduce((a, m) => a + amount(m.price), 0),
     goal,
     progress,
-    percent: goal > 0 ? Math.min(100, Math.floor((100 * progress) / goal)) : 0,
+    // A hair over, so shares added as fractions (5.999… for 6) still round
+    // down to the right whole percent.
+    percent:
+      goal > 0 ? Math.min(100, Math.floor((100 * progress) / goal + 1e-9)) : 0,
   };
 }
