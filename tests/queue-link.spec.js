@@ -101,18 +101,24 @@ test("Apply can also remove the item, and Undo reverts both", async ({
   await page.click("#toastAction");
   data = await stored(page);
   expect(data.queue.map((q) => q.id)).toEqual(["q1", "q2", "q3"]);
-  expect(data.queue[0].stage).toBe("Complete"); // the stage edit itself stays
+  // The stage edit itself stays, with the painted count it brought.
+  expect(data.queue[0].stage).toBe("Complete");
   expect(data.miniatures[0]).toMatchObject({
     status: "In progress",
-    painted: "3",
+    painted: "10",
   });
 });
 
-test("Skip changes nothing beyond the stage", async ({ page }) => {
+test("Skip leaves the status; the painted count follows the queue", async ({
+  page,
+}) => {
   await complete(page, 0);
   await page.click('#completeDialog button[value="skip"]');
   const data = await stored(page);
-  expect(data.miniatures[0].status).toBe("In progress");
+  expect(data.miniatures[0]).toMatchObject({
+    status: "In progress",
+    painted: "10",
+  });
   expect(data.queue).toHaveLength(3);
   expect(data.queue[0].stage).toBe("Complete");
 });
@@ -240,5 +246,104 @@ test.describe("queueing starts from the miniature's progress", () => {
     // Built: after Assembly. Primed: no priming stage, so after Assembly too.
     expect(await queue(page, "b")).toMatchObject({ stage: "Undercoat" });
     expect(await queue(page, "p")).toMatchObject({ stage: "Undercoat" });
+  });
+});
+
+test.describe("the queue keeps the miniature in step", () => {
+  test.beforeEach(async ({ page }) => {
+    await seed(page, {
+      miniatures: [
+        { id: "k", name: "Knights", quantity: "3", status: "Unbuilt" },
+        { id: "x", name: "Odd", quantity: "2", status: "constructor" },
+      ],
+      queue: [
+        { id: "a", name: "Knights", miniature: "k", stage: "Building" },
+        { id: "b", name: "Loose", stage: "Building" },
+        { id: "c", name: "Odd", miniature: "x", stage: "Priming" },
+      ],
+    });
+    await nav(page, "queue");
+  });
+  const item = (page, i) => page.locator("#queueContent .qitem").nth(i);
+  const knights = async (page) =>
+    (await stored(page)).miniatures.find((m) => m.id === "k");
+
+  test("Built, Primed, then In progress, as the item moves on", async ({
+    page,
+  }) => {
+    await item(page, 0).locator("button[data-next]").click();
+    expect(await knights(page)).toMatchObject({ status: "Built" });
+    await expect(page.locator("#toastText")).toHaveText(
+      'Moved "Knights" to Priming; miniature "Knights" is now Built',
+    );
+    await item(page, 0).locator("button[data-next]").click();
+    expect(await knights(page)).toMatchObject({ status: "Primed" });
+    // One model basecoated: painting has started.
+    await item(page, 0).locator("button[data-plus]").click();
+    expect(await knights(page)).toMatchObject({ status: "In progress" });
+    // Undo puts both back.
+    await page.click("#toastAction");
+    expect(await knights(page)).toMatchObject({ status: "Primed" });
+    expect((await stored(page)).queue[0].stageDone).toBe(0);
+  });
+
+  test("going back never lowers it", async ({ page }) => {
+    await item(page, 0).locator("button[data-next]").click(); // Built
+    await item(page, 0).locator("button[data-back]").click();
+    expect(await knights(page)).toMatchObject({ status: "Built" });
+    expect((await stored(page)).queue[0].stage).toBe("Building");
+  });
+
+  test("models at Complete raise the painted count, never Complete itself", async ({
+    page,
+  }) => {
+    await item(page, 0).locator("button[data-edit]").click();
+    await fillForm(page, { stage: "Basing" });
+    await submitForm(page);
+    await expect(page.locator("#toastText")).toHaveText(
+      'Saved; miniature "Knights" is now In progress',
+    );
+    await item(page, 0).locator("button[data-split]").click();
+    await item(page, 0)
+      .getByRole("button", { name: "Move 1 to Complete from Basing" })
+      .click();
+    expect(await knights(page)).toMatchObject({
+      status: "In progress",
+      painted: "1",
+    });
+    await expect(page.locator("#toastText")).toContainText(
+      'miniature "Knights" now has 1 painted',
+    );
+  });
+
+  test("an item without a miniature, or a status it doesn't know, is safe", async ({
+    page,
+  }) => {
+    await item(page, 1).locator("button[data-next]").click();
+    await expect(page.locator("#toastText")).toHaveText(
+      'Moved "Loose" to Priming',
+    );
+    // A junk status counts as below Unbuilt, so the queue replaces it.
+    await item(page, 2).locator("button[data-next]").click();
+    expect(
+      (await stored(page)).miniatures.find((m) => m.id === "x").status,
+    ).toBe("Primed");
+  });
+
+  test("stages that don't say build or prime leave the status alone", async ({
+    page,
+  }) => {
+    await seed(page, {
+      queueStages: ["Clean", "Paint"],
+      miniatures: [{ id: "k", name: "Knights", quantity: "1", status: "" }],
+      queue: [{ id: "a", name: "Knights", miniature: "k", stage: "Clean" }],
+    });
+    await nav(page, "queue");
+    await item(page, 0).locator("button[data-next]").click();
+    expect((await knights(page)).status).toBe("");
+    // The painted count still follows.
+    await item(page, 0).locator("button[data-next]").click();
+    await page.click('#completeDialog button[value="skip"]');
+    expect(await knights(page)).toMatchObject({ status: "", painted: "1" });
   });
 });

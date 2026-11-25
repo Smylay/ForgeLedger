@@ -65,14 +65,19 @@ function buy(w, to, paint) {
       db.wishlist = db.wishlist.filter((x) => x.id !== w.id);
       if (paint) {
         paint.stock = "Full";
-        // A paint you planned with but didn't own (quantity 0) is one now.
-        if (paint.quantity === "0") paint.quantity = "1";
+        // A paint you planned with but didn't own (quantity 0) is one now,
+        // at the item's price. Any other is a restock, recorded for
+        // Recorded spend (paints.js).
+        if (paint.quantity === "0") {
+          paint.quantity = "1";
+          if (!paint.price && w.price) paint.price = w.price;
+        } else addRestock(paint, w.price);
       }
       if (record) db[to].push(record);
     },
     () =>
       paint
-        ? `Bought "${w.name}": "${paint.name}" is Full again`
+        ? `Bought "${w.name}": "${paint.name}" is Full again${restockPrice(w) ? `, ${money(restockPrice(w))} recorded` : ""}`
         : record
           ? `Bought "${w.name}": added to ${defs[to].nav || defs[to].title}`
           : `Bought "${w.name}": taken off the wishlist`,

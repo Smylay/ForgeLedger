@@ -30,7 +30,7 @@ function importJSON(file) {
   r.onload = async () => {
     let data, problem;
     try {
-      data = JSON.parse(r.result);
+      data = parseData(r.result);
       problem = problemWith(data);
     } catch {
       problem = "it isn't valid JSON";

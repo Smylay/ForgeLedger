@@ -2,6 +2,12 @@
 
 What changed in each version of ForgeLedger. Backups from every earlier version still import.
 
+## Unreleased
+
+- **The painting queue keeps each miniature's status up to date:** Built once its models are past building, Primed once they're past priming, and In progress once painting has started. Models reaching Complete raise its painted count. It only ever moves forward, and Undo puts both back.
+- **Restocks count in Recorded spend.** Bought on a wishlist item that restocks a paint records the pot's price with the paint, and the paint's form lists its restocks, records one you bought elsewhere, or removes one. The dashboard says how much went on restocks. A paint you'd planned but never owned takes the price as its own instead.
+- **A damaged or hostile backup can't stop a page drawing:** values ForgeLedger can't turn into text are dropped when data is read.
+
 ## 1.1.0 – 2026-11-25
 
 A paint catalogue, colour themes, a painting queue you can step back through and that starts from each miniature's progress, and skills that know their difficulty and tools. Backups from 1.0.0 import as before, and nothing you've saved changes.
