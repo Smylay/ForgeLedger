@@ -1,7 +1,9 @@
 // Automated accessibility checks (axe-core, WCAG 2.1 and 2.2, A and AA) on every
 // section, form and dialog, with enough data that badges, chips, markers and
 // buttons all appear. They run at desktop and phone sizes in the dark theme,
-// and at desktop size in the light theme, which mostly changes contrast.
+// and at desktop size in the light theme and each colour theme, which
+// mostly change contrast. Contrast doesn't depend on the browser, so the
+// colour themes run in Chromium only.
 const { default: AxeBuilder } = require("@axe-core/playwright");
 const {
   test,
@@ -143,9 +145,19 @@ for (const run of [
   { name: "desktop", size: desktop, theme: "dark" },
   { name: "phone", size: { width: 375, height: 812 }, theme: "dark" },
   { name: "light theme", size: desktop, theme: "light" },
+  ...["forest", "ocean", "amethyst", "parchment"].map((theme) => ({
+    name: `${theme} theme`,
+    size: desktop,
+    theme,
+    chromiumOnly: true,
+  })),
 ]) {
   test.describe(`${run.name}`, () => {
     test.use({ viewport: run.size });
+    test.skip(
+      ({ browserName }) => run.chromiumOnly && browserName !== "chromium",
+      "Contrast is the same in every browser",
+    );
 
     test.beforeEach(async ({ page }) => {
       // Served over HTTP: axe reads the stylesheet, and WebKit blocks a page

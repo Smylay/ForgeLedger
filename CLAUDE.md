@@ -210,9 +210,10 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 **Accessibility and layout.**
 
-- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the empty dashboard's example data offer and notice, the add/edit form, the completion prompt, the Bought prompt, the reward notice, the stage editor, the photo viewer, the keyboard shortcuts list and Settings. It runs at desktop and phone sizes in the dark theme, and at desktop size in the light theme. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
+- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the empty dashboard's example data offer and notice, the add/edit form, the completion prompt, the Bought prompt, the reward notice, the stage editor, the photo viewer, the keyboard shortcuts list and Settings. It runs at desktop and phone sizes in the dark theme, and at desktop size in the light theme and each colour theme. The colour themes run in Chromium only, since contrast doesn't depend on the browser. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
 - **Colours are tokens.** Every colour in `styles.css` is a custom property on `:root` (the dark theme), except white text on strong backgrounds. The light theme sets every token again in `:root[data-theme="light"]`, and the same values again for `:root[data-theme="system"]` inside `@media (prefers-color-scheme: light)`. CSS can't share one block between the two, so `tests/settings.spec.js` checks that the light blocks match each other and set every token the dark one does.
-  - A new colour needs a token, with a light value that keeps text at 4.5:1 on the backgrounds it's used on. Text colours have their own tokens where a fill colour would be too light, such as `--gold-text` and `--danger-text`.
+  - **Colour themes** are blocks like `:root[data-theme="forest"]`, after the light ones. The dark ones (Forest, Ocean, Amethyst) set only the backgrounds, lines, `--muted` and the accent, and take the rest from `:root`; Parchment is light, so it sets every token. `tests/settings.spec.js` checks that they set only known tokens, that Parchment sets them all, and that every theme in `THEMES` is offered.
+  - A new colour needs a token, with a light value that keeps text at 4.5:1 on the backgrounds it's used on, and a Parchment value too. Text colours have their own tokens where a fill colour would be too light, such as `--gold-text` and `--danger-text`.
 - **Red backgrounds.** Text on a red background uses `--accent-strong`, not `--accent`. White on `--accent` is under the 4.5:1 contrast minimum.
 - **Icon-only buttons** need an `aria-label`, like the queue's "Move … up" arrows.
 - **Button sizes.** Row buttons are at least 32px, and 44px on touch screens (`pointer: coarse`). A `pointer: coarse` rule must come after the rule it overrides in `styles.css`: the two selectors are usually equally specific, so the later one wins.
@@ -323,7 +324,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 **Settings.** `#settingsDialog` opens from the sidebar's Settings button (`openSettings()`, `renderSettings()` in `settings.js`). Each control is wired directly in `app.js`.
 
-- **Theme.** `setTheme()` sets `<html data-theme>` to `dark`, `light` or `system` and saves it under `THEME_KEY`. Missing or junk means dark. `system` follows `prefers-color-scheme`.
+- **Theme.** `setTheme()` sets `<html data-theme>` to one of `THEMES` and saves it under `THEME_KEY`: `dark`, `light`, `system`, or a colour theme, `forest`, `ocean`, `amethyst` or `parchment`. Missing or junk means dark, and so does a theme an older copy of the app doesn't know, since no CSS block matches it. `system` follows `prefers-color-scheme`.
 - **Currency.** `db.currency` is an optional top-level field holding a code from `CURRENCIES` (12 of them, each with a name and a fixed locale for formatting). Read it with `currencyCode()`, which treats a missing or unknown code as GBP.
   - `money()` formats with `Intl.NumberFormat` in that currency's locale, e.g. "€4.50" or "4,50 kr". Amounts are never converted.
   - Money fields' labels are getters (`get label()`) that call `priced()`, e.g. "Cost (€)", so they follow the setting.
@@ -353,7 +354,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 - **Unlinking on delete.** Deleting a record clears every `link` field and removes the id from every `links` array that points at it. For example: miniatures in a deleted project, queue items for a deleted miniature, or recipes that used a deleted paint.
 - **Undo never reverts later work.** Every `commit()` clears the copy, and so does a change from another tab.
 
-**Queue controls.** `queueItemHtml()` draws each queue item. `queueState()` works out where it stands (its stages, current step, counts and status text), and `queueProgressHtml()`, `queueSplitHtml()` and `queueButtonsHtml()` draw its parts from that.
+**Queue controls.** `queueItemHtml()` draws each queue item. `queueState()` works out where it stands (its stages, current step, counts and status text), and `queueProgressHtml()`, `queueStepsHtml()` (the buttons under the progress bar), `queueSplitHtml()` and `queueRowActsHtml()` (Top, ↑, ↓, Stages, Edit, Delete, on the right) draw its parts from that.
 
 - **Next stage.** "Next: <stage>" (`data-next`, `nextStage()`) moves the item to the next of `queueStages()`, with Undo. Reaching Complete opens the completion prompt below.
 - **Progress bar.** `role="progressbar"` with one segment per step after "Not started". `stageIndex()` treats blank or unknown stages as Not started.

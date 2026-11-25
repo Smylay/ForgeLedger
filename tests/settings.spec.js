@@ -91,6 +91,60 @@ test.describe("theme", () => {
     expect(blocks.light["color-scheme"]).toBe("light");
   });
 
+  test("colour themes apply, and are kept", async ({ page }) => {
+    const html = page.locator("html");
+    const bg = () =>
+      page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    for (const [theme, colour] of [
+      ["forest", "rgb(14, 20, 17)"],
+      ["ocean", "rgb(12, 18, 25)"],
+      ["amethyst", "rgb(18, 15, 24)"],
+      ["parchment", "rgb(244, 238, 226)"],
+    ]) {
+      await openSettings(page);
+      await page.selectOption("#themeSetting", theme);
+      await expect(html).toHaveAttribute("data-theme", theme);
+      expect(await bg()).toBe(colour);
+      await reload(page);
+      await expect(html).toHaveAttribute("data-theme", theme);
+      expect(await bg()).toBe(colour);
+    }
+  });
+
+  test("colour themes set only known colours; Parchment sets them all", async ({
+    page,
+  }) => {
+    // Served over HTTP: browsers don't let a file:// page read its rules.
+    await openSite(page);
+    const blocks = await page.evaluate(() => {
+      const out = {};
+      for (const sheet of document.styleSheets)
+        for (const rule of sheet.cssRules) {
+          const m = /^:root(?:\[data-theme="(\w+)"\])?$/.exec(
+            rule.selectorText || "",
+          );
+          if (m)
+            out[m[1] || "dark"] = [...rule.style].filter(
+              (p) => p.startsWith("--") || p === "color-scheme",
+            );
+        }
+      return out;
+    });
+    const dark = [...blocks.dark].sort();
+    for (const theme of ["forest", "ocean", "amethyst"]) {
+      expect(blocks[theme].length).toBeGreaterThan(0);
+      expect(dark).toEqual(expect.arrayContaining(blocks[theme]));
+    }
+    expect([...blocks.parchment].sort()).toEqual(dark);
+    // Every theme in Settings has its colours.
+    const offered = await page
+      .locator("#themeSetting option")
+      .evaluateAll((os) => os.map((o) => o.value));
+    expect(offered).toEqual(await page.evaluate(() => THEMES));
+    for (const t of offered.filter((t) => !["dark", "system"].includes(t)))
+      expect(blocks[t], t).toBeDefined();
+  });
+
   test("a junk stored theme counts as dark", async ({ page }) => {
     await page.evaluate(() =>
       localStorage.setItem("forgeledger_v2_theme", "neon"),

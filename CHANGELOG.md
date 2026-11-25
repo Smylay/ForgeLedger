@@ -4,6 +4,9 @@ What changed in each version of ForgeLedger. Backups from every earlier version 
 
 ## Unreleased
 
+- **Colour themes:** Forest, Ocean and Amethyst (dark green, blue and purple) and Parchment (light and warm), in Settings alongside Dark and Light. Each is checked for contrast.
+- **Go back in the painting queue** when an item's been taken too far: Back returns to the previous stage, −1 takes back a +1, and split items have Back 1 for each stage. Complete items can go back too.
+- **Queue buttons sit under each item's progress bar,** so the details have room.
 - **Skills have a difficulty,** Easy, Medium, Hard or Expert, and Practice next suggests easier techniques first.
 - **Techniques show the tools they need,** whether you have them, and Add to wishlist and Bought buttons for ones you don't.
 - **Two Thin Coats Dark Arts** in the paint catalogue (30 paints, names only; no colours have been published).

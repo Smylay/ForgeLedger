@@ -274,7 +274,7 @@ test.describe("on a touch screen", () => {
 
   test("queue buttons are at least 44px tall", async ({ page }) => {
     const heights = await page
-      .locator("#queueContent .qactions .btn, #queueContent .splitstage .btn")
+      .locator("#queueContent .qsteps .btn, #queueContent .splitstage .btn")
       .evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));
     expect(heights.length).toBeGreaterThan(3);
     for (const h of heights) expect(h).toBeGreaterThanOrEqual(44);

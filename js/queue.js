@@ -211,9 +211,9 @@ function queueSplitHtml(v, qid, name) {
     )
     .join("")}</div>`;
 }
-// Next stage, +1, -1 and Back (not while split), the Split by stage
-// toggle, and the row buttons.
-function queueButtonsHtml(v, i, qid, name) {
+// The buttons under the progress bar: Next stage, +1, -1 and Back (not
+// while split), and the Split by stage toggle.
+function queueStepsHtml(v, qid, name) {
   let { stages, split, n, done, total } = v;
   let next =
     done || split
@@ -235,11 +235,17 @@ function queueButtonsHtml(v, i, qid, name) {
     done || total < 2
       ? ""
       : `<button class="btn" data-split="${qid}" aria-pressed="${split}" aria-label="Split by stage: ${name}">Split by stage</button>`;
-  return `${next}${plus}${back}${splitBtn}<span class="rowacts"><button data-top="${i}" aria-label="Move ${name} to top">Top</button><button data-up="${i}" aria-label="Move ${name} up">↑</button><button data-down="${i}" aria-label="Move ${name} down">↓</button><button data-stages="${qid}" aria-label="Stages for ${name}">Stages</button><button data-edit="${qid}">Edit</button><button class="del" data-del="${qid}">Delete</button></span>`;
+  let all = next + plus + back + splitBtn;
+  return all ? `<div class="qsteps">${all}</div>` : "";
+}
+// The row buttons, on the right: reordering, Stages, Edit and Delete.
+function queueRowActsHtml(i, qid, name) {
+  return `<span class="rowacts"><button data-top="${i}" aria-label="Move ${name} to top">Top</button><button data-up="${i}" aria-label="Move ${name} up">↑</button><button data-down="${i}" aria-label="Move ${name} down">↓</button><button data-stages="${qid}" aria-label="Stages for ${name}">Stages</button><button data-edit="${qid}">Edit</button><button class="del" data-del="${qid}">Delete</button></span>`;
 }
 // One queue item: drag handle, position, details with a stage progress
-// bar, then its actions. Buttons carry the item id (next, plus) or its
-// position (top, up, down), which the click listener in app.js reads.
+// bar and the buttons that move it on or back, then its row buttons.
+// Buttons carry the item id (next, plus) or its position (top, up, down),
+// which the click listener in app.js reads.
 function queueItemHtml(q, i) {
   let v = queueState(q),
     { stages, split, n, done, total, working, status } = v,
@@ -255,7 +261,7 @@ function queueItemHtml(q, i) {
   let lowLine = low.length
     ? `<div class="warnline">Low paint: ${low.map((p) => `${esc(p.name)} (${esc(p.stock)})`).join(", ")}</div>`
     : "";
-  return `<div class="qitem" data-index="${i}"><span class="handle" aria-hidden="true" title="Drag to reorder">⠿</span><div class="qnum">${i + 1}</div><div class="qbody"><b>${name}</b><div class="muted">${details}</div>${queueProgressHtml(v, name)}${countLine}${queueSplitHtml(v, qid, name)}${lowLine}</div><div class="qactions">${queueButtonsHtml(v, i, qid, name)}</div></div>`;
+  return `<div class="qitem" data-index="${i}"><span class="handle" aria-hidden="true" title="Drag to reorder">⠿</span><div class="qnum">${i + 1}</div><div class="qbody"><b>${name}</b><div class="muted">${details}</div>${queueProgressHtml(v, name)}${countLine}${queueStepsHtml(v, qid, name)}${queueSplitHtml(v, qid, name)}${lowLine}</div><div class="qactions">${queueRowActsHtml(i, qid, name)}</div></div>`;
 }
 function renderQueue() {
   document.querySelector("#queueContent").innerHTML = db.queue.length

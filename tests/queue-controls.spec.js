@@ -316,6 +316,10 @@ test.describe("going back", () => {
 });
 
 test.describe("reordering", () => {
+  // Tall enough that every item's handle is on screen: a drag can't start
+  // below the window.
+  test.use({ viewport: { width: 1280, height: 1000 } });
+
   test("Top moves an item to the front and keeps focus", async ({ page }) => {
     await item(page, 2).locator("button[data-top]").focus();
     await page.keyboard.press("Enter");
