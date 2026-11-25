@@ -45,7 +45,14 @@ function demoData(base = new Date()) {
     demo: true,
     paints: [
       paint("p-primer", "Grey Primer", "Primer", "#8a8f96", "Good", "15.00"),
-      paint("p-red", "Blood Red", "Base", "#8a1c1c", "Full", "4.50", "2"),
+      {
+        // Bought again twice, so its restocks count in Recorded spend.
+        ...paint("p-red", "Blood Red", "Base", "#8a1c1c", "Full", "4.50", "2"),
+        restocks: [
+          { date: day(-60), price: "4.50" },
+          { date: day(-12), price: "4.50" },
+        ],
+      },
       paint("p-bright", "Bright Red", "Layer", "#c8312e", "Low", "4.50"),
       paint("p-blue", "Deep Blue", "Base", "#1d3557", "Good", "4.50"),
       paint("p-sky", "Sky Blue", "Layer", "#5d9fd8", "Half", "4.50"),

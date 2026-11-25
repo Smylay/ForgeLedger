@@ -23,8 +23,22 @@ test.beforeEach(async ({ page }) => {
   await seed(page, {
     schemaVersion: 2,
     miniatures: [
-      { id: "m1", name: "Squad", quantity: "3", painted: "1" },
-      { id: "m2", name: "Loose", quantity: "", painted: "4" },
+      // Statuses that match the queue, so only the tests about keeping
+      // the miniature in step (queue-link.spec.js) see it change.
+      {
+        id: "m1",
+        name: "Squad",
+        quantity: "3",
+        painted: "1",
+        status: "In progress",
+      },
+      {
+        id: "m2",
+        name: "Loose",
+        quantity: "",
+        painted: "4",
+        status: "Primed",
+      },
     ],
     queue: [
       // Squad's total comes from its miniature (3), Hero's from its own
@@ -117,13 +131,15 @@ test.describe("+1 done", () => {
     let q = (await stored(page)).queue[0];
     expect(q).toMatchObject({ stage: "Basing", stageDone: 2 });
     await expect(item(page, 0)).toContainText("Basing: 2 of 3 done");
+    // Basing is the last stage, so models done there are painted, and the
+    // miniature's painted count follows.
     await expect(page.locator("#toastText")).toHaveText(
-      '"Squad": Basing 2 of 3 done',
+      '"Squad": Basing 2 of 3 done; miniature "Squad" now has 2 painted',
     );
-    // The miniature's own painted count isn't touched.
-    expect((await stored(page)).miniatures[0].painted).toBe("1");
+    expect((await stored(page)).miniatures[0].painted).toBe("2");
     await page.click("#toastAction");
     expect((await stored(page)).queue[0].stageDone).toBe(1);
+    expect((await stored(page)).miniatures[0].painted).toBe("1");
   });
 
   test("the last model moves the item on and its count starts again", async ({

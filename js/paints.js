@@ -49,3 +49,54 @@ function showUsedIn(pid) {
     .join("");
   document.querySelector("#usedInDialog").showModal();
 }
+
+// Restocks: pots of a paint you have, bought again, as { date, price } in
+// the paint's optional `restocks` list. Bought on a wishlist item that
+// restocks the paint records one; the paint form records or removes them.
+// Recorded spend adds their prices. Stored lists may be junk.
+function restocks(p) {
+  return Array.isArray(p?.restocks) ? p.restocks.filter(isRecord) : [];
+}
+function restockPrice(r) {
+  let n = Number(r.price);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+function restockSpend(p) {
+  return restocks(p).reduce((a, r) => a + restockPrice(r), 0);
+}
+// Record a restock bought today.
+function addRestock(p, price) {
+  p.restocks = [...restocks(p), { date: today(), price: String(price ?? "") }];
+}
+// The paint form's Restocks section, below its fields: each restock with a
+// Remove box, and a box to record one bought today. Only when editing.
+function restocksHtml(p) {
+  if (!p?.id) return "";
+  let list = restocks(p),
+    rows = list
+      .map((r, i) => {
+        let price = restockPrice(r),
+          date =
+            (["string", "number"].includes(typeof r.date) && esc(r.date)) ||
+            "no date";
+        return `<li><span>${date} · ${price ? money(price) : "no price"}</span><label class="check"><input type="checkbox" name="restockRemove" value="${i}" aria-label="Remove the restock of ${date}"> Remove</label></li>`;
+      })
+      .join("");
+  return `<fieldset class="full restocks"><legend>Restocks</legend>${
+    list.length
+      ? `<ul>${rows}</ul><p class="muted">${money(restockSpend(p))} on ${list.length} restock(s), counted in Recorded spend.</p>`
+      : '<p class="muted">None yet. Bought on a wishlist item for this paint records one.</p>'
+  }<label>${esc(priced("Record a restock bought today"))}<input type="number" name="restockPrice" min="0" step="0.01" inputmode="decimal"></label></fieldset>`;
+}
+// Saving the paint form: take the Restocks section's boxes out of the
+// record, and apply them to its restocks.
+function saveRestocks(o, prev, fd) {
+  let remove = new Set(fd.getAll("restockRemove").map(Number)),
+    price = String(o.restockPrice ?? "").trim();
+  delete o.restockRemove;
+  delete o.restockPrice;
+  if (!prev || (!remove.size && price === "")) return;
+  let list = restocks(prev).filter((_, i) => !remove.has(i));
+  if (price !== "") list.push({ date: today(), price });
+  o.restocks = list;
+}

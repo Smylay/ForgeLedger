@@ -46,12 +46,19 @@ test("a restock sets its paint back to Full instead of adding another", async ({
 }) => {
   await buy(page, "Red").click();
   const data = await stored(page);
+  // The pot bought is recorded as a restock (tests/restocks.spec.js).
   expect(data.paints).toEqual([
-    { id: "red", name: "Red", stock: "Full", quantity: "1" },
+    {
+      id: "red",
+      name: "Red",
+      stock: "Full",
+      quantity: "1",
+      restocks: [{ date: await page.evaluate(() => today()), price: "4" }],
+    },
   ]);
   expect(await wished(page)).not.toContain("Red");
   await expect(page.locator("#toastText")).toHaveText(
-    'Bought "Red": "Red" is Full again',
+    'Bought "Red": "Red" is Full again, £4.00 recorded',
   );
   await page.click("#toastAction");
   expect((await stored(page)).paints[0].stock).toBe("Low");

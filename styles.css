@@ -775,6 +775,34 @@ label.check {
   flex-wrap: wrap;
   gap: 8px;
 }
+/* The paint form's restocks. */
+.restocks {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 0;
+  padding: 8px 12px 12px;
+  display: grid;
+  gap: 8px;
+}
+.restocks legend {
+  padding: 0 4px;
+  color: var(--muted);
+}
+.restocks ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.restocks li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  padding: 3px 0;
+}
+.restocks p {
+  margin: 0;
+}
 /* The Bought prompt's choices. */
 .choices {
   display: grid;

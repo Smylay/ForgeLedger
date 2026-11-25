@@ -160,11 +160,16 @@ function renderDashboard() {
   renderRewardSummary();
 }
 // Recorded spend: every price in paints, tools and miniatures, as entered
-// (not multiplied by quantity).
+// (not multiplied by quantity), plus the paints' restocks.
 function recordedSpend() {
-  return ["paints", "tools", "miniatures"]
-    .flatMap((k) => db[k])
-    .reduce((a, x) => a + Number(x.price || 0), 0);
+  return (
+    ["paints", "tools", "miniatures"]
+      .flatMap((k) => db[k])
+      .reduce((a, x) => a + Number(x.price || 0), 0) + restocksSpend()
+  );
+}
+function restocksSpend() {
+  return db.paints.reduce((a, p) => a + restockSpend(p), 0);
 }
 function renderBackupNotice() {
   let age = backupAgeDays();
@@ -240,7 +245,7 @@ function renderStockSummary() {
 function renderSpendSummary() {
   let wish = db.wishlist.reduce((a, x) => a + Number(x.price || 0), 0);
   document.querySelector("#spendSummary").innerHTML =
-    `<div class="metric"><div class="v">${money(recordedSpend())}</div><div class="muted">Owned collection spend</div><br><div class="v">${money(wish)}</div><div class="muted">Wishlist exposure</div></div>`;
+    `<div class="metric"><div class="v">${money(recordedSpend())}</div><div class="muted">Owned collection spend${restocksSpend() ? `, including ${money(restocksSpend())} on restocks` : ""}</div><br><div class="v">${money(wish)}</div><div class="muted">Wishlist exposure</div></div>`;
 }
 // Rewards: unlocked first, then the nearest to unlocking.
 function renderRewardSummary() {

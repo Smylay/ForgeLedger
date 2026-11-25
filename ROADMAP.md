@@ -51,14 +51,18 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - **Queueing from progress, and slimmer downloads (phase 25):** queueing a miniature starts from its status and painted count, and downloads hold just the app. _(Asked for in chat.)_
 - **Version 1.1.0:** phases 19 to 25.
 
+## Phase 26: The queue keeps miniatures up to date, and restock spend (in progress)
+
+_(Asked for in chat, from Later.)_
+
+- **The queue keeps a miniature's status and painted count in step** as its item moves on, forward only.
+- **Restock purchases count in Recorded spend,** kept with each paint and editable in its form.
+
 ## Releases
 
 Phases merge into `dev`; versions are released to `main`. Version 1.1.0 brought phases 19 to 25. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Later
-
-- Keep a miniature's status in step with its queue item, e.g. Primed once its priming stage is done. Only the completion prompt changes the miniature now.
-- Count restock purchases in Recorded spend. Bought on a restock sets the paint to Full but doesn't record what the new pot cost, because a paint holds one price.
 
 ## Considered, not planned
 

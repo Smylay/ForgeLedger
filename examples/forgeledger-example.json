@@ -24,7 +24,11 @@
       "quantity": "2",
       "stock": "Full",
       "price": "4.50",
-      "notes": ""
+      "notes": "",
+      "restocks": [
+        { "date": "2026-11-16", "price": "4.50" },
+        { "date": "2027-01-03", "price": "4.50" }
+      ]
     },
     {
       "id": "p-bright",

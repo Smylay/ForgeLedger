@@ -3,6 +3,7 @@ const {
   expect,
   openApp,
   stored,
+  seed,
   nav,
   fillForm,
   addItem,
@@ -457,4 +458,53 @@ test("tool names on skill cards can't run script", async ({
     ["hostileToolName", "hostileWishName"].filter((f) => window["xss_" + f]),
   );
   expect(ran).toEqual([]);
+});
+
+test("restocks can't run script", async ({ page }, testInfo) => {
+  await importAndWait(
+    page,
+    {
+      paints: [
+        {
+          id: "p",
+          name: "Red",
+          restocks: [
+            { date: attack("hostileRestockDate"), price: attack("x") },
+            { date: { toString: 1 }, price: "1" },
+          ],
+        },
+      ],
+    },
+    testInfo,
+  );
+  await nav(page, "paints");
+  await page.locator("button[data-edit]").first().click();
+  await expect(page.locator("#formFields .restocks li")).toHaveText([
+    /£0|no price/,
+    "no date · £1.00 Remove",
+  ]);
+  await page.waitForTimeout(200);
+  expect(
+    await page.evaluate(() => window.xss_hostileRestockDate),
+  ).toBeUndefined();
+});
+
+// JSON can hold an object with its own toString or valueOf key, which would
+// make String() or Number() throw. Parsing drops those keys (parseData).
+test("values that can't become text don't stop a page drawing", async ({
+  page,
+}, testInfo) => {
+  const odd = { toString: 1, valueOf: 2 };
+  await importAndWait(
+    page,
+    { paints: [{ id: "p", name: odd, brand: odd, price: odd }] },
+    testInfo,
+  );
+  await nav(page, "paints");
+  await expect(tableRows(page)).toHaveCount(1);
+  await nav(page, "dashboard");
+  // Saved data is read the same way.
+  await seed(page, { paints: [{ id: "q", name: "Q", brand: odd }] });
+  await nav(page, "paints");
+  await expect(tableRows(page)).toHaveCount(1);
 });

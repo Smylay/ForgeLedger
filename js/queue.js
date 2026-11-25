@@ -284,7 +284,8 @@ function nextStage(qid) {
   let to = stages[n + 1],
     sel = `[data-next="${CSS.escape(qid)}"]`;
   if (
-    !commitWithUndo(
+    !commitQueue(
+      q,
       () => {
         q.stage = to;
         q.stageDone = 0; // each stage counts its own models
@@ -297,6 +298,58 @@ function nextStage(qid) {
   if (to === "Complete") askComplete(q);
 }
 
+// Keep a queue item's miniature in step with it, moving forward only:
+// - Built once every model is past the building stage, and Primed once
+//   every model is past priming;
+// - In progress once any model has finished a stage after priming;
+// - the painted count rises to the models at Complete (models done in the
+//   last stage count as Complete), up to its model count.
+// Stages are found by name, as for queueStart(). A status is never lowered,
+// and Complete stays with the completion prompt. Runs inside the change's
+// commit; returns what changed, for the toast, or "".
+function syncMiniature(q) {
+  let m = q && db.miniatures.find((x) => x.id === q.miniature);
+  if (!m) return "";
+  let stages = queueStages(q),
+    last = stages.length - 1,
+    counts = isSplit(q) ? splitCounts(q) : splitFrom(q),
+    least = counts.findIndex((c) => c > 0),
+    most = counts.findLastIndex((c) => c > 0),
+    find = (re) =>
+      stages.findLastIndex((s, j) => j > 0 && j < last && re.test(s)),
+    b = find(BUILD_STAGE),
+    p = find(PRIME_STAGE),
+    order = column(defs.miniatures, "status").options,
+    reached = -1,
+    status = "",
+    done = "";
+  if (b > 0 && least > b) reached = 1; // Built
+  if (p > 0 && least > p) reached = 2; // Primed
+  if (p > 0 && most > p + 1) reached = 3; // In progress
+  if (reached > order.indexOf(m.status) && m.status !== "Complete") {
+    m.status = status = order[reached];
+  }
+  let painted = Math.min(counts[last], Number(m.quantity) || counts[last]);
+  if (painted > (Number(m.painted) || 0)) {
+    m.painted = done = String(painted);
+  }
+  if (!status && !done) return "";
+  return `miniature "${m.name}" ${status ? `is now ${status}${done ? `, with ${done} painted` : ""}` : `now has ${done} painted`}`;
+}
+// commitWithUndo for a change to queue item q that keeps its miniature in
+// step (syncMiniature) in the same commit, so Undo reverts both. The toast
+// says what changed on the miniature.
+function commitQueue(q, change, message) {
+  let note = "";
+  return commitWithUndo(
+    () => {
+      change();
+      note = syncMiniature(q);
+    },
+    () => message() + (note ? `; ${note}` : ""),
+  );
+}
+
 // Back: the previous stage, with Undo, its count starting at 0. It undoes
 // Next, for an item taken too far.
 function prevStage(qid) {
@@ -306,7 +359,8 @@ function prevStage(qid) {
     n = stageIndex(q);
   if (n === 0) return;
   let to = stages[n - 1];
-  let saved = commitWithUndo(
+  let saved = commitQueue(
+    q,
     () => {
       q.stage = to;
       q.stageDone = 0;
@@ -333,7 +387,8 @@ function plusOneDone(qid) {
     count = (n === 0 ? 0 : stageDoneCount(q)) + 1,
     advance = count >= total,
     to = advance ? stages[Math.max(n, 1) + 1] : stage;
-  let saved = commitWithUndo(
+  let saved = commitQueue(
+    q,
     () => {
       q.stage = to;
       q.stageDone = advance ? 0 : count;
@@ -366,7 +421,8 @@ function minusOneDone(qid) {
   if (n === 0) return;
   let to = count ? n : n - 1,
     left = count ? count - 1 : to === 0 ? 0 : total - 1;
-  let saved = commitWithUndo(
+  let saved = commitQueue(
+    q,
     () => {
       q.stage = stages[to];
       q.stageDone = left;
@@ -388,7 +444,8 @@ function toggleSplit(qid) {
   let q = db.queue.find((x) => x.id === qid);
   if (!q) return;
   let on = !isSplit(q);
-  let saved = commitWithUndo(
+  let saved = commitQueue(
+    q,
     () => {
       if (on) storeSplit(q, splitFrom(q));
       else {
@@ -413,7 +470,8 @@ function moveOneOn(qid, from) {
   if (!(from >= 0 && from < stages.length - 1 && counts[from] > 0)) return;
   counts[from]--;
   counts[from + 1]++;
-  let saved = commitWithUndo(
+  let saved = commitQueue(
+    q,
     () => storeSplit(q, counts),
     () => `"${q.name}": 1 moved to ${stages[from + 1]} (${splitText(q)})`,
   );
@@ -439,7 +497,8 @@ function moveOneBack(qid, from) {
   if (!(from > 0 && from < stages.length && counts[from] > 0)) return;
   counts[from]--;
   counts[from - 1]++;
-  let saved = commitWithUndo(
+  let saved = commitQueue(
+    q,
     () => storeSplit(q, counts),
     () => `"${q.name}": 1 back to ${stages[from - 1]} (${splitText(q)})`,
   );
@@ -507,10 +566,12 @@ function applyComplete() {
 // Stages are editable, so they're found by name; a list with no
 // "build" or "prim" stage starts at Not started. Only a Complete status,
 // or every model painted, starts an item at Complete.
+const BUILD_STAGE = /build|assembl/i,
+  PRIME_STAGE = /prim/i;
 const QUEUE_START = {
-  Built: [/build|assembl/i],
-  Primed: [/prim/i, /build|assembl/i],
-  "In progress": [/prim/i, /build|assembl/i],
+  Built: [BUILD_STAGE],
+  Primed: [PRIME_STAGE, BUILD_STAGE],
+  "In progress": [PRIME_STAGE, BUILD_STAGE],
 };
 // One count per default stage, adding up to the miniature's model count.
 function queueStart(m) {

@@ -21,7 +21,9 @@ test.beforeEach(async ({ page }) => {
   await openApp(page);
   await seed(page, {
     schemaVersion: 3,
-    miniatures: [{ id: "m", name: "Squad", quantity: "5" }],
+    miniatures: [
+      { id: "m", name: "Squad", quantity: "5", status: "In progress" },
+    ],
     queue: [
       // 5 models (from the miniature), 2 already done with Basecoating.
       {
