@@ -7,8 +7,8 @@ let memoryOnly = false, // storage is blocked: changes live in memory only
   undo = null, // copy of db from just before the last undoable change
   completing = null, // id of the queue item the completion prompt is about
   buying = null, // { id, row } of the wishlist item the Bought prompt is about
-  editingStages = null, // { qid } while the stage editor is open (null qid: default)
-  viewing = null, // { id, index, url } of the miniature whose photos are open
+  openUnits = new Set(), // board units opened to show their models: qid + "\n" + phase
+  viewing = null, // the photo viewer's { id, index, url }, or { q, card, … } for a model
   newRewards = [], // wishlist ids of rewards a change unlocked, until dismissed
   // Auto-save to a file (autosave.js): off, on, paused or error.
   autoSave = { handle: null, state: "off", savedAt: 0, error: "" },
@@ -59,15 +59,18 @@ const BUTTON_ACTIONS = {
     toolWish(b.dataset.toolwish, b.closest("[data-card]")?.dataset.card),
   toolbought: (b) =>
     toolBought(b.dataset.toolbought, b.closest("[data-card]")?.dataset.card),
-  stages: (b) => openStages(b.dataset.stages),
-  queue: (b) => queueMiniature(b.dataset.queue),
-  next: (b) => nextStage(b.dataset.next),
-  plus: (b) => plusOneDone(b.dataset.plus),
-  minus: (b) => minusOneDone(b.dataset.minus),
-  back: (b) => prevStage(b.dataset.back),
-  split: (b) => toggleSplit(b.dataset.split),
-  adv: (b) => moveOneOn(b.dataset.adv, Number(b.dataset.from)),
-  moveback: (b) => moveOneBack(b.dataset.moveback, Number(b.dataset.from)),
+  addone: (b) => addModels(b.dataset.addone, false),
+  addall: (b) => addModels(b.dataset.addall, true),
+  qview: (b) => setQueueMode(b.dataset.qview),
+  unit: (b) => toggleUnit(b.dataset.unit, b.dataset.from),
+  mphoto: (b) => openCardPhoto(b.dataset.q, b.dataset.mphoto),
+  move: (b) =>
+    stepCards(
+      b.dataset.move,
+      b.dataset.from,
+      Number(b.dataset.dir),
+      b.dataset.mcard,
+    ),
   top: (b) => reorderQueue("top", +b.dataset.top),
   up: (b) => reorderQueue("up", +b.dataset.up),
   down: (b) => reorderQueue("down", +b.dataset.down),
@@ -169,37 +172,29 @@ document.querySelector("#photoStrip").onclick = (e) => {
 document.querySelector("#coverPhoto").onclick = makeCover;
 document.querySelector("#removePhoto").onclick = removePhoto;
 document.querySelector("#photosDialog").onclose = () => {
-  let mid = viewing?.id;
+  let was = viewing;
   if (viewing?.url) URL.revokeObjectURL(viewing.url);
   viewing = null;
-  if (mid) refocus(`[data-photos="${CSS.escape(mid)}"]`);
+  if (was?.card) refocus(`[data-mphoto="${CSS.escape(was.card)}"]`);
+  else if (was?.id) refocus(`[data-photos="${CSS.escape(was.id)}"]`);
 };
-// The stage editor.
-document.querySelector("#stagesBtn").onclick = () => openStages(null);
-document.querySelector("#stageList").onclick = (e) => {
+// The phase editor (Edit board, stages.js).
+document.querySelector("#editBoard").onclick = openPhases;
+document.querySelector("#phaseList").onclick = (e) => {
   let b = e.target.closest("button");
-  if (b) stageRowAction(b);
+  if (b) phaseRowAction(b);
 };
 // A name problem can involve two rows (a repeat), so any edit clears all
 // of them; Save checks again.
-document.querySelector("#stageList").oninput = () => {
-  for (let input of document.querySelectorAll("#stageList input"))
+document.querySelector("#phaseList").oninput = () => {
+  for (let input of document.querySelectorAll("#phaseList input"))
     input.setCustomValidity("");
 };
-document.querySelector("#addStage").onclick = addStageRow;
-document.querySelector("#resetStages").onclick = () => {
-  useDefaultStages(editingStages?.qid);
-  document.querySelector("#stagesDialog").close();
+document.querySelector("#addPhase").onclick = addPhaseRow;
+document.querySelector("#phasesForm").onsubmit = (e) => {
+  if (e.submitter?.value === "save" && !savePhases()) e.preventDefault();
 };
-document.querySelector("#stagesForm").onsubmit = (e) => {
-  if (e.submitter?.value === "save" && !saveStages()) e.preventDefault();
-};
-// Closing returns focus to the button that opened the editor, redrawn by now.
-document.querySelector("#stagesDialog").onclose = () => {
-  let qid = editingStages?.qid;
-  editingStages = null;
-  refocus(qid ? `[data-stages="${CSS.escape(qid)}"]` : "#stagesBtn");
-};
+document.querySelector("#phasesDialog").onclose = () => refocus("#editBoard");
 document.querySelector("#boughtForm").onsubmit = (e) => {
   if (e.submitter?.value === "apply")
     applyBought(new FormData(e.currentTarget).get("to"));
@@ -214,6 +209,7 @@ document.querySelector("#toastAction").onclick = () => {
   if (!snapshot || !commit(() => (db = snapshot))) return;
   renderNav();
   render();
+  if (viewing) renderPhotos(); // Undo from inside the photo viewer
   toast("Restored");
 };
 document.querySelector("#closeModal").onclick = document.querySelector(
@@ -291,6 +287,74 @@ document.querySelector("#queueContent").addEventListener("pointerdown", (e) => {
   handle.addEventListener("pointermove", move);
   handle.addEventListener("pointerup", end);
   handle.addEventListener("pointercancel", end);
+});
+// Drag a model card, or a unit's heading (all its models in that phase),
+// to another phase on the board. A mouse can drag from anywhere on it but
+// the arrow and photo buttons; a finger or pen uses the ⠿ grip, so touching the
+// board elsewhere still scrolls it. Nothing happens until the pointer has
+// moved a little, so a click is still a click. Then a copy follows the
+// pointer, the phase under it is highlighted, and the move is saved on
+// release. ◀ and ▶ do the same without dragging.
+document.querySelector("#queueContent").addEventListener("pointerdown", (e) => {
+  let el = e.target.closest(".mcard, .unithead");
+  if (!el || e.button !== 0 || e.target.closest(".arrow, .mphoto")) return;
+  if (e.pointerType !== "mouse" && !e.target.closest(".grip")) return;
+  let x0 = e.clientX,
+    y0 = e.clientY,
+    rect = el.getBoundingClientRect(),
+    ghost = null,
+    over = null;
+  let move = (ev) => {
+    if (ev.pointerId !== e.pointerId) return;
+    if (!ghost) {
+      if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return; // a click
+      ghost = el.cloneNode(true);
+      ghost.classList.add("ghost");
+      ghost.setAttribute("aria-hidden", "true");
+      ghost.inert = true;
+      ghost.style.width = rect.width + "px";
+      document.body.append(ghost);
+      el.classList.add("dragging");
+    }
+    ev.preventDefault();
+    ghost.style.left = rect.left + ev.clientX - x0 + "px";
+    ghost.style.top = rect.top + ev.clientY - y0 + "px";
+    let t = document
+      .elementFromPoint(ev.clientX, ev.clientY)
+      ?.closest(".phase");
+    if (t !== over) {
+      over?.classList.remove("drop");
+      over = t;
+      over?.classList.add("drop");
+    }
+  };
+  let end = (ev) => {
+    if (ev.pointerId !== e.pointerId) return;
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", end);
+    window.removeEventListener("pointercancel", end);
+    over?.classList.remove("drop");
+    el.classList.remove("dragging");
+    if (!ghost) return;
+    ghost.remove();
+    // A drag isn't a click: don't open the unit it started on.
+    let stop = (c) => c.stopPropagation();
+    window.addEventListener("click", stop, { capture: true, once: true });
+    setTimeout(() => window.removeEventListener("click", stop, true));
+    let to = over?.dataset.phase,
+      from = el.dataset.from,
+      q = db.queue.find((x) => x.id === el.dataset.q);
+    if (ev.type !== "pointerup" || !q || !to || to === from) return;
+    let ids = el.dataset.mcard
+      ? [el.dataset.mcard]
+      : cardsOf(q)
+          .filter((c) => boardPhases()[cardIndex(c)] === from)
+          .map((c) => c.id);
+    moveCards(q.id, ids, to);
+  };
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", end);
+  window.addEventListener("pointercancel", end);
 });
 // Single-key shortcuts (see #keysDialog). They're ignored while typing, with
 // Ctrl, Alt or Cmd held, or while a dialog is open, and can be turned off

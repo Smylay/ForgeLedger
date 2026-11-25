@@ -32,6 +32,17 @@ function demoData(base = new Date()) {
     price,
     notes: "",
   });
+  // Model cards for the board: [phase, how many] in order, numbered.
+  let cards = (key, ...groups) =>
+    groups.flatMap(([phase, n], g) =>
+      Array.from({ length: n }, (_, k) => ({
+        id: `card-${key}-${g + 1}-${k + 1}`,
+        phase,
+      })),
+    );
+  // The first painted squad model has the squad's photo.
+  let squad = cards("squad", ["Painting", 5], ["Detailing", 3], ["Done", 2]);
+  squad[8].photo = "demo-photo-1";
   let skill = (name, level, changed, goal = "") => ({
     id: "s-" + name.toLowerCase().replace(/[^a-z]+/g, "-"),
     name,
@@ -189,7 +200,7 @@ function demoData(base = new Date()) {
         project: "a-gob",
         quantity: "12",
         painted: "0",
-        status: "Primed",
+        status: "In progress",
         price: "30.00",
         paints: ["p-ochre", "p-bone", "p-wash"],
         recipe: "",
@@ -209,15 +220,16 @@ function demoData(base = new Date()) {
         notes: "",
       },
     ],
+    // One card per model on the painting board, ids fixed so the example
+    // file doesn't change from build to build.
     queue: [
       {
         id: "q-squad",
         name: "Iron Guard squad",
         miniature: "m-squad",
         project: "a-iron",
-        stage: "Basecoating",
-        stageDone: 4,
         models: "10",
+        cards: squad,
         due: day(5),
         notes: "",
       },
@@ -226,10 +238,8 @@ function demoData(base = new Date()) {
         name: "Goblin raiders",
         miniature: "m-gob",
         project: "a-gob",
-        stage: "Priming",
-        stageDone: 8,
-        split: { Priming: 4, Basecoating: 5, Detailing: 3 },
         models: "12",
+        cards: cards("gob", ["Priming", 4], ["Painting", 5], ["Detailing", 3]),
         due: day(12),
         notes: "",
       },
@@ -238,19 +248,18 @@ function demoData(base = new Date()) {
         name: "Siege walker",
         miniature: "m-walker",
         project: "a-iron",
-        stage: "Weathering",
-        stages: ["Building", "Priming", "Basecoating", "Weathering", "Basing"],
         models: "1",
+        cards: cards("walker", ["Priming", 1]),
         due: day(-2),
-        notes: "Its own stages, with weathering.",
+        notes: "",
       },
       {
         id: "q-chapel",
         name: "Ruined chapel (terrain)",
         miniature: "",
         project: "",
-        stage: "Not started",
         models: "1",
+        cards: cards("chapel", ["To do", 1]),
         due: "",
         notes: "",
       },
@@ -404,7 +413,7 @@ function renderStartNotice() {
 }
 // Example data (demo.js): only offered while the app is empty, so it never
 // replaces anything. Its photos are drawn and stored first; if they can't
-// be stored, the miniatures simply have none.
+// be stored, the miniatures and models simply have none.
 async function loadDemo() {
   if (hasUserData()) return;
   let data = demoData(),
@@ -414,7 +423,10 @@ async function loadDemo() {
       await putPhotos(demoPhotos());
       stored = true;
     } catch {}
-  if (!stored) for (let m of data.miniatures) delete m.photos;
+  if (!stored) {
+    for (let m of data.miniatures) delete m.photos;
+    for (let c of data.queue.flatMap((q) => q.cards)) delete c.photo;
+  }
   if (!commit(() => (db = withCurrency(fromBackup(data))))) return;
   newRewards = [];
   renderRewardNotice();

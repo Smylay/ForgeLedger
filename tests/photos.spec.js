@@ -178,7 +178,7 @@ test.describe("backups", () => {
     const pid = backup.miniatures[0].photos[0];
     expect(backup.photos[pid]).toMatchObject({ type: "image/jpeg" });
     expect(backup.photos[pid].full.length).toBeGreaterThan(100);
-    expect(backup.schemaVersion).toBe(5);
+    expect(backup.schemaVersion).toBe(6);
 
     // A new browser profile: no data, no photos.
     const fresh = await (await browser.newContext()).newPage();

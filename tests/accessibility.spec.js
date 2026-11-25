@@ -84,23 +84,39 @@ const data = {
       paints: ["red", "black"],
     },
   ],
+  // Model cards on the board: a unit spread over phases, one of one, and
+  // one with a model done.
   queue: [
     {
       id: "q",
       name: "Squad",
       miniature: "m",
       project: "p",
-      stage: "Basing",
-      models: "10",
       due: day(-1),
+      cards: [
+        ...Array.from({ length: 9 }, (_, i) => ({
+          id: `s${i}`,
+          phase: "Detailing",
+        })),
+        { id: "s9", phase: "Done" },
+      ],
     },
-    { id: "q2", name: "Hero", stage: "Priming", models: "1", due: day(3) },
+    {
+      id: "q2",
+      name: "Hero",
+      due: day(3),
+      cards: [{ id: "h1", phase: "Priming" }],
+    },
     {
       id: "q3",
       name: "Split squad",
-      models: "5",
-      stage: "Priming",
-      split: { Priming: 2, Basecoating: 2, Complete: 1 },
+      cards: [
+        { id: "x1", phase: "Priming" },
+        { id: "x2", phase: "Priming" },
+        { id: "x3", phase: "Painting" },
+        { id: "x4", phase: "Painting" },
+        { id: "x5", phase: "Done" },
+      ],
     },
   ],
   wishlist: [
@@ -204,10 +220,43 @@ for (const run of [
       page,
     }) => {
       await nav(page, "queue");
-      await page.locator("#queueContent button[data-edit]").first().click();
-      await fillForm(page, { stage: "Complete" });
-      await submitForm(page);
+      await page
+        .getByRole("button", { name: "Move all 9 of Squad on to Done" })
+        .click();
       await expect(page.locator("#completeDialog")).toBeVisible();
+      expect(await violations(page)).toEqual([]);
+    });
+
+    test("the board with a unit open, and the list, have no accessibility violations", async ({
+      page,
+    }) => {
+      await nav(page, "queue");
+      await page.locator('[data-unit="q3"][data-from="Priming"]').click();
+      await expect(page.locator("#queueContent .mcard")).toHaveCount(2);
+      expect(await violations(page)).toEqual([]);
+      await page.click('[data-qview="list"]');
+      await expect(page.locator("#queueContent .qitem")).toHaveCount(3);
+      expect(await violations(page)).toEqual([]);
+    });
+
+    test("a model's photo, on the board and in its viewer, has no accessibility violations", async ({
+      page,
+    }) => {
+      await nav(page, "queue");
+      await page.locator('[data-unit="q3"][data-from="Priming"]').click();
+      await page.locator("#queueContent .mcard .mphoto").first().click();
+      await page
+        .locator("#photoFile")
+        .setInputFiles([await imageFile(page, "a.png", 400, 300)]);
+      await expect(page.locator("#photoView img")).toHaveAttribute(
+        "src",
+        /^blob:/,
+      );
+      expect(await violations(page)).toEqual([]);
+      await page.click("#closePhotos");
+      await expect(
+        page.locator("#queueContent .mcard .mphoto img").first(),
+      ).toHaveAttribute("src", /^blob:/);
       expect(await violations(page)).toEqual([]);
     });
 
@@ -264,12 +313,12 @@ for (const run of [
       expect(await violations(page)).toEqual([]);
     });
 
-    test("the stage editor has no accessibility violations", async ({
+    test("the board editor has no accessibility violations", async ({
       page,
     }) => {
       await nav(page, "queue");
-      await page.click("#stagesBtn");
-      await expect(page.locator("#stagesDialog")).toBeVisible();
+      await page.click("#editBoard");
+      await expect(page.locator("#phasesDialog")).toBeVisible();
       expect(await violations(page)).toEqual([]);
     });
 

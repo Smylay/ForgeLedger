@@ -88,6 +88,7 @@ test("queue items warn about low recipe paints until complete", async ({
   page,
 }) => {
   await nav(page, "queue");
+  await page.click('[data-qview="list"]');
   await expect(page.locator(".qitem").nth(0).locator(".warnline")).toHaveText(
     "Low paint: Black (Low)",
   );

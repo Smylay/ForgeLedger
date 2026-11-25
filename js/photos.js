@@ -1,9 +1,11 @@
-// Miniature photos. The data (localStorage) holds each miniature's photo
+// Photos of miniatures and their models. The data (localStorage) holds each miniature's photo
 // ids in `photos`; the images themselves live in IndexedDB, which has room
 // for them. Images are stored as bytes (ArrayBuffer) with their type, not
 // as Blobs, which WebKit (Safari) can't store from a file:// page. They're
 // shrunk before saving: PHOTO_SIZE pixels on the long edge, plus a
-// THUMB_SIZE thumbnail. The photo viewer is at the end of the file.
+// THUMB_SIZE thumbnail. Model cards on the board can have a photo too
+// (`photo`), which is also one of its miniature's photos. The photo viewer
+// is at the end of the file.
 "use strict";
 
 const PHOTO_DB = "forgeledger_photos";
@@ -78,6 +80,14 @@ function photosWork() {
 function photoIds(m) {
   return asList(m?.photos).filter((p) => typeof p === "string" && p);
 }
+// Every photo id the data uses: the miniatures' photos and the model
+// cards' (a card's photo stays its own if its unit has no miniature).
+function usedPhotoIds(data) {
+  return new Set([
+    ...data.miniatures.flatMap(photoIds),
+    ...data.queue.flatMap((q) => cardsOf(q).map(cardPhoto)).filter(Boolean),
+  ]);
+}
 
 // An object URL for a stored photo's thumbnail or full image, cached for
 // thumbnails; "" if it's missing.
@@ -151,7 +161,7 @@ async function photoFromFile(file) {
 // that no Undo could want them back.
 async function tidyPhotos() {
   if (!(await photosWork())) return;
-  let used = new Set(db.miniatures.flatMap(photoIds)),
+  let used = usedPhotoIds(db),
     old = Date.now() - PHOTO_KEEP_MS,
     spare = (await allPhotos())
       .filter((p) => !used.has(p.id) && !(p.added > old))
@@ -176,7 +186,7 @@ function fromBase64(text) {
   return bytes.buffer;
 }
 async function backupPhotos(data) {
-  let ids = [...new Set(data.miniatures.flatMap(photoIds))],
+  let ids = [...usedPhotoIds(data)],
     out = {};
   if (!ids.length || !(await photosWork())) return out;
   for (let pid of ids) {
@@ -209,33 +219,89 @@ function photosFromBackup(photos) {
   return recs;
 }
 
-// The photo viewer for one miniature: the chosen photo large, a strip of
-// thumbnails to pick from, and buttons to add, make cover and remove.
+// The photo viewer, for a miniature's photos or one model card's photo
+// (`viewing.card`, from the board). It shows the chosen photo large, a
+// strip of thumbnails to pick from, and buttons to add, make cover and
+// remove.
 function openPhotos(mid) {
-  let m = db.miniatures.find((x) => x.id === mid);
-  if (!m) return;
-  viewing = { id: m.id, index: 0, url: "" };
+  if (db.miniatures.some((x) => x.id === mid))
+    openViewer({ id: mid, index: 0, url: "" });
+}
+function openCardPhoto(qid, cid) {
+  let q = db.queue.find((x) => x.id === qid);
+  if (cardsOf(q).some((c) => c.id === cid))
+    openViewer({ q: qid, card: cid, index: 0, url: "" });
+}
+function openViewer(v) {
+  viewing = v;
   document.querySelector("#photoStatus").textContent = "";
   document.querySelector("#photosDialog").showModal();
   renderPhotos();
 }
-async function renderPhotos() {
+// What the viewer shows, looked up afresh, since Undo or another tab may
+// have changed the data: the miniature `m`, its `name` and photo `ids`; for
+// a model card, also its unit `q` and card `c`, and `m` is the unit's
+// miniature, if it has one. Null once it's gone.
+function viewed() {
+  if (viewing?.card) {
+    let q = db.queue.find((x) => x.id === viewing.q),
+      c = cardsOf(q).find((x) => x.id === viewing.card);
+    return c
+      ? {
+          q,
+          c,
+          m: db.miniatures.find((x) => x.id === q.miniature),
+          name: modelName(q, c),
+          ids: cardPhoto(c) ? [cardPhoto(c)] : [],
+        }
+      : null;
+  }
   let m = viewing && db.miniatures.find((x) => x.id === viewing.id);
-  if (!m) return;
-  let ids = photoIds(m),
+  return m ? { m, name: String(m.name ?? ""), ids: photoIds(m) } : null;
+}
+// Which model a miniature's photo is of, if one of its cards has it.
+function photoModel(m, pid) {
+  for (let q of db.queue)
+    if (q.miniature === m.id) {
+      let c = cardsOf(q).find((x) => cardPhoto(x) === pid);
+      if (c) return modelName(q, c);
+    }
+  return "";
+}
+async function renderPhotos() {
+  let v = viewed();
+  if (!v) return;
+  let { ids, c } = v,
     i = (viewing.index = Math.max(0, Math.min(viewing.index, ids.length - 1))),
-    name = esc(m.name),
+    name = esc(v.name),
+    model = c ? "" : photoModel(v.m, ids[i]),
     dlg = document.querySelector("#photosDialog");
-  document.querySelector("#photosTitle").textContent = `Photos of "${m.name}"`;
+  document.querySelector("#photosTitle").textContent =
+    `${c ? "Photo" : "Photos"} of "${v.name}"`;
+  let caption = c
+    ? v.m
+      ? `Also in the photos of "${esc(v.m.name)}"`
+      : ""
+    : `Photo ${i + 1} of ${ids.length}${i === 0 ? " · cover" : ""}${model ? ` · ${esc(model)}` : ""}`;
   document.querySelector("#photoView").innerHTML = ids.length
-    ? `<img data-photo="${esc(ids[i])}" data-size="full" alt="Photo ${i + 1} of ${ids.length} of ${name}"><figcaption>Photo ${i + 1} of ${ids.length}${i === 0 ? " · cover" : ""}</figcaption>`
-    : '<p class="muted">No photos yet. Add them from your computer, or your phone\'s camera.</p>';
-  document.querySelector("#photoStrip").innerHTML = ids
-    .map(
-      (p, k) =>
-        `<button type="button" data-pick="${k}" aria-label="Show photo ${k + 1}"${k === i ? ' aria-current="true"' : ""}><img data-photo="${esc(p)}" alt=""></button>`,
-    )
-    .join("");
+    ? `<img data-photo="${esc(ids[i])}" data-size="full" alt="${c ? `Photo of ${name}` : `Photo ${i + 1} of ${ids.length} of ${name}`}">${caption ? `<figcaption>${caption}</figcaption>` : ""}`
+    : `<p class="muted">${c ? "No photo of this model yet. Add one" : "No photos yet. Add them"} from your computer, or your phone's camera.</p>`;
+  document.querySelector("#photoStrip").innerHTML = c
+    ? ""
+    : ids
+        .map(
+          (p, k) =>
+            `<button type="button" data-pick="${k}" aria-label="Show photo ${k + 1}"${k === i ? ' aria-current="true"' : ""}><img data-photo="${esc(p)}" alt=""></button>`,
+        )
+        .join("");
+  // A model has one photo: adding another replaces it, and there's no cover.
+  document.querySelector("#addPhotos").textContent = !c
+    ? "Add photos"
+    : ids.length
+      ? "Replace photo"
+      : "Add photo";
+  document.querySelector("#photoFile").multiple = !c;
+  document.querySelector("#coverPhoto").hidden = !!c;
   document.querySelector("#coverPhoto").disabled = i === 0;
   document.querySelector("#removePhoto").disabled = !ids.length;
   let works = await photosWork();
@@ -253,14 +319,16 @@ function showPhoto(k) {
     refocus(`#photoStrip [data-pick="${k}"]`, "#addPhotos"),
   );
 }
-// Shrink and store picked images, then add them to the miniature with Undo.
-// Files the browser can't read (e.g. HEIC on some computers) are named.
+// Shrink and store picked images, then add them with Undo: to the
+// miniature, or as the model's photo (only the first file). Files the
+// browser can't read (e.g. HEIC on some computers) are named.
 async function addPhotoFiles(files) {
   if (!viewing || !files.length) return;
-  let mid = viewing.id,
+  let was = viewing, // what the photos are for, should the viewer change
     status = document.querySelector("#photoStatus"),
     recs = [],
     failed = [];
+  if (was.card) files = files.slice(0, 1);
   status.textContent = `Adding ${files.length} photo(s)…`;
   document.querySelector("#addPhotos").disabled = true;
   for (let f of files)
@@ -278,15 +346,16 @@ async function addPhotoFiles(files) {
       );
       recs = [];
     }
-  // Look the miniature up again: another tab may have changed the data.
-  let m = db.miniatures.find((x) => x.id === mid);
-  if (m && recs.length) {
+  // Look the record up again: another tab may have changed the data.
+  let m = !was.card && db.miniatures.find((x) => x.id === was.id);
+  if (recs.length && was.card) setCardPhoto(was.q, was.card, recs[0].id);
+  else if (recs.length && m) {
     let before = photoIds(m).length;
     let added = commitWithUndo(
       () => (m.photos = [...photoIds(m), ...recs.map((r) => r.id)]),
       () => `Added ${recs.length} photo(s) to "${m.name}"`,
     );
-    if (added && viewing?.id === mid) viewing.index = before;
+    if (added && viewing === was) viewing.index = before;
   }
   status.textContent = failed.length
     ? `Couldn't add ${failed.join(", ")}. Use JPEG, PNG or WebP images; if they are, the browser's storage may be full.`
@@ -294,31 +363,67 @@ async function addPhotoFiles(files) {
   await renderPhotos();
   document.querySelector("#addPhotos").focus();
 }
+// Set a model card's photo, or with "" remove it, with Undo. It's also one
+// of the unit's miniature's photos, if the unit has one: a new photo takes
+// the old one's place there, or goes at the end, and removing it removes
+// it there too.
+function setCardPhoto(qid, cid, pid) {
+  let q = db.queue.find((x) => x.id === qid),
+    c = cardsOf(q).find((x) => x.id === cid);
+  if (!c) return false;
+  let old = cardPhoto(c),
+    m = db.miniatures.find((x) => x.id === q.miniature),
+    name = modelName(q, c),
+    verb = !pid ? "Removed" : old ? "Replaced" : "Added",
+    prep = !pid ? "from" : old ? "in" : "to";
+  return commitWithUndo(
+    () => {
+      if (pid) c.photo = pid;
+      else delete c.photo;
+      if (!m) return;
+      let ids = photoIds(m);
+      m.photos = !pid
+        ? ids.filter((p) => p !== old)
+        : old && ids.includes(old)
+          ? ids.map((p) => (p === old ? pid : p))
+          : [...ids, pid];
+    },
+    () =>
+      `${verb} the photo of "${name}"` +
+      (m ? `, ${prep} the photos of "${m.name}" too` : ""),
+  );
+}
 // The photo shown becomes the first, which is the cover.
 function makeCover() {
-  let m = viewing && db.miniatures.find((x) => x.id === viewing.id);
-  if (!m) return;
-  let ids = photoIds(m),
-    pid = ids[viewing.index];
+  let v = viewed();
+  if (!v || v.c) return;
+  let pid = v.ids[viewing.index];
   if (!pid || viewing.index === 0) return;
-  if (!commit(() => (m.photos = [pid, ...ids.filter((p) => p !== pid)])))
+  if (!commit(() => (v.m.photos = [pid, ...v.ids.filter((p) => p !== pid)])))
     return;
   viewing.index = 0;
   render();
   renderPhotos().then(() => refocus("#removePhoto"));
 }
-// Take the shown photo off the miniature, with Undo. The image stays stored
-// until start-up tidies it (tidyPhotos), so Undo can bring it back.
+// Take the shown photo off, with Undo. The image stays stored until
+// start-up tidies it (tidyPhotos), so Undo can bring it back. A model
+// card's photo is the same photo as its miniature's, so removing it from
+// either removes it from both.
 function removePhoto() {
-  let m = viewing && db.miniatures.find((x) => x.id === viewing.id);
-  if (!m) return;
-  let ids = photoIds(m),
-    pid = ids[viewing.index];
+  let v = viewed(),
+    pid = v?.ids[viewing.index];
   if (!pid) return;
-  commitWithUndo(
-    () => (m.photos = ids.filter((p) => p !== pid)),
-    () => `Removed a photo from "${m.name}"`,
-  );
+  if (v.c) setCardPhoto(v.q.id, v.c.id, "");
+  else
+    commitWithUndo(
+      () => {
+        v.m.photos = v.ids.filter((p) => p !== pid);
+        for (let q of db.queue)
+          if (q.miniature === v.m.id)
+            for (let c of cardsOf(q)) if (cardPhoto(c) === pid) delete c.photo;
+      },
+      () => `Removed a photo from "${v.m.name}"`,
+    );
   renderPhotos().then(() =>
     refocus("#removePhoto", "#addPhotos", "#closePhotos"),
   );

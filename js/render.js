@@ -212,7 +212,7 @@ function renderQueueSummary() {
         .slice(0, 5)
         .map(
           (q, i) =>
-            `<div>${i + 1}. <b>${esc(q.name)}</b> <span class="muted">${esc(isSplit(q) ? splitText(q) : q.stage || "Not started")}</span></div>`,
+            `<div>${i + 1}. <b>${esc(q.name)}</b> <span class="muted">${esc(countsText(q))}</span></div>`,
         )
         .join("")
     : '<div class="empty">Queue is empty.</div>';
@@ -223,7 +223,7 @@ function renderStockSummary() {
   let low = db.paints.filter(isLow),
     // Miniatures waiting in the queue, for "needed for N queued".
     waiting = db.queue
-      .filter((q) => q.stage !== "Complete")
+      .filter((q) => !entryDone(q))
       .map((q) => linked(column(defs.queue, "miniature"), q.miniature))
       .filter(Boolean);
   let wanted = new Set(db.wishlist.map((w) => w.paint).filter(Boolean)),
@@ -384,7 +384,7 @@ function rowHtml(d, x) {
         `<td>${c.key === "name" && d.swatch ? swatchHtml(x[d.swatch]) : ""}${c.key === "name" && d.photos && photoIds(x).length ? `<span class="withthumb">${coverHtml(x)}<span>${cellHtml(c, x)}</span></span>` : cellHtml(c, x)}${c.key === "name" && d.under ? d.under(x) : ""}</td>`,
     )
     .join("");
-  return `<tr data-row="${esc(x.id)}">${cells}<td class="rowacts">${section === "wishlist" ? `<button data-bought="${esc(x.id)}" aria-label="Bought: ${esc(x.name)}">Bought</button>` : ""}<button data-edit="${esc(x.id)}">Edit</button><button class="del" data-del="${esc(x.id)}">Delete</button>${section === "miniatures" ? `<button data-queue="${esc(x.id)}">Queue</button>` : ""}${d.photos ? photosButtonHtml(x) : ""}</td></tr>`;
+  return `<tr data-row="${esc(x.id)}">${cells}<td class="rowacts">${section === "wishlist" ? `<button data-bought="${esc(x.id)}" aria-label="Bought: ${esc(x.name)}">Bought</button>` : ""}<button data-edit="${esc(x.id)}">Edit</button><button class="del" data-del="${esc(x.id)}">Delete</button>${section === "miniatures" ? addButtonsHtml(x) : ""}${d.photos ? photosButtonHtml(x) : ""}</td></tr>`;
 }
 // Redraw one table row after a one-tap change, so the row keeps its place
 // (even in a sorted table), then put focus back on the first of `focus`
@@ -420,4 +420,14 @@ function renderTable() {
     ? `<div class="tablewrap"><table><thead><tr>${head}<th>Actions</th></tr></thead><tbody>${body}</tbody></table></div>`
     : '<div class="card empty">No matching items.</div>';
   fillPhotos(document.querySelector("#content"));
+}
+
+// A miniature's Add 1 and Add all: put its models on the painting board
+// (queue.js). Disabled once every model is on it.
+function addButtonsHtml(m) {
+  let mid = esc(m.id),
+    name = esc(m.name),
+    left = modelsLeft(m),
+    off = left ? "" : " disabled";
+  return `<button data-addone="${mid}" aria-label="Add 1 model of ${name} to the board"${off}>Add 1</button><button data-addall="${mid}" aria-label="Add all ${left || ""} models of ${name} to the board"${off}>Add all</button>`;
 }

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "demo": true,
   "paints": [
     {
@@ -257,7 +257,7 @@
       "project": "a-gob",
       "quantity": "12",
       "painted": "0",
-      "status": "Primed",
+      "status": "In progress",
       "price": "30.00",
       "paints": ["p-ochre", "p-bone", "p-wash"],
       "recipe": "",
@@ -283,9 +283,19 @@
       "name": "Iron Guard squad",
       "miniature": "m-squad",
       "project": "a-iron",
-      "stage": "Basecoating",
-      "stageDone": 4,
       "models": "10",
+      "cards": [
+        { "id": "card-squad-1-1", "phase": "Painting" },
+        { "id": "card-squad-1-2", "phase": "Painting" },
+        { "id": "card-squad-1-3", "phase": "Painting" },
+        { "id": "card-squad-1-4", "phase": "Painting" },
+        { "id": "card-squad-1-5", "phase": "Painting" },
+        { "id": "card-squad-2-1", "phase": "Detailing" },
+        { "id": "card-squad-2-2", "phase": "Detailing" },
+        { "id": "card-squad-2-3", "phase": "Detailing" },
+        { "id": "card-squad-3-1", "phase": "Done", "photo": "demo-photo-1" },
+        { "id": "card-squad-3-2", "phase": "Done" }
+      ],
       "due": "2027-01-20",
       "notes": ""
     },
@@ -294,10 +304,21 @@
       "name": "Goblin raiders",
       "miniature": "m-gob",
       "project": "a-gob",
-      "stage": "Priming",
-      "stageDone": 8,
-      "split": { "Priming": 4, "Basecoating": 5, "Detailing": 3 },
       "models": "12",
+      "cards": [
+        { "id": "card-gob-1-1", "phase": "Priming" },
+        { "id": "card-gob-1-2", "phase": "Priming" },
+        { "id": "card-gob-1-3", "phase": "Priming" },
+        { "id": "card-gob-1-4", "phase": "Priming" },
+        { "id": "card-gob-2-1", "phase": "Painting" },
+        { "id": "card-gob-2-2", "phase": "Painting" },
+        { "id": "card-gob-2-3", "phase": "Painting" },
+        { "id": "card-gob-2-4", "phase": "Painting" },
+        { "id": "card-gob-2-5", "phase": "Painting" },
+        { "id": "card-gob-3-1", "phase": "Detailing" },
+        { "id": "card-gob-3-2", "phase": "Detailing" },
+        { "id": "card-gob-3-3", "phase": "Detailing" }
+      ],
       "due": "2027-01-27",
       "notes": ""
     },
@@ -306,19 +327,18 @@
       "name": "Siege walker",
       "miniature": "m-walker",
       "project": "a-iron",
-      "stage": "Weathering",
-      "stages": ["Building", "Priming", "Basecoating", "Weathering", "Basing"],
       "models": "1",
+      "cards": [{ "id": "card-walker-1-1", "phase": "Priming" }],
       "due": "2027-01-13",
-      "notes": "Its own stages, with weathering."
+      "notes": ""
     },
     {
       "id": "q-chapel",
       "name": "Ruined chapel (terrain)",
       "miniature": "",
       "project": "",
-      "stage": "Not started",
       "models": "1",
+      "cards": [{ "id": "card-chapel-1-1", "phase": "To do" }],
       "due": "",
       "notes": ""
     }
