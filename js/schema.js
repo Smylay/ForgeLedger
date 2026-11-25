@@ -16,7 +16,17 @@ const SHORTCUTS_KEY = "forgeledger_v2_shortcuts";
 // The theme (dark, light or system), kept per browser like the shortcuts
 // setting. The <head> of forgeledger_v2.html reads it too, before drawing.
 const THEME_KEY = "forgeledger_v2_theme";
-const THEMES = ["dark", "light", "system"];
+// The themes Settings offers: dark (the default), light, matching the
+// device, and colour themes (styles.css).
+const THEMES = [
+  "dark",
+  "light",
+  "system",
+  "forest",
+  "ocean",
+  "amethyst",
+  "parchment",
+];
 const RECOVERY_PREFIX = "forgeledger_v2_recovered_";
 const BACKUP_REMINDER_DAYS = 14;
 const DUE_SOON_DAYS = 14; // dates this close get a "Due in N days" marker

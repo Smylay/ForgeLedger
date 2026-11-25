@@ -2,7 +2,7 @@ ForgeLedger Bugs/Suggestions
 
 - We should review the codebase to see if any files are becoming over complex and ensure its built in a logical way. (done in PR #19)
 
-- Maybe we could add some themes for different colours
+- Maybe we could add some themes for different colours (done in PR #24)
 
 - Use wishlist paints when selecting on miniatures (done in PR #22)
 - Easy medium hard expert on skills with next suggestions being easy skills (done in PR #23)

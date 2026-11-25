@@ -47,28 +47,28 @@ Keep it runnable from `file://`. Browsers refuse to load ES module scripts from 
 
 The code lives in plain `<script>` files that share the global scope. They aren't ES modules, which can't load from `file://`. `forgeledger_v2.html` loads them in this order:
 
-| File            | Contents                                                                                                                        |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `util.js`       | helpers with no app state: `id()`, `esc()`, `safeColour()`, `safeUrl()`, `toast()`, `download()`, `today()`, `refocus()`        |
-| `schema.js`     | `APP_VERSION`, storage keys and other constants, `defaults`, `defs`, `column()`, link helpers, `projectStats()`                 |
-| `skillguide.js` | `LEVELS`, the `TECHNIQUES` library, `nextStep()`, `practiceNext()` and other skill rules                                        |
-| `demo.js`       | the example data (`demoData()`, `demoPhotos()`, `DEMO_FILE_DATE`), and the offer to load, clear or keep it                      |
-| `storage.js`    | load, validate, repair, migrate, `save()`, `commit()`, `commitWithUndo()`, backup age                                           |
-| `paints.js`     | paint stock helpers (`isLow()`, `lowRecipePaints()`, `stockFromPercent()`), and "Used in"                                       |
-| `photos.js`     | miniature photos in IndexedDB (open, store, shrink, show, tidy, their part of backups), and the photo viewer                    |
-| `autosave.js`   | auto-save to a file the user picked: the remembered handle, writes after each save, its status                                  |
-| `settings.js`   | Settings: currencies and `money()`, the theme, the shortcuts switch, Erase all data                                             |
-| `wishlist.js`   | adding low paints to the wishlist, the Bought button, and rewards                                                               |
-| `queue.js`      | the painting queue: stages and split counts, drawing an item, Next, +1, Split, Move 1, reordering, the completion prompt        |
-| `stages.js`     | the stage editor, and moving items when stages change                                                                           |
-| `skills.js`     | the skills page: cards, sliders, the skill profile, practice suggestions, the technique picker                                  |
-| `backup.js`     | JSON backup and import, and CSV export                                                                                          |
-| `render.js`     | nav and page switching, the dashboard, list tables, sorting, deadline markers, alerts                                           |
-| `suggest.js`    | suggestions as you type: common brands and game systems, plus values you've used                                                |
-| `catalogue.js`  | the paint catalogue: loading it, searching it, the paint form's Find box, quick add, planning recipes with paints you don't own |
-| `forms.js`      | `inputAttrs`, `fieldHtml()`, `openForm()`, `submit()`                                                                           |
-| `actions.js`    | quick changes in every list: delete with Undo, one-tap levels, +/− counts, quick add                                            |
-| `app.js`        | mutable state, `db = load()`, event wiring, start-up                                                                            |
+| File            | Contents                                                                                                                                   |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `util.js`       | helpers with no app state: `id()`, `esc()`, `safeColour()`, `safeUrl()`, `toast()`, `download()`, `today()`, `refocus()`                   |
+| `schema.js`     | `APP_VERSION`, storage keys and other constants, `defaults`, `defs`, `column()`, link helpers, `projectStats()`                            |
+| `skillguide.js` | `LEVELS`, the `TECHNIQUES` library, `nextStep()`, `practiceNext()` and other skill rules                                                   |
+| `demo.js`       | the example data (`demoData()`, `demoPhotos()`, `DEMO_FILE_DATE`), and the offer to load, clear or keep it                                 |
+| `storage.js`    | load, validate, repair, migrate, `save()`, `commit()`, `commitWithUndo()`, backup age                                                      |
+| `paints.js`     | paint stock helpers (`isLow()`, `lowRecipePaints()`, `stockFromPercent()`), and "Used in"                                                  |
+| `photos.js`     | miniature photos in IndexedDB (open, store, shrink, show, tidy, their part of backups), and the photo viewer                               |
+| `autosave.js`   | auto-save to a file the user picked: the remembered handle, writes after each save, its status                                             |
+| `settings.js`   | Settings: currencies and `money()`, the theme, the shortcuts switch, Erase all data                                                        |
+| `wishlist.js`   | adding low paints to the wishlist, the Bought button, and rewards                                                                          |
+| `queue.js`      | the painting queue: stages and split counts, drawing an item, Next, Back, +1, −1, Split, Move 1, Back 1, reordering, the completion prompt |
+| `stages.js`     | the stage editor, and moving items when stages change                                                                                      |
+| `skills.js`     | the skills page: cards, sliders, the skill profile, practice suggestions, the technique picker                                             |
+| `backup.js`     | JSON backup and import, and CSV export                                                                                                     |
+| `render.js`     | nav and page switching, the dashboard, list tables, sorting, deadline markers, alerts                                                      |
+| `suggest.js`    | suggestions as you type: common brands and game systems, plus values you've used                                                           |
+| `catalogue.js`  | the paint catalogue: loading it, searching it, the paint form's Find box, quick add, planning recipes with paints you don't own            |
+| `forms.js`      | `inputAttrs`, `fieldHtml()`, `openForm()`, `submit()`                                                                                      |
+| `actions.js`    | quick changes in every list: delete with Undo, one-tap levels, +/− counts, quick add                                                       |
+| `app.js`        | mutable state, `db = load()`, event wiring, start-up                                                                                       |
 
 - **Files are grouped by feature.** A feature's drawing and its actions live together, e.g. everything about the queue is in `queue.js`. `render.js` and `actions.js` hold only what every list shares.
 
@@ -171,9 +171,9 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 - **Range follows brand:** when the brand box changes, `updateSuggestions()` (from the form's `input` handler in `app.js`) redraws the range list. If you've used that brand, only its ranges are offered.
 - Suggestions are stored values, so they're escaped like everything else.
 
-**Paint catalogue.** About 5,300 paints from 15 brands, with range, code, type and colour. The code is in `catalogue.js`.
+**Paint catalogue.** About 5,300 paints from 16 brands, with range, code, type and colour. The code is in `catalogue.js`.
 
-- **The data.** `data/sources/miniature_paints.json` is the source as supplied, and `data/sources/additions.json` adds ranges it doesn't have yet, such as Two Thin Coats Dark Arts (names only; `hex` null means no colour). `data/sources/README.md` says where they came from and holds the licence credits. `scripts/make-catalogue.js` builds `data/paint-catalogue.js` from it, a script defining `PAINT_CATALOGUE` (brands, ranges and types once each, then one short array per paint). It tidies as it goes: varnishes, mediums and thinners get no colour, a paint listed twice in one range becomes one entry with both codes, names lose double spaces and bottle sizes, and types become the app's paint types.
+- **The data.** `data/sources/miniature_paints.json` is the source as supplied, and `data/sources/additions.json` adds ranges it doesn't have yet, such as Two Thin Coats Dark Arts and Dirty Down (names only; `hex` null means no colour). `data/sources/README.md` says where they came from and holds the licence credits. `scripts/make-catalogue.js` builds `data/paint-catalogue.js` from it, a script defining `PAINT_CATALOGUE` (brands, ranges and types once each, then one short array per paint). It tidies as it goes: varnishes, mediums and thinners get no colour, a paint listed twice in one range becomes one entry with both codes, names lose double spaces and bottle sizes, and types become the app's paint types.
 - **Loading.** `data/` is outside `js/`, so the page doesn't load it at start-up. `loadCatalogue()` adds it as a `<script>` the first time it's needed, which works from `file://`, and keeps it in `catalogue` (state in `app.js`). If it can't load, the Find box says so and nothing else changes.
 - **Searching.** `findInCatalogue(text)` finds up to 30 paints whose name, brand, range or code contains every word typed, names starting with the text first. Each paint has a unique `label`, like "Mephiston Red · Citadel Base", which suggestion lists offer and `catalogueEntry()` looks up.
 - **The paint form** opens with a Find box (`defs.paints.formIntro`, `catalogueFindHtml()`). Picking a paint fills in name, brand, range, type and colour (`fillPaintForm()`), leaving stock, quantity, price and notes alone.
@@ -210,9 +210,10 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 **Accessibility and layout.**
 
-- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the empty dashboard's example data offer and notice, the add/edit form, the completion prompt, the Bought prompt, the reward notice, the stage editor, the photo viewer, the keyboard shortcuts list and Settings. It runs at desktop and phone sizes in the dark theme, and at desktop size in the light theme. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
+- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the empty dashboard's example data offer and notice, the add/edit form, the completion prompt, the Bought prompt, the reward notice, the stage editor, the photo viewer, the keyboard shortcuts list and Settings. It runs at desktop and phone sizes in the dark theme, and at desktop size in the light theme and each colour theme. The colour themes run in Chromium only, since contrast doesn't depend on the browser. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
 - **Colours are tokens.** Every colour in `styles.css` is a custom property on `:root` (the dark theme), except white text on strong backgrounds. The light theme sets every token again in `:root[data-theme="light"]`, and the same values again for `:root[data-theme="system"]` inside `@media (prefers-color-scheme: light)`. CSS can't share one block between the two, so `tests/settings.spec.js` checks that the light blocks match each other and set every token the dark one does.
-  - A new colour needs a token, with a light value that keeps text at 4.5:1 on the backgrounds it's used on. Text colours have their own tokens where a fill colour would be too light, such as `--gold-text` and `--danger-text`.
+  - **Colour themes** are blocks like `:root[data-theme="forest"]`, after the light ones. The dark ones (Forest, Ocean, Amethyst) set only the backgrounds, lines, `--muted` and the accent, and take the rest from `:root`; Parchment is light, so it sets every token. `tests/settings.spec.js` checks that they set only known tokens, that Parchment sets them all, and that every theme in `THEMES` is offered.
+  - A new colour needs a token, with a light value that keeps text at 4.5:1 on the backgrounds it's used on, and a Parchment value too. Text colours have their own tokens where a fill colour would be too light, such as `--gold-text` and `--danger-text`.
 - **Red backgrounds.** Text on a red background uses `--accent-strong`, not `--accent`. White on `--accent` is under the 4.5:1 contrast minimum.
 - **Icon-only buttons** need an `aria-label`, like the queue's "Move … up" arrows.
 - **Button sizes.** Row buttons are at least 32px, and 44px on touch screens (`pointer: coarse`). A `pointer: coarse` rule must come after the rule it overrides in `styles.css`: the two selectors are usually equally specific, so the later one wins.
@@ -224,7 +225,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - The page grid uses `minmax(0, 1fr)`, so wide content can't widen the page.
   - `tests/layout.spec.js` checks that every section fits a 375px screen.
 
-**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`). For a `<button>`, it runs the entry in `BUTTON_ACTIONS` (in `app.js`) for each `data-*` attribute the button has: `edit`, `del`, `sort`, `scale`, `step`, `recovery`, `wish`, `wishall`, `bought`, `unreward`, `demo`, `photos`, `usedin`, `addreward`, `toolwish`, `toolbought`, `stages`, `queue`, `next`, `plus`, `split`, `adv`, `top`, `up` and `down`.
+**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`). For a `<button>`, it runs the entry in `BUTTON_ACTIONS` (in `app.js`) for each `data-*` attribute the button has: `edit`, `del`, `sort`, `scale`, `step`, `recovery`, `wish`, `wishall`, `bought`, `unreward`, `demo`, `photos`, `usedin`, `addreward`, `toolwish`, `toolbought`, `stages`, `queue`, `next`, `back`, `plus`, `minus`, `split`, `adv`, `moveback`, `top`, `up` and `down`.
 
 - `edit` and `del` work in every section because they act on the current section.
 - To add a new row action, render a button with a new `data-*` attribute and add an entry to `BUTTON_ACTIONS` that calls a named function in the feature's file.
@@ -323,7 +324,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 **Settings.** `#settingsDialog` opens from the sidebar's Settings button (`openSettings()`, `renderSettings()` in `settings.js`). Each control is wired directly in `app.js`.
 
-- **Theme.** `setTheme()` sets `<html data-theme>` to `dark`, `light` or `system` and saves it under `THEME_KEY`. Missing or junk means dark. `system` follows `prefers-color-scheme`.
+- **Theme.** `setTheme()` sets `<html data-theme>` to one of `THEMES` and saves it under `THEME_KEY`: `dark`, `light`, `system`, or a colour theme, `forest`, `ocean`, `amethyst` or `parchment`. Missing or junk means dark, and so does a theme an older copy of the app doesn't know, since no CSS block matches it. `system` follows `prefers-color-scheme`.
 - **Currency.** `db.currency` is an optional top-level field holding a code from `CURRENCIES` (12 of them, each with a name and a fixed locale for formatting). Read it with `currencyCode()`, which treats a missing or unknown code as GBP.
   - `money()` formats with `Intl.NumberFormat` in that currency's locale, e.g. "€4.50" or "4,50 kr". Amounts are never converted.
   - Money fields' labels are getters (`get label()`) that call `priced()`, e.g. "Cost (€)", so they follow the setting.
@@ -353,7 +354,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 - **Unlinking on delete.** Deleting a record clears every `link` field and removes the id from every `links` array that points at it. For example: miniatures in a deleted project, queue items for a deleted miniature, or recipes that used a deleted paint.
 - **Undo never reverts later work.** Every `commit()` clears the copy, and so does a change from another tab.
 
-**Queue controls.** `queueItemHtml()` draws each queue item. `queueState()` works out where it stands (its stages, current step, counts and status text), and `queueProgressHtml()`, `queueSplitHtml()` and `queueButtonsHtml()` draw its parts from that.
+**Queue controls.** `queueItemHtml()` draws each queue item. `queueState()` works out where it stands (its stages, current step, counts and status text), and `queueProgressHtml()`, `queueStepsHtml()` (the buttons under the progress bar), `queueSplitHtml()` and `queueRowActsHtml()` (Top, ↑, ↓, Stages, Edit, Delete, on the right) draw its parts from that.
 
 - **Next stage.** "Next: <stage>" (`data-next`, `nextStage()`) moves the item to the next of `queueStages()`, with Undo. Reaching Complete opens the completion prompt below.
 - **Progress bar.** `role="progressbar"` with one segment per step after "Not started". `stageIndex()` treats blank or unknown stages as Not started.
@@ -364,6 +365,10 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - From "Not started", +1 starts the first stage.
   - Next stage and changing the stage in the form also reset the count.
   - +1 doesn't change the miniature's own `painted` count. The completion prompt sets that.
+- **Going back,** for an item taken too far. Both are shown from the first stage on, Complete included, and not while split.
+  - **Back: <stage>** (`data-back`, `prevStage()`) moves the item to the previous stage, its count at 0, with Undo. It undoes Next.
+  - **−1 done** (`data-minus`, `minusOneDone()`) undoes +1 exactly, with Undo. With models done in the current stage, one fewer is done; otherwise the item goes back a stage, with all but one model done there. From the first stage it goes back to Not started.
+  - Neither changes the miniature or opens a prompt; a miniature already marked complete stays so.
 - **Progress bar fill.** Finished stages are full, the current stage is filled as far as its count, and later stages are empty.
 - **Reordering.** Top, ↑ and ↓ (`data-top`, `data-up`, `data-down`) go through `reorderQueue()`, then `moveQueueItem(from, to)`. Dragging the handle (pointer events, in `app.js`) does too.
   - While dragging, the list doesn't change; a `drop-before` or `drop-after` line shows where the item will land, and the move is saved on release. Moving the dragged element would release its pointer capture.
@@ -400,7 +405,8 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 - **Splitting** (`splitFrom()`) keeps progress: the models done in the current stage start at the next one.
 - **Joining** puts every model at the least advanced stage, and counts the rest as done there.
 - **Move 1** (`data-adv` and `data-from`, `moveOneOn()`) moves one model to the next stage, with Undo. It's shown for each stage that has models. When the last model reaches Complete, the completion prompt opens.
-- **Next and +1 are hidden** while an item is split.
+- **Back 1** (`data-moveback` and `data-from`, `moveOneBack()`) moves one model back a stage, with Undo. It's shown for each stage after Not started that has models, Complete included, so the split row stays when every model is at Complete.
+- **Next, +1, −1 and Back are hidden** while an item is split.
 - **The progress bar** fills each step with the share of models past it. For Complete, it's the share at Complete. `aria-valuenow` is the models' average step, and `aria-valuetext` is `splitText()`, e.g. "Priming 2 · Basecoating 3".
 - **In the form,** choosing another stage puts every model there, and removes `split`. Otherwise saving re-stores the counts, since the model count may have changed.
 

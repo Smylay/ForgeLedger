@@ -45,24 +45,17 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - **Quick wins (phase 20):** each list opens sorted with what needs attention first, "Used in" on paints, rewards on the projects page, and "Quick add". _(From the bug list.)_
 - **Suggestions as you type (phase 21):** brand, range, faction and game system boxes suggest what you've used and common values; tools and miniatures have a brand. _(From the bug list.)_
 - **Paint catalogue (phase 22):** about 5,300 paints from 15 brands to pick from in the paint form and quick add, planning recipes with paints you don't own, and more paint types. _(From the bug list.)_
+- **Skills (phase 23):** each technique has a difficulty, and Practice next suggests easier ones first; techniques say which tools they need, with Bought and Add to wishlist; Two Thin Coats Dark Arts joins the catalogue. _(From the bug list, and chat.)_
 
-## Phase 23: Skills (in progress)
+## Phase 24: Colour themes and going back in the queue (in progress)
 
-_(From the bug list.)_
-
-- **Each technique has a difficulty,** Easy, Medium, Hard or Expert, and Practice next suggests easier ones first.
-- **Techniques that need a tool,** such as airbrushing, say so, with Bought and Add to wishlist buttons when you don't have one.
-- **Two Thin Coats Dark Arts in the paint catalogue** (asked for in chat): names only, until colours are published.
-
-## Phase 24: Colour themes
-
-_(From the bug list.)_
-
-- **More colour choices** on top of dark and light, each checked for contrast.
+- **Colour themes:** Forest, Ocean, Amethyst and Parchment, on top of dark and light, each checked for contrast. _(From the bug list.)_
+- **Going back in the queue** when an item's been taken too far: Back, −1, and Back 1 for split items. _(Asked for in chat.)_
+- **Dirty Down in the paint catalogue:** effects and ageing sprays, names only. _(Asked for in chat.)_
 
 ## Releases
 
-Phases merge into `dev`; versions are released to `main`. Version 1.1.0 would bring phases 19 to 23.
+Phases merge into `dev`; versions are released to `main`. Version 1.1.0 would bring phases 19 to 24.
 
 ## Later
 

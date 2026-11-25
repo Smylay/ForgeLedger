@@ -1,4 +1,4 @@
-// The paint catalogue: about 5,300 paints from 15 brands, in
+// The paint catalogue: about 5,300 paints from 16 brands, in
 // data/paint-catalogue.js (built by scripts/make-catalogue.js). It's loaded
 // the first time it's needed: the paint form's Find box, quick add on the
 // paints page, or planning a recipe with a paint you don't own.
@@ -108,7 +108,7 @@ function paintFromCatalogue(p, extra = {}) {
 
 // The paint form's Find box, above its fields.
 function catalogueFindHtml() {
-  return `<div class="full catalogfind"><label>Find in the paint catalogue<input id="catalogueFind" type="search" list="catalogueList" autocomplete="off" placeholder="Type a paint name or code…"></label><datalist id="catalogueList"></datalist><small class="muted" id="catalogueHint" role="status">About 5,300 paints from 15 brands. Picking one fills in the details below.</small></div>`;
+  return `<div class="full catalogfind"><label>Find in the paint catalogue<input id="catalogueFind" type="search" list="catalogueList" autocomplete="off" placeholder="Type a paint name or code…"></label><datalist id="catalogueList"></datalist><small class="muted" id="catalogueHint" role="status">About 5,300 paints from 16 brands. Picking one fills in the details below.</small></div>`;
 }
 // Typing in the Find box: suggest matches; picking one fills the form.
 async function catalogueFindInput(input) {
