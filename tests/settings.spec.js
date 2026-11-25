@@ -12,6 +12,7 @@ const {
   addItem,
   downloadText,
   importBackup,
+  importAndWait,
   imageFile,
 } = require("./helpers");
 
@@ -225,12 +226,12 @@ test.describe("currency", () => {
     expect(backup.currency).toBe("USD");
 
     // A backup from before currencies could be chosen keeps the current one.
-    await importBackup(page, { paints: [{ id: "p", name: "Old" }] }, testInfo);
-    await expect(page.locator("#toast")).toContainText("Backup imported");
+    // importAndWait clears the toast first, so the second import's toast
+    // can't be mistaken for the first's.
+    await importAndWait(page, { paints: [{ id: "p", name: "Old" }] }, testInfo);
     expect((await stored(page)).currency).toBe("USD");
     // One that has its own brings it.
-    await importBackup(page, { ...backup, currency: "SEK" }, testInfo);
-    await expect(page.locator("#toast")).toContainText("Backup imported");
+    await importAndWait(page, { ...backup, currency: "SEK" }, testInfo);
     expect((await stored(page)).currency).toBe("SEK");
   });
 });

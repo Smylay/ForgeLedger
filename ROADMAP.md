@@ -48,17 +48,12 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - **Skills (phase 23):** each technique has a difficulty, and Practice next suggests easier ones first; techniques say which tools they need, with Bought and Add to wishlist; Two Thin Coats Dark Arts joins the catalogue. _(From the bug list, and chat.)_
 
 - **Colour themes and going back (phase 24):** Forest, Ocean, Amethyst and Parchment themes; Back, −1 and Back 1 in the queue; Dirty Down in the catalogue. _(From the bug list, and chat.)_
-
-## Phase 25: Queueing from progress, and slimmer downloads (in progress)
-
-_(Asked for in chat.)_
-
-- **Queueing a miniature starts where it is,** from its status and painted count, instead of Not started.
-- **Downloads hold just the app,** without tests, tools or developer notes.
+- **Queueing from progress, and slimmer downloads (phase 25):** queueing a miniature starts from its status and painted count, and downloads hold just the app. _(Asked for in chat.)_
+- **Version 1.1.0:** phases 19 to 25.
 
 ## Releases
 
-Phases merge into `dev`; versions are released to `main`. Version 1.1.0 would bring phases 19 to 25.
+Phases merge into `dev`; versions are released to `main`. Version 1.1.0 brought phases 19 to 25. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Later
 
