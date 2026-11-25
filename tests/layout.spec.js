@@ -119,12 +119,12 @@ test("the photo viewer fits the screen", async ({ page }) => {
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
-test("the stage editor's rows fit the screen", async ({ page }) => {
+test("the board editor's rows fit the screen", async ({ page }) => {
   await nav(page, "queue");
-  await page.click("#stagesBtn");
+  await page.click("#editBoard");
   const [list, del] = await Promise.all([
-    page.locator("#stageList").boundingBox(),
-    page.locator("#stageList [data-sdel]").first().boundingBox(),
+    page.locator("#phaseList").boundingBox(),
+    page.locator("#phaseList [data-pdel]").first().boundingBox(),
   ]);
   expect(del.x + del.width).toBeLessThanOrEqual(list.x + list.width + 1);
 });

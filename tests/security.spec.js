@@ -313,7 +313,7 @@ test("rewards can't run script", async ({ page }, testInfo) => {
   await page.keyboard.press("Escape");
   // Finishing the queue item unlocks the first reward and shows the notice.
   await nav(page, "queue");
-  await page.click("#queueContent button[data-next]");
+  await page.getByRole("button", { name: "Move Q on to Done" }).click();
   await page.waitForTimeout(200);
   const ran = await page.evaluate(() =>
     ["rewardProject", "rewardName", "rewardAt", "rewardProjectId"].filter(

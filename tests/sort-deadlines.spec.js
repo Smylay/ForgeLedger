@@ -161,6 +161,7 @@ test.describe("deadline markers", () => {
 
   test("queue items are marked until complete", async ({ page }) => {
     await nav(page, "queue");
+    await page.click('[data-qview="list"]');
     const markers = await page
       .locator(".qitem")
       .evaluateAll((items) =>
