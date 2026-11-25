@@ -4,6 +4,8 @@ What changed in each version of ForgeLedger. Backups from every earlier version 
 
 ## Unreleased
 
+- **Queueing a miniature starts where it is:** a Built miniature starts after Building, a Primed or In progress one after Priming, and painted models count as Complete, so a part-painted unit is split by stage. Undo takes it off again.
+- **Downloads hold just the app:** a release's Source code zip, and Code > Download ZIP, leave out the tests, build tools and developer notes.
 - **Colour themes:** Forest, Ocean and Amethyst (dark green, blue and purple) and Parchment (light and warm), in Settings alongside Dark and Light. Each is checked for contrast.
 - **Go back in the painting queue** when an item's been taken too far: Back returns to the previous stage, −1 takes back a +1, and split items have Back 1 for each stage. Complete items can go back too.
 - **Queue buttons sit under each item's progress bar,** so the details have room.

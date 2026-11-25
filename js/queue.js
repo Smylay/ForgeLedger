@@ -500,24 +500,63 @@ function applyComplete() {
   );
 }
 
-// A miniature's Queue button: add it to the end of the queue, linked to it.
+// Where a newly queued miniature starts, from what its row already says:
+// Built starts after the building stage; Primed and In progress after
+// priming (else after building); Complete at Complete. Painted models are
+// done, so they start at Complete, and a part-painted unit is split.
+// Stages are editable, so they're found by name; a list with no
+// "build" or "prim" stage starts at Not started. Only a Complete status,
+// or every model painted, starts an item at Complete.
+const QUEUE_START = {
+  Built: [/build|assembl/i],
+  Primed: [/prim/i, /build|assembl/i],
+  "In progress": [/prim/i, /build|assembl/i],
+};
+// One count per default stage, adding up to the miniature's model count.
+function queueStart(m) {
+  let stages = queueStages(),
+    last = stages.length - 1,
+    total = Number(m.quantity) || 1,
+    painted = Math.min(total, Math.max(0, Math.floor(Number(m.painted) || 0))),
+    after = Object.hasOwn(QUEUE_START, m.status) ? QUEUE_START[m.status] : [],
+    n = 0;
+  for (let re of after) {
+    let i = stages.findLastIndex((s, j) => j > 0 && j < last && re.test(s));
+    if (i > 0) {
+      n = Math.min(i + 1, last - 1);
+      break;
+    }
+  }
+  if (m.status === "Complete" || painted === total) n = last;
+  let counts = stages.map(() => 0);
+  counts[n] = n === last ? total : total - painted;
+  if (n !== last) counts[last] = painted;
+  return counts;
+}
+
+// A miniature's Queue button: add it to the end of the queue, linked to it,
+// starting from its status and painted count (queueStart), with Undo.
 function queueMiniature(mid) {
   let m = db.miniatures.find((x) => x.id === mid);
   if (!m) return;
-  let queued = commit(() =>
-    db.queue.push({
-      id: id(),
-      name: m.name,
-      miniature: m.id,
-      project: m.project || "",
-      stage: "Not started",
-      models: m.quantity || 1,
-      due: "",
-      notes: "",
-    }),
+  let q = {
+    id: id(),
+    name: m.name,
+    miniature: m.id,
+    project: m.project || "",
+    stage: "Not started",
+    models: m.quantity || 1,
+    due: "",
+    notes: "",
+  };
+  let counts = queueStart(m);
+  if (counts.filter((c) => c > 0).length > 1) storeSplit(q, counts);
+  else q.stage = queueStages(q)[counts.findIndex((c) => c > 0)];
+  commitWithUndo(
+    () => db.queue.push(q),
+    () =>
+      `Added "${q.name}" to the queue: ${isSplit(q) ? splitText(q) : q.stage}`,
   );
-  renderNav();
-  if (queued) toast("Added to queue");
 }
 // Top, ↑ and ↓ on item `i`. Focus stays on the same button of the item that
 // moved.

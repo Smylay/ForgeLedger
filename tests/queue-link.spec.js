@@ -154,3 +154,91 @@ test("deleting a miniature unlinks its queue items", async ({ page }) => {
   );
   expect((await stored(page)).queue[0].miniature).toBe("");
 });
+
+test.describe("queueing starts from the miniature's progress", () => {
+  test.beforeEach(async ({ page }) => {
+    await seed(page, {
+      miniatures: [
+        { id: "u", name: "Loose", quantity: "5", status: "Unbuilt" },
+        { id: "b", name: "Hero", quantity: "1", status: "Built" },
+        { id: "p", name: "Squad", quantity: "11", status: "Primed" },
+        { id: "w", name: "Busy", quantity: "3", status: "In progress" },
+        {
+          id: "h",
+          name: "Half",
+          quantity: "10",
+          painted: "4",
+          status: "Primed",
+        },
+        {
+          id: "c",
+          name: "Done",
+          quantity: "2",
+          painted: "2",
+          status: "Complete",
+        },
+        { id: "x", name: "Odd", quantity: "3", status: "constructor" },
+      ],
+    });
+    await nav(page, "miniatures");
+  });
+  const queue = async (page, mid) => {
+    await page.locator(`tr[data-row="${mid}"] button[data-queue]`).click();
+    return (await stored(page)).queue.at(-1);
+  };
+
+  test("its status sets the starting stage", async ({ page }) => {
+    expect(await queue(page, "u")).toMatchObject({ stage: "Not started" });
+    expect(await queue(page, "b")).toMatchObject({ stage: "Priming" });
+    expect(await queue(page, "p")).toMatchObject({ stage: "Basecoating" });
+    await expect(page.locator("#toastText")).toHaveText(
+      'Added "Squad" to the queue: Basecoating',
+    );
+    expect(await queue(page, "w")).toMatchObject({ stage: "Basecoating" });
+    // Already complete: no prompt, since nothing was just finished.
+    expect(await queue(page, "c")).toMatchObject({ stage: "Complete" });
+    await expect(dialog(page)).toBeHidden();
+    // A status it doesn't know starts at the beginning.
+    const odd = await queue(page, "x");
+    expect(odd.stage).toBe("Not started");
+    expect(odd.split).toBeUndefined();
+  });
+
+  test("painted models start at Complete, splitting the item", async ({
+    page,
+  }) => {
+    expect(await queue(page, "h")).toMatchObject({
+      split: { Basecoating: 6, Complete: 4 },
+      stage: "Basecoating",
+      stageDone: 4,
+    });
+    await expect(page.locator("#toastText")).toHaveText(
+      'Added "Half" to the queue: Basecoating 6 · Complete 4',
+    );
+    await nav(page, "queue");
+    await expect(
+      page.locator("#queueContent .qitem").last().locator(".splitrow"),
+    ).toContainText("Basecoating 6");
+  });
+
+  test("Undo takes it off the queue", async ({ page }) => {
+    const before = (await stored(page)).queue.length;
+    await queue(page, "p");
+    await page.click("#toastAction");
+    expect((await stored(page)).queue).toHaveLength(before);
+  });
+
+  test("renamed stages are found by name", async ({ page }) => {
+    await seed(page, {
+      queueStages: ["Assembly", "Undercoat", "Paint", "Varnish"],
+      miniatures: [
+        { id: "b", name: "Hero", quantity: "1", status: "Built" },
+        { id: "p", name: "Squad", quantity: "5", status: "Primed" },
+      ],
+    });
+    await nav(page, "miniatures");
+    // Built: after Assembly. Primed: no priming stage, so after Assembly too.
+    expect(await queue(page, "b")).toMatchObject({ stage: "Undercoat" });
+    expect(await queue(page, "p")).toMatchObject({ stage: "Undercoat" });
+  });
+});
