@@ -21,6 +21,7 @@ Keep it runnable from `file://`. Browsers refuse to load ES module scripts from 
 - **`dev` collects the work; `main` holds releases.** Each phase is a pull request into `dev`. When a version is ready, a release pull request merges `dev` into `main`.
 - **A release:** on `dev`, bump `APP_VERSION` and `package.json`'s `version`, and move CHANGELOG.md's Unreleased notes under the new version and date. Merge `dev` into `main`, then tag the merge commit `v<version>` and publish a GitHub release from its CHANGELOG notes.
 - **CI** runs on every push to any branch, so `dev` and phase branches are tested before they reach `main`.
+- **Downloads hold just the app.** GitHub builds a release's "Source code" downloads, and Code > Download ZIP, with `git archive`, which leaves out what `.gitattributes` marks `export-ignore`: tests, scripts, the catalogue's source JSON, `package.json`, the bug list, `CLAUDE.md`, `ROADMAP.md` and dotfiles. `tests/release.spec.js` builds the same archive, checks it against an allowlist (the app, the example backup, the README, changelog and licences), checks every file the page loads is in it, and runs the app from it. A new file for developers needs a line in `.gitattributes`; a new file for users needs adding to the allowlist.
 - **The bug list's `(done in PR #N)`** names the phase's pull request into `dev`.
 
 ## Running and verifying
@@ -356,6 +357,9 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 **Queue controls.** `queueItemHtml()` draws each queue item. `queueState()` works out where it stands (its stages, current step, counts and status text), and `queueProgressHtml()`, `queueStepsHtml()` (the buttons under the progress bar), `queueSplitHtml()` and `queueRowActsHtml()` (Top, ↑, ↓, Stages, Edit, Delete, on the right) draw its parts from that.
 
+- **Queueing a miniature.** Its row's Queue button (`data-queue`, `queueMiniature()`) adds a linked item at the end of the queue, with Undo. It starts where the miniature already is (`queueStart()`): Built after the building stage, Primed and In progress after priming (else after building), Complete at Complete. Painted models start at Complete, so a part-painted unit is split, e.g. Primed with 4 of 10 painted is Basecoating 6 · Complete 4.
+  - Stages are found by name in the default list (`QUEUE_START`: "build" or "assembl", and "prim"), so renamed stages still work if they say so; otherwise the item starts at Not started. Only a Complete status, or every model painted, starts it at Complete, and it never opens the completion prompt.
+  - The status is untrusted, so it's looked up with `Object.hasOwn`.
 - **Next stage.** "Next: <stage>" (`data-next`, `nextStage()`) moves the item to the next of `queueStages()`, with Undo. Reaching Complete opens the completion prompt below.
 - **Progress bar.** `role="progressbar"` with one segment per step after "Not started". `stageIndex()` treats blank or unknown stages as Not started.
 - **+1 done** (`data-plus`, `plusOneDone()`) counts models done in the item's current stage, with Undo.

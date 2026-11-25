@@ -47,18 +47,22 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - **Paint catalogue (phase 22):** about 5,300 paints from 15 brands to pick from in the paint form and quick add, planning recipes with paints you don't own, and more paint types. _(From the bug list.)_
 - **Skills (phase 23):** each technique has a difficulty, and Practice next suggests easier ones first; techniques say which tools they need, with Bought and Add to wishlist; Two Thin Coats Dark Arts joins the catalogue. _(From the bug list, and chat.)_
 
-## Phase 24: Colour themes and going back in the queue (in progress)
+- **Colour themes and going back (phase 24):** Forest, Ocean, Amethyst and Parchment themes; Back, −1 and Back 1 in the queue; Dirty Down in the catalogue. _(From the bug list, and chat.)_
 
-- **Colour themes:** Forest, Ocean, Amethyst and Parchment, on top of dark and light, each checked for contrast. _(From the bug list.)_
-- **Going back in the queue** when an item's been taken too far: Back, −1, and Back 1 for split items. _(Asked for in chat.)_
-- **Dirty Down in the paint catalogue:** effects and ageing sprays, names only. _(Asked for in chat.)_
+## Phase 25: Queueing from progress, and slimmer downloads (in progress)
+
+_(Asked for in chat.)_
+
+- **Queueing a miniature starts where it is,** from its status and painted count, instead of Not started.
+- **Downloads hold just the app,** without tests, tools or developer notes.
 
 ## Releases
 
-Phases merge into `dev`; versions are released to `main`. Version 1.1.0 would bring phases 19 to 24.
+Phases merge into `dev`; versions are released to `main`. Version 1.1.0 would bring phases 19 to 25.
 
 ## Later
 
+- Keep a miniature's status in step with its queue item, e.g. Primed once its priming stage is done. Only the completion prompt changes the miniature now.
 - Count restock purchases in Recorded spend. Bought on a restock sets the paint to Full but doesn't record what the new pot cost, because a paint holds one price.
 
 ## Considered, not planned
