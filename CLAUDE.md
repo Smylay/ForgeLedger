@@ -48,28 +48,28 @@ Keep it runnable from `file://`. Browsers refuse to load ES module scripts from 
 
 The code lives in plain `<script>` files that share the global scope. They aren't ES modules, which can't load from `file://`. `forgeledger_v2.html` loads them in this order:
 
-| File            | Contents                                                                                                                                   |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `util.js`       | helpers with no app state: `id()`, `esc()`, `safeColour()`, `safeUrl()`, `amount()`, `toast()`, `download()`, `today()`, `refocus()`       |
-| `schema.js`     | `APP_VERSION`, storage keys and other constants, `defaults`, `defs`, `column()`, link helpers, `projectStats()`                            |
-| `skillguide.js` | `LEVELS`, the `TECHNIQUES` library, `nextStep()`, `practiceNext()` and other skill rules                                                   |
-| `demo.js`       | the example data (`demoData()`, `demoPhotos()`, `DEMO_FILE_DATE`), and the offer to load, clear or keep it                                 |
-| `storage.js`    | load, validate, repair, migrate, `save()`, `commit()`, `commitWithUndo()`, backup age                                                      |
-| `paints.js`     | paint stock helpers (`isLow()`, `lowRecipePaints()`, `stockFromPercent()`), "Used in", and restocks                                        |
-| `photos.js`     | miniature photos in IndexedDB (open, store, shrink, show, tidy, their part of backups), and the photo viewer                               |
-| `autosave.js`   | auto-save to a file the user picked: the remembered handle, writes after each save, its status                                             |
-| `settings.js`   | Settings: currencies and `money()`, the theme, the shortcuts switch, Erase all data                                                        |
-| `wishlist.js`   | adding low paints to the wishlist, the Bought button, and rewards                                                                          |
-| `queue.js`      | the painting queue: stages and split counts, drawing an item, Next, Back, +1, −1, Split, Move 1, Back 1, reordering, the completion prompt |
-| `stages.js`     | the stage editor, and moving items when stages change                                                                                      |
-| `skills.js`     | the skills page: cards, sliders, the skill profile, practice suggestions, the technique picker                                             |
-| `backup.js`     | JSON backup and import, and CSV export                                                                                                     |
-| `render.js`     | nav and page switching, the dashboard, list tables, sorting, deadline markers, alerts                                                      |
-| `suggest.js`    | suggestions as you type: common brands and game systems, plus values you've used                                                           |
-| `catalogue.js`  | the paint catalogue: loading it, searching it, the paint form's Find box, quick add, planning recipes with paints you don't own            |
-| `forms.js`      | `inputAttrs`, `fieldHtml()`, `openForm()`, `submit()`                                                                                      |
-| `actions.js`    | quick changes in every list: delete with Undo, one-tap levels, +/− counts, quick add                                                       |
-| `app.js`        | mutable state, `db = load()`, event wiring, start-up                                                                                       |
+| File            | Contents                                                                                                                             |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `util.js`       | helpers with no app state: `id()`, `esc()`, `safeColour()`, `safeUrl()`, `amount()`, `toast()`, `download()`, `today()`, `refocus()` |
+| `schema.js`     | `APP_VERSION`, storage keys and other constants, `defaults`, `defs`, `column()`, link helpers, `projectStats()`                      |
+| `skillguide.js` | `LEVELS`, the `TECHNIQUES` library, `nextStep()`, `practiceNext()` and other skill rules                                             |
+| `demo.js`       | the example data (`demoData()`, `demoPhotos()`, `DEMO_FILE_DATE`), and the offer to load, clear or keep it                           |
+| `storage.js`    | load, validate, repair, migrate, `save()`, `commit()`, `commitWithUndo()`, backup age                                                |
+| `paints.js`     | paint stock helpers (`isLow()`, `lowRecipePaints()`, `stockFromPercent()`), "Used in", and restocks                                  |
+| `photos.js`     | miniature photos in IndexedDB (open, store, shrink, show, tidy, their part of backups), and the photo viewer                         |
+| `autosave.js`   | auto-save to a file the user picked: the remembered handle, writes after each save, its status                                       |
+| `settings.js`   | Settings: currencies and `money()`, the theme, the shortcuts switch, Erase all data                                                  |
+| `wishlist.js`   | adding low paints to the wishlist, the Bought button, and rewards                                                                    |
+| `queue.js`      | the painting queue: phases, model cards, Add 1/Add all, moving cards, the board and list views, reordering, the completion prompt    |
+| `stages.js`     | the phase editor (Edit board), and moving cards when phases change                                                                   |
+| `skills.js`     | the skills page: cards, sliders, the skill profile, practice suggestions, the technique picker                                       |
+| `backup.js`     | JSON backup and import, and CSV export                                                                                               |
+| `render.js`     | nav and page switching, the dashboard, list tables, sorting, deadline markers, alerts                                                |
+| `suggest.js`    | suggestions as you type: common brands and game systems, plus values you've used                                                     |
+| `catalogue.js`  | the paint catalogue: loading it, searching it, the paint form's Find box, quick add, planning recipes with paints you don't own      |
+| `forms.js`      | `inputAttrs`, `fieldHtml()`, `openForm()`, `submit()`                                                                                |
+| `actions.js`    | quick changes in every list: delete with Undo, one-tap levels, +/− counts, quick add                                                 |
+| `app.js`        | mutable state, `db = load()`, event wiring, start-up                                                                                 |
 
 - **Files are grouped by feature.** A feature's drawing and its actions live together, e.g. everything about the queue is in `queue.js`. `render.js` and `actions.js` hold only what every list shares.
 
@@ -79,7 +79,7 @@ The code lives in plain `<script>` files that share the global scope. They aren'
   - Declaring a `let` or `const` name twice is a `SyntaxError` that stops the app loading.
   - A second `function` with a name already used is worse: it silently replaces the first.
   - `tests/code.spec.js` fails if two files declare the same top-level name.
-- **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `upgraded`, `completing`, `buying`, `editingStages`, `viewing`, `newRewards`, `photoDbOpen`, `photoCheck`, `photoUrls`, `autoSave`, `formSection`, `catalogue` and `toastTimer`.
+- **Mutable state lives in `app.js`:** `db` (all user data), `section` (the current section), `editId` (the record open in the form), plus `undo`, `sort`, `recovered`, `memoryOnly`, `upgraded`, `completing`, `buying`, `openUnits`, `viewing`, `newRewards`, `photoDbOpen`, `photoCheck`, `photoUrls`, `autoSave`, `formSection`, `catalogue` and `toastTimer`.
 
 To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 
@@ -103,12 +103,13 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
   - An import with a problem is rejected whole.
   - Saved data with a problem is repaired with `repair()`. The original string is copied to a `forgeledger_v2_recovered_<ISO time>` key first, and `#alerts` offers a download.
 - **Replacing data on import.** When the app already has data, the user must confirm, and the current data is downloaded first.
-- **Schema version.** `schemaVersion` is stored with the data. It's currently 5. When stored fields change shape, bump `SCHEMA_VERSION` and add a step to `migrate()`; each step checks the version it starts from. Backups from a newer version are refused.
+- **Schema version.** `schemaVersion` is stored with the data. It's currently 6. When stored fields change shape, bump `SCHEMA_VERSION` and add a step to `migrate()`; each step checks the version it starts from. Backups from a newer version are refused.
   - 0 → 1: the version field was added.
   - 1 → 2: each paint's `stock` level is set from its old `remaining` percentage by `stockFromPercent()`. The old `remaining` field stays in the record but is no longer read.
   - 2 → 3: the paint type "Shade" becomes "Shade/Wash".
   - 3 → 4: queue stages became editable (`queueStages`, `queue.stages`). Nothing is converted. The version stops older copies of the app from loading custom stage names they don't know.
   - 4 → 5: miniatures gained `photos`, and backups carry the images in a top-level `photos`. Nothing is converted. The version stops older copies of the app from putting a backup's images into `localStorage`.
+  - 5 → 6: the queue became a board of model cards (`cardsFromStages()`). Each item's stage, count done (`stageDone`), split counts (`split`) and own stage list (`stages`) become `cards`, one per model, in the matching board phase: by name, then old default names (`V5_RENAMED`: Basecoating is Painting, Basing is Detailing), then by position. Not started is To do and Complete is Done. An unchanged default stage list becomes the new default phases; an edited one is kept as the board's phases. A model count is capped at `MAX_MODELS` (500). The old fields stay in the item, unread.
 - **Saving an upgrade.** When `load()` upgrades saved data from an older schema, it sets `upgraded`, and `app.js` saves once at start-up so storage holds the current schema. Repaired data is not saved until the user changes something, so the damaged original is never replaced first.
 - **Missing fields.** Existing records are never rewritten field by field, so every reader must tolerate missing or blank fields.
 - **Untrusted values.** Field values in imported data are not checked. Treat them as untrusted.
@@ -116,7 +117,7 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 - **Blocked storage.** If storage is blocked, `memoryOnly` is set: the app works in memory and says nothing is saved.
 - **Two tabs.** A `storage` event listener reloads `db` when another tab saves, so two open tabs don't overwrite each other.
 - **Photos live in IndexedDB,** not in `db` (see Photos). `localStorage` holds only each miniature's photo ids.
-- **Settings outside the data.** The keyboard shortcuts setting (`forgeledger_v2_shortcuts`) and the theme (`forgeledger_v2_theme`) are separate `localStorage` keys, not in `db` or backups. The currency is in the data (see Settings).
+- **Settings outside the data.** The keyboard shortcuts setting (`forgeledger_v2_shortcuts`), the theme (`forgeledger_v2_theme`) and whether the queue page opens on the board or the list (`forgeledger_v2_queueview`, `QUEUE_VIEW_KEY`) are separate `localStorage` keys, not in `db` or backups. The currency is in the data (see Settings).
 - **The keys keep `v2` in their names,** as does `forgeledger_v2.html`. It was never a version number, and renaming any of them would strand saved data. A `file://` page's storage may be kept per file in some browsers, so renaming the HTML file could too. The version is `APP_VERSION` (see Versions).
 - **Backup reminder.** The last export time is kept in `localStorage["forgeledger_v2_last_backup"]`, outside the data. The dashboard warns when there's no backup or the last one is `BACKUP_REMINDER_DAYS` (14) or more days old.
 
@@ -157,7 +158,9 @@ To add a file, add its `<script>` tag before `app.js` in `forgeledger_v2.html`.
 - `under` (optional): `(record) => html` shown under the record's name in the table, e.g. a project's rewards.
 - `formIntro` (optional): `() => html` shown above the form's fields, e.g. the paint form's Find box.
 - `formOutro` (optional): `(record) => html` shown below the form's fields, e.g. a paint's restocks.
-- `formSave` (optional): `(o, prev, formData)`, called by `submit()` before saving, for inputs outside `fields`: it takes their values out of `o` and applies them, e.g. `saveRestocks()`.
+- `formSave` (optional): `(o, prev, formData)`, called by `submit()` before saving, for inputs outside `fields` or data kept with the record: it takes their values out of `o` and applies them, e.g. `saveRestocks()`, or a queue item's cards (`saveQueueEntry()`).
+- `formStart` (optional): `(record) => values`, what the form shows when it opens, e.g. a queue item's model count from its cards.
+- `quickNew` (optional): `() => fields`, added to a record made by quick add, e.g. a queue item's first model card.
 - `filter`: the key of the field the filter dropdown filters on.
   - The dropdown lists the field's `options`. A field without options gets the values currently in use, e.g. project game systems.
   - The choice survives saves and resets when you change section.
@@ -196,7 +199,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 **Deadline markers.** `dueBadge(date, done)` shows "Overdue", "Due today" or "Due in N days" (up to `DUE_SOON_DAYS`, 14) for a date that isn't done yet. It's used for:
 
 - project target dates (done when `projectDone()`), in the projects table and on the dashboard;
-- queue due dates (done when the stage is Complete).
+- queue due dates (done when every model is Done, `entryDone()`).
 
 `daysUntil()` reads `YYYY-MM-DD` as a local date, and ignores anything else.
 
@@ -214,12 +217,12 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
 **Accessibility and layout.**
 
-- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the empty dashboard's example data offer and notice, the add/edit form, the completion prompt, the Bought prompt, the reward notice, the stage editor, the photo viewer, the keyboard shortcuts list and Settings. It runs at desktop and phone sizes in the dark theme, and at desktop size in the light theme and each colour theme. The colour themes run in Chromium only, since contrast doesn't depend on the browser. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
+- **Automated accessibility checks.** `tests/accessibility.spec.js` runs axe-core against WCAG 2.1 and 2.2, levels A and AA. It covers every section, the empty dashboard's example data offer and notice, the add/edit form, the completion prompt, the board with a unit open, the queue list, the Bought prompt, the reward notice, the board editor, the photo viewer, the keyboard shortcuts list and Settings. It runs at desktop and phone sizes in the dark theme, and at desktop size in the light theme and each colour theme. The colour themes run in Chromium only, since contrast doesn't depend on the browser. New UI must pass it; seed its data so the new elements appear. It opens the app over HTTP (`SITE` in `tests/helpers.js`), because axe reads the stylesheet, and WebKit blocks a page opened from `file://` from reading other local files.
 - **Colours are tokens.** Every colour in `styles.css` is a custom property on `:root` (the dark theme), except white text on strong backgrounds. The light theme sets every token again in `:root[data-theme="light"]`, and the same values again for `:root[data-theme="system"]` inside `@media (prefers-color-scheme: light)`. CSS can't share one block between the two, so `tests/settings.spec.js` checks that the light blocks match each other and set every token the dark one does.
   - **Colour themes** are blocks like `:root[data-theme="forest"]`, after the light ones. The dark ones (Forest, Ocean, Amethyst) set only the backgrounds, lines, `--muted` and the accent, and take the rest from `:root`; Parchment is light, so it sets every token. `tests/settings.spec.js` checks that they set only known tokens, that Parchment sets them all, and that every theme in `THEMES` is offered.
   - A new colour needs a token, with a light value that keeps text at 4.5:1 on the backgrounds it's used on, and a Parchment value too. Text colours have their own tokens where a fill colour would be too light, such as `--gold-text` and `--danger-text`.
 - **Red backgrounds.** Text on a red background uses `--accent-strong`, not `--accent`. White on `--accent` is under the 4.5:1 contrast minimum.
-- **Icon-only buttons** need an `aria-label`, like the queue's "Move … up" arrows.
+- **Icon-only buttons** need an `aria-label`, like the board's ◀ ▶ ("Move all 4 of Squad on to Painting") and the list's ↑ ↓.
 - **Button sizes.** Row buttons are at least 32px, and 44px on touch screens (`pointer: coarse`). A `pointer: coarse` rule must come after the rule it overrides in `styles.css`: the two selectors are usually equally specific, so the later one wins.
 - **Focus.** `:focus-visible` gives every control one blue focus ring. Don't remove outlines.
 - **Laptops (≤1440px):** the sidebar is 200px instead of 245px, and the page and table cells have less side padding. Row buttons in tables (`td.rowacts`) may wrap, so the browser only stacks them when a table needs the room. `tests/layout.spec.js` checks, with the example data, that no table scrolls sideways at 1280px. CI's fallback font (DejaVu Sans) is wider than most, so check there, not only locally.
@@ -229,7 +232,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - The page grid uses `minmax(0, 1fr)`, so wide content can't widen the page.
   - `tests/layout.spec.js` checks that every section fits a 375px screen.
 
-**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`). For a `<button>`, it runs the entry in `BUTTON_ACTIONS` (in `app.js`) for each `data-*` attribute the button has: `edit`, `del`, `sort`, `scale`, `step`, `recovery`, `wish`, `wishall`, `bought`, `unreward`, `demo`, `photos`, `usedin`, `addreward`, `toolwish`, `toolbought`, `stages`, `queue`, `next`, `back`, `plus`, `minus`, `split`, `adv`, `moveback`, `top`, `up` and `down`.
+**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`). For a `<button>`, it runs the entry in `BUTTON_ACTIONS` (in `app.js`) for each `data-*` attribute the button has: `edit`, `del`, `sort`, `scale`, `step`, `recovery`, `wish`, `wishall`, `bought`, `unreward`, `demo`, `photos`, `usedin`, `addreward`, `toolwish`, `toolbought`, `addone`, `addall`, `qview`, `unit`, `move`, `top`, `up` and `down`.
 
 - `edit` and `del` work in every section because they act on the current section.
 - To add a new row action, render a button with a new `data-*` attribute and add an entry to `BUTTON_ACTIONS` that calls a named function in the feature's file.
@@ -360,90 +363,45 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 - **Unlinking on delete.** Deleting a record clears every `link` field and removes the id from every `links` array that points at it. For example: miniatures in a deleted project, queue items for a deleted miniature, or recipes that used a deleted paint.
 - **Undo never reverts later work.** Every `commit()` clears the copy, and so does a change from another tab.
 
-**Queue controls.** `queueItemHtml()` draws each queue item. `queueState()` works out where it stands (its stages, current step, counts and status text), and `queueProgressHtml()`, `queueStepsHtml()` (the buttons under the progress bar), `queueSplitHtml()` and `queueRowActsHtml()` (Top, ↑, ↓, Stages, Edit, Delete, on the right) draw its parts from that.
+**The painting board.** The queue page shows the queue as a board (the default) or a list; Board and List (`data-qview`, `setQueueMode()`) switch, and the choice is kept outside the data (`QUEUE_VIEW_KEY`). The code is in `queue.js`.
 
-- **Queueing a miniature.** Its row's Queue button (`data-queue`, `queueMiniature()`) adds a linked item at the end of the queue, with Undo. It starts where the miniature already is (`queueStart()`): Built after the building stage, Primed and In progress after priming (else after building), Complete at Complete. Painted models start at Complete, so a part-painted unit is split, e.g. Primed with 4 of 10 painted is Basecoating 6 · Complete 4.
-  - Stages are found by name in the default list (`QUEUE_START`: "build" or "assembl", and "prim"), so renamed stages still work if they say so; otherwise the item starts at Not started. Only a Complete status, or every model painted, starts it at Complete, and it never opens the completion prompt.
+- **Model cards.** A queue item is a unit; its `cards` are its models, `{ id, phase }`, one per model. Read them with `cardsOf()`, which drops anything that isn't an object with a string id; `fillIds()` gives cards ids, unique across the board. `q.models` is kept equal to the number of cards, for the form and older readers.
+- **Phases.** `boardPhases()`: To do (`FIRST_PHASE`), the phases in `db.queueStages` (cleaned by `cleanPhases()`), else `DEFAULT_PHASES` (Building, Priming, Painting, Detailing), then Done (`LAST_PHASE`). To do and Done are fixed. `cardIndex()` gives a card's place; a phase the board doesn't have counts as To do. At most `MAX_PHASES` (20) phases, names up to `MAX_PHASE_NAME` (40) characters.
+- **The board** (`boardHtml()`): a column per phase, `.phase` with `data-phase`. In each, the units with models there, in queue order (`unitHtml()`): a heading with the unit's name and count, and ◀ ▶ that move all of its models in that phase.
+  - A unit with more than one model there opens to list them (`data-unit`, `toggleUnit()`; open units are `openUnits`, keyed by id and phase). Each model card (`.mcard`, `data-mcard`) is numbered by its place in the unit and has its own ◀ ▶.
+  - ◀ ▶ (`data-move`, `data-from`, `data-dir`, and `data-mcard` for one model, `stepCards()`) move cards with Undo. Moving one model opens its unit in the new phase, so it stays in view and keeps focus.
+  - **Dragging** (pointer events, in `app.js`): a unit's heading moves all its models in that phase; a card moves one. A mouse drags from anywhere but the arrows; a finger or pen uses the ⠿ grip (`touch-action: none`), so the board still scrolls. Nothing starts until the pointer moves 6px, so a click is still a click, and the click that ends a drag is swallowed. A copy (`.ghost`) follows the pointer and the column under it gets `.drop`. WCAG 2.2's dragging rule is met by ◀ ▶.
+  - The board scrolls sideways inside itself when its columns don't fit (`grid-auto-columns: minmax(150px, 1fr)`).
+- **Moving cards** (`moveCards()`) goes through `commitQueue()`, so the miniature follows. When a move leaves every model of a linked unit Done, the completion prompt opens.
+- **The list** (`queueItemHtml()`): units in priority order, each with its model count, due date, a progress bar (each step filled with the share of models past it; `aria-valuetext` is `countsText()`, e.g. "Priming 2 · Painting 1"), low recipe paints, and Top, ↑, ↓, Edit and Delete. Reordering (`reorderQueue()`, `moveQueueItem()`, or dragging the ⠿ handle) sets the order the board shows units in.
+- **Add 1 and Add all** on a miniature's row (`data-addone`, `data-addall`, `addModels()`, buttons from `addButtonsHtml()` in `render.js`) put its models on the board, in its queue item (made at the end of the queue if it has none), with Undo.
+  - Painted models go to Done; the rest start where its status says (`startPhase()`): Built after the building phase, Primed and In progress after priming (else building), otherwise To do. A card in a phase has finished the phases before it. Phases are found by name (`BUILD_PHASE` "build" or "assembl", `PRIME_PHASE` "prim").
+  - Add 1 adds an unpainted model while there is one. Both are disabled once every model is on the board (`modelsLeft()`). Adding doesn't change the miniature: the cards agree with it.
   - The status is untrusted, so it's looked up with `Object.hasOwn`.
-- **Next stage.** "Next: <stage>" (`data-next`, `nextStage()`) moves the item to the next of `queueStages()`, with Undo. Reaching Complete opens the completion prompt below.
-- **Progress bar.** `role="progressbar"` with one segment per step after "Not started". `stageIndex()` treats blank or unknown stages as Not started.
-- **+1 done** (`data-plus`, `plusOneDone()`) counts models done in the item's current stage, with Undo.
-  - The count is stored in `stageDone`, and `stageDoneCount()` keeps it between 0 and `queueTotal()`.
-  - `queueTotal()` is the item's own model count, else its miniature's, else 1.
-  - When the count reaches the total, the item moves to the next stage and the count starts again at 0. Reaching Complete opens the completion prompt.
-  - From "Not started", +1 starts the first stage.
-  - Next stage and changing the stage in the form also reset the count.
-  - +1 changes the miniature only through the sync below: models done in the last stage count as painted.
-- **Going back,** for an item taken too far. Both are shown from the first stage on, Complete included, and not while split.
-  - **Back: <stage>** (`data-back`, `prevStage()`) moves the item to the previous stage, its count at 0, with Undo. It undoes Next.
-  - **−1 done** (`data-minus`, `minusOneDone()`) undoes +1 exactly, with Undo. With models done in the current stage, one fewer is done; otherwise the item goes back a stage, with all but one model done there. From the first stage it goes back to Not started.
-  - Neither changes the miniature or opens a prompt; a miniature already marked complete stays so.
-- **Keeping the miniature in step.** Every queue action goes through `commitQueue(q, change, message)`, a `commitWithUndo` that calls `syncMiniature(q)` in the same commit, so Undo reverts both, and the toast adds what changed on the miniature. The form's save, the stage editor and "Use the default stages" call it too.
-  - `syncMiniature()` reads the item's models by stage (`splitCounts()`, or `splitFrom()` for an item that isn't split, so models done in a stage count at the next). It sets the status to Built once every model is past the building stage, Primed once every model is past priming, and In progress once any model has finished a stage after priming. Stages are found by name, as for queueing (`BUILD_STAGE`, `PRIME_STAGE`); without them, the status isn't changed.
-  - The painted count rises to the models at Complete, up to the miniature's model count.
-  - It only moves forward: a status is never lowered, Complete is left to the completion prompt, and the painted count never drops. A blank or unknown status counts as below Unbuilt.
-- **Progress bar fill.** Finished stages are full, the current stage is filled as far as its count, and later stages are empty.
-- **Reordering.** Top, ↑ and ↓ (`data-top`, `data-up`, `data-down`) go through `reorderQueue()`, then `moveQueueItem(from, to)`. Dragging the handle (pointer events, in `app.js`) does too.
-  - While dragging, the list doesn't change; a `drop-before` or `drop-after` line shows where the item will land, and the move is saved on release. Moving the dragged element would release its pointer capture.
-  - The handle has `touch-action: none`, so a finger can drag it without scrolling the page.
-- **Focus.** After each action, `refocus()` puts keyboard focus back on the same control of the same item.
+- **Keeping the miniature in step.** `commitQueue(q, change, message)` is a `commitWithUndo` that calls `syncMiniature(q)` in the same commit, so Undo reverts both, and the toast adds what changed. The form's save and the phase editor call it too.
+  - `syncMiniature()` counts the miniature's cards in all its queue items (`miniCards()`). Built once every card is past the building phase, Primed once every card is past priming, In progress once any card has finished a phase after priming.
+  - While every one of its models is on the board, the board is in charge both ways: the status is exactly that (Unbuilt before any of it, when the board has a building or priming phase), and the painted count is its cards in Done. A Complete miniature stays Complete while every card is Done.
+  - While some of its models aren't on the board, it only moves forward: a status is never lowered, the painted count never drops, and Complete is left to the completion prompt.
+- **The queue item form** shows its card count as its model count (`formStart`). Saving (`saveQueueEntry()`, `formSave`) adds cards at To do, or takes cards off, the least advanced first; blank keeps them. Quick add makes a unit with one card at To do (`quickNew`).
+- **Edit board** (`#editBoard`, `#phasesDialog`, `stages.js`) renames, reorders, adds and deletes phases between To do and Done.
+  - Each row keeps the name it started with in `data-orig`, so Save can tell a rename from a delete. Moves shift the neighbouring row, so the pressed button keeps focus. The last phase can't be deleted.
+  - `savePhases()` checks names with `setCustomValidity`: not blank, not repeated, not To do or Done.
+  - `applyPhases()` saves them to `queueStages` and moves every card in one `commitWithUndo`: `phaseMap()` maps each old phase to its new name, and a deleted phase to the next kept (else the one before). Miniatures whose models moved follow.
+- **`queueWork(q)`** is a unit's work in models for project progress: each card counts its phase's share of the board (To do 0, Done 1), added as whole steps and divided once, so ten models at 3/5 make exactly 6.
 
-**Queue stages.** "Not started" and "Complete" are always the first and last stages, because +1, the completion prompt and due markers depend on them. The stages between them can be edited.
-
-- **The default list** is `db.queueStages`, an optional array of names. Without it, the list is `DEFAULT_STAGES`.
-- **An item's own list** is `queue.stages`. An item without one uses the default, and follows later changes to it.
-- **Reading stages:**
-  - Read an item's stages with `queueStages(q)`; with no item, it gives the default.
-  - `ownStages(q)` says whether the item has its own list.
-  - `cleanStages()` cleans any stored list. It trims names, cuts them to `MAX_STAGE_NAME` (40) characters, and drops blanks, repeats ignoring case, non-text and the two end names. It keeps at most `MAX_STAGES` (20). A list with nothing usable counts as missing.
-- **Items store stage names,** in `stage` and `split`, so stages are matched by name. A name the item's list doesn't have counts as Not started.
-- **The stage editor** (`#stagesDialog`, `openStages(qid)`) opens from "Edit default stages" (`#stagesBtn`, `qid` null) or an item's Stages button (`data-stages`).
-  - Each row is a name box plus ↑, ↓ and Delete. Each row keeps the name it started with in `data-orig`, so Save can tell a rename from a delete.
-  - Moves shift the neighbouring row, so the pressed button stays on the page and keeps focus.
-  - The last stage can't be deleted.
-- **Saving** (`saveStages()`) checks the names with `setCustomValidity`: not blank, not repeated, not an end name. Any edit clears every row's message, since a repeat involves two rows.
-- **`applyStages()`** saves the list, and updates every affected item in one `commitWithUndo`. For the default list, that's every item without its own; otherwise it's the one item.
-  - `stageMap()` maps each old stage to its new name. A deleted stage maps to the next stage kept, else the one before, so items move on but never straight to Complete.
-  - `remapStages()` applies the map to `stage` and `split`. It resets `stageDone` for items whose stage was deleted, then re-stores split counts in the new order.
-- **"Use the default stages"** (`useDefaultStages()`) removes an item's own list. A stage the default lacks maps to the default stage in the same position.
-- **Display.** The progress bar has one step per stage after Not started (`grid-auto-flow: column`). The form's Stage dropdown lists the item's stages through the field's `optionsFor`.
-
-**Split by stage.** A queue item's models can be at different stages. The "Split by stage" toggle (`data-split`, `toggleSplit()`) shows on unfinished items with two or more models. It has `aria-pressed`.
-
-- **Stored as `split`:** an optional count per stage name, e.g. `{ Priming: 2, Basecoating: 3 }`. No `split`, or anything that isn't a plain object, means not split.
-- **`stage` and `stageDone` stay in step** whenever `storeSplit()` saves: the least advanced stage, and how many models are past it. Code that reads only `stage`, like the dashboard, deadline markers and older versions, still works.
-- **Read counts with `splitCounts()`.** It returns one count per stage, adding up to `queueTotal()`.
-  - Junk, negative and unknown-stage counts are ignored.
-  - If the total has grown, the extra models start at Not started. If it has shrunk, models come off the least advanced stages first.
-- **Splitting** (`splitFrom()`) keeps progress: the models done in the current stage start at the next one.
-- **Joining** puts every model at the least advanced stage, and counts the rest as done there.
-- **Move 1** (`data-adv` and `data-from`, `moveOneOn()`) moves one model to the next stage, with Undo. It's shown for each stage that has models. When the last model reaches Complete, the completion prompt opens.
-- **Back 1** (`data-moveback` and `data-from`, `moveOneBack()`) moves one model back a stage, with Undo. It's shown for each stage after Not started that has models, Complete included, so the split row stays when every model is at Complete.
-- **Next, +1, −1 and Back are hidden** while an item is split.
-- **The progress bar** fills each step with the share of models past it. For Complete, it's the share at Complete. `aria-valuenow` is the models' average step, and `aria-valuetext` is `splitText()`, e.g. "Priming 2 · Basecoating 3".
-- **In the form,** choosing another stage puts every model there, and removes `split`. Otherwise saving re-stores the counts, since the model count may have changed.
-
-**Completing queue items.** When a queue item's stage has just become "Complete" (from the form or the Next button) and the item links to a miniature, `askComplete()` opens `#completeDialog`. It offers two choices:
-
-- mark the miniature complete, with painted count equal to its model count;
-- remove the item from the queue.
-
-Apply runs on the dialog form's `submit`, not its `close`, so the change happens during the click.
-
-By the time it opens, the miniature's painted count has already followed the queue (see Keeping the miniature in step), so the prompt's own change is the Complete status.
+**Completing a unit.** When a move leaves every model of a unit Done (`entryDone()`) and the unit links to a miniature, `askComplete()` opens `#completeDialog`. It offers to mark the miniature complete, with painted count equal to its model count, and to take the unit off the board. Apply runs on the dialog form's `submit`, not its `close`, so the change happens during the click. The painted count has already followed the board by then, so the prompt's own change is the Complete status.
 
 **The add/edit form.** `openForm(sec, obj)` opens the form for collection `sec` on any page, and `submit()` saves to `db[formSection]`; the page's own `section` isn't changed. So "Add reward" on the projects page opens a wishlist form, and saving redraws the projects page. `obj` is the record to edit, or, without an `id`, starting values for a new one. If saving fails, the form stays open so nothing typed is lost.
 **Data semantics:**
 
 - `FormData` returns strings, so numbers are stored as strings. Consumers wrap them in `Number(...)`. Only `level` fields are converted (and clamped to 0–9) on save.
-- Editing a record merges the form's fields into it (`{ ...record, ...form }`). Fields the form doesn't show are kept, such as a queue item's `stageDone` or fields from older versions.
+- Editing a record merges the form's fields into it (`{ ...record, ...form }`). Fields the form doesn't show are kept, such as a paint's restocks or fields from older versions.
 - Link fields hold a record `id`:
 
   - `miniatures.project` and `queue.project` point at projects.
   - `queue.miniature` points at a miniature. It's set when a miniature is queued from its row; items queued before this field existed have none.
-  - `queue.stageDone` is not a link: it's the number of models done in the item's current stage (see Queue controls). It's optional, and missing means 0.
-  - `queue.split` is not a link: it's a count of models per stage name, for an item split by stage (see Split by stage). It's optional.
-  - `queue.stages` is not a link: it's an item's own list of stages between Not started and Complete (see Queue stages). It's optional. The default list is the top-level `queueStages`.
+  - `queue.cards` is not a link: it's the unit's model cards, `{ id, phase }` (see The painting board). The top-level `queueStages` holds the board's phases between To do and Done.
+  - `queue.stage`, `queue.stageDone`, `queue.split` and `queue.stages` are from schema 5 and earlier. The 5 → 6 migration turned them into cards; they stay in old records, unread.
   - `miniatures.photos` is not a link: it's an array of photo ids in IndexedDB, cover first (see Photos). It's optional.
   - `tools.brand` and `miniatures.brand` are optional text fields, added after 1.0.0; older records have none. They're in the form and search, not the tables.
   - `miniatures.paints` is a `links` array of the paints in its recipe. The older free-text `recipe` field is still there, labelled "Recipe steps".
@@ -458,16 +416,16 @@ By the time it opens, the miniature's painted count has already followed the que
 - Paint stock is `stock`, one of `STOCK_LEVELS`: Full, Good, Half, Low or Empty, or `""` if unknown. A paint is low (`isLow()`) when its stock is Low or Empty. Low recipe paints are flagged in three places:
 
   - the miniatures table;
-  - queue items that aren't complete;
+  - queue items in the list that aren't done;
   - the dashboard's stock warnings, which say how many queued miniatures need each low paint.
 
 - `projectStats(p)` calculates a project's `models`, `painted`, `spent`, `goal`, `progress` and `percent` from the miniatures and queue items linked to it. Only `target` and `budget` are entered by hand. Older records may still contain hand-entered `complete` and `spent` fields; these are ignored.
   - `goal` is `target`, or the models owned when `target` is blank.
   - `progress` is counted in models, and includes work in progress:
-    - `queueWork(q)` gives a queue item's models each their stage's share of the item's own stages. Not started is 0 and Complete is 1. Models done in the current stage count at the next one, and split items count each model at its stage.
+    - `queueWork(q)` gives each of a unit's model cards its phase's share of the board. To do is 0 and Done is 1.
     - A miniature counts the larger of its painted count and its queue items' work, up to its model count, so nothing is counted twice.
     - Queue items linked to the project but to no existing miniature add their work.
-  - `percent` is `progress` out of `goal`, rounded down and capped at 100, so 100% means done. The projects table's Progress column and the dashboard bar show it.
+  - `percent` is `progress` out of `goal`, rounded down (after adding 1e-9, so a share added as fractions, 5.999… for 6, still rounds right) and capped at 100, so 100% means done. The projects table's Progress column and the dashboard bar show it.
   - `projectDone()` is `progress` reaching `goal`.
 - **Rewards.** A wishlist item with `rewardFor` (a project link) is a reward. It unlocks when that project's progress reaches `rewardAt` percent; a blank `rewardAt` means 100.
   - `reward(w)` gives `{ project, at, percent, unlocked }`, or null for an item that isn't a reward or whose project is gone. Unlocking compares the exact progress, not the rounded `percent`.

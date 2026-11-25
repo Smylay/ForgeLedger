@@ -1007,11 +1007,178 @@ dialog::backdrop {
   height: 100%;
   background: var(--gold);
 }
-/* "Edit default stages" above the queue, and the stage editor's rows. */
+/* Above the queue: Board or List, and Edit board. The phase editor's rows
+   below are the .stagelist. */
 .queuetools {
   display: flex;
-  justify-content: flex-end;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
   margin: -4px 0 10px;
+}
+.viewtabs {
+  display: inline-flex;
+  gap: 6px;
+}
+.viewtabs .btn[aria-pressed="true"] {
+  background: var(--pressed);
+  border-color: var(--blue);
+}
+/* The painting board: one column per phase, side by side. It scrolls
+   sideways inside itself when the columns don't fit. */
+.board {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(150px, 1fr);
+  gap: 10px;
+  align-items: start;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+.board > .empty {
+  grid-column: 1 / -1;
+}
+.phase {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  min-height: 140px;
+}
+.phase.drop {
+  border-color: var(--blue);
+  box-shadow: inset 0 0 0 2px var(--blue);
+}
+.phase h3 {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.phase h3 .count {
+  color: var(--muted);
+}
+.phasebody {
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+}
+.phase .none {
+  margin: 4px;
+  font-size: 13px;
+}
+.unit {
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+.unit.finished {
+  border-color: var(--green);
+}
+.unithead,
+.mcard {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px;
+  cursor: grab;
+  user-select: none;
+}
+.grip {
+  color: var(--muted);
+  padding: 6px 2px;
+  touch-action: none; /* a finger on the grip drags, not scrolls */
+}
+.unitname {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: break-word;
+  padding: 6px 2px;
+}
+/* A unit's name gets the whole first line; its arrows go under it. */
+.unithead {
+  flex-wrap: wrap;
+}
+.unithead .unitname {
+  flex-basis: calc(100% - 24px);
+}
+button.unitname {
+  background: none;
+  border: 0;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+button.unitname::before {
+  content: "▸ ";
+}
+button.unitname[aria-expanded="true"]::before {
+  content: "▾ ";
+}
+.unitname b {
+  color: var(--gold-text);
+}
+.mcards {
+  list-style: none;
+  margin: 0;
+  padding: 0 6px 6px 20px;
+  display: grid;
+  gap: 4px;
+}
+.mcard {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.mname {
+  flex: 1;
+  white-space: nowrap;
+}
+.arrows {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.arrow {
+  min-width: 32px;
+  min-height: 32px;
+  background: var(--chip);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.unithead.dragging,
+.mcard.dragging {
+  opacity: 0.4;
+}
+/* The copy that follows the pointer while dragging. */
+.ghost {
+  position: fixed;
+  z-index: 50;
+  margin: 0;
+  pointer-events: none;
+  background: var(--panel2);
+  border: 1px solid var(--blue);
+  border-radius: 7px;
+  box-shadow: var(--shadow);
+}
+.qcounts {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+/* After the 32px rules above, so it wins on touch screens. */
+@media (pointer: coarse) {
+  .arrow,
+  button.unitname {
+    min-width: 44px;
+    min-height: 44px;
+  }
 }
 .stagelist {
   list-style: none;
@@ -1056,56 +1223,12 @@ dialog::backdrop {
     min-height: 44px;
   }
 }
-/* Split by stage: each stage that has models, with "Move 1 to …". */
-.splitrow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  margin-top: 6px;
-}
-.splitstage {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.splitstage .btn {
-  min-height: 32px;
-  padding: 4px 8px;
-  font-size: 13px;
-}
-.qsteps .btn[aria-pressed="true"] {
-  background: var(--pressed);
-  border-color: var(--blue);
-}
-/* Under the progress bar: Next, +1, -1, Back and Split by stage. */
-.qsteps {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
 .qactions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: 6px;
-}
-.qsteps .btn {
-  min-height: 32px;
-  padding: 5px 10px;
-}
-.qsteps .btn:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-/* After the 32px rules above, so it wins on touch screens. */
-@media (pointer: coarse) {
-  .qsteps .btn,
-  .splitstage .btn {
-    min-width: 44px;
-    min-height: 44px;
-  }
 }
 .skillgrid {
   display: grid;
@@ -1285,6 +1408,15 @@ dialog::backdrop {
   }
 }
 @media (max-width: 520px) {
+  /* One board column at a time, the next peeking in; swipes snap to a
+     column. */
+  .board {
+    grid-auto-columns: 80%;
+    scroll-snap-type: x mandatory;
+  }
+  .phase {
+    scroll-snap-align: start;
+  }
   /* One scrolling row of sections instead of a block of four rows. */
   .nav {
     display: flex;

@@ -1,3 +1,5 @@
+// The board and the miniatures page: Add 1 and Add all, the miniature
+// keeping in step as its models move, and the prompt when a unit is done.
 const {
   test,
   expect,
@@ -10,170 +12,41 @@ const {
 } = require("./helpers");
 
 const dialog = (page) => page.locator("#completeDialog");
+const col = (page, phase) =>
+  page.locator(`#queueContent .phase[data-phase="${phase}"]`);
+const head = (page, phase, name) =>
+  col(page, phase).locator(".unithead", { hasText: name });
+const step = (page, phase, name, label) =>
+  head(page, phase, name).getByRole("button", { name: label });
+const mini = async (page, id) =>
+  (await stored(page)).miniatures.find((m) => m.id === id);
+const cardsOf = async (page, mid) =>
+  (await stored(page)).queue
+    .filter((q) => q.miniature === mid)
+    .flatMap((q) => q.cards.map((c) => c.phase));
 
-test.beforeEach(async ({ page }) => {
-  await openApp(page);
-  await seed(page, {
-    miniatures: [
-      {
-        id: "m1",
-        name: "Squad",
-        quantity: "10",
-        painted: "3",
-        status: "In progress",
-      },
-      {
-        id: "m2",
-        name: "Done",
-        quantity: "5",
-        painted: "5",
-        status: "Complete",
-      },
-    ],
-    queue: [
-      { id: "q1", name: "Squad", miniature: "m1", stage: "Basing" },
-      { id: "q2", name: "Loose", miniature: "", stage: "Basing" },
-      { id: "q3", name: "Done", miniature: "m2", stage: "Basing" },
-    ],
-  });
-  await nav(page, "queue");
-});
+test.beforeEach(async ({ page }) => openApp(page));
 
-async function complete(page, queueIndex) {
-  await page.locator("#queueContent button[data-edit]").nth(queueIndex).click();
-  await fillForm(page, { stage: "Complete" });
-  await submitForm(page);
-}
-
-test("queueing a miniature links the queue item to it", async ({ page }) => {
-  await nav(page, "miniatures");
-  await page.locator("button[data-queue]").first().click();
-  expect((await stored(page)).queue.at(-1)).toMatchObject({
-    name: "Squad",
-    miniature: "m1",
-  });
-});
-
-test("the queue form can link a miniature", async ({ page }) => {
-  await page.locator("#queueContent button[data-edit]").nth(1).click();
-  await fillForm(page, { miniature: "m1" });
-  await submitForm(page);
-  expect((await stored(page)).queue[1].miniature).toBe("m1");
-});
-
-test("completing a linked item asks; Apply updates the miniature only", async ({
-  page,
-}) => {
-  await complete(page, 0);
-  await expect(dialog(page)).toBeVisible();
-  await expect(page.locator("#completeMiniLabel")).toHaveText(
-    'Mark "Squad" complete, with 10 of 10 painted',
-  );
-  await expect(page.locator("#completeMini")).toBeChecked();
-  await expect(page.locator("#completeRemove")).not.toBeChecked();
-  await page.click('#completeDialog button[value="apply"]');
-
-  const data = await stored(page);
-  expect(data.miniatures[0]).toMatchObject({
-    status: "Complete",
-    painted: "10",
-  });
-  expect(data.queue.map((q) => q.id)).toEqual(["q1", "q2", "q3"]);
-  expect(data.queue[0].stage).toBe("Complete");
-  await expect(page.locator("#toastText")).toHaveText(
-    'Marked "Squad" complete',
-  );
-});
-
-test("Apply can also remove the item, and Undo reverts both", async ({
-  page,
-}) => {
-  await complete(page, 0);
-  await page.check("#completeRemove");
-  await page.click('#completeDialog button[value="apply"]');
-  let data = await stored(page);
-  expect(data.queue.map((q) => q.id)).toEqual(["q2", "q3"]);
-  expect(data.miniatures[0].status).toBe("Complete");
-  await expect(page.locator("#toastText")).toHaveText(
-    'Marked "Squad" complete and removed "Squad" from the queue',
-  );
-
-  await page.click("#toastAction");
-  data = await stored(page);
-  expect(data.queue.map((q) => q.id)).toEqual(["q1", "q2", "q3"]);
-  // The stage edit itself stays, with the painted count it brought.
-  expect(data.queue[0].stage).toBe("Complete");
-  expect(data.miniatures[0]).toMatchObject({
-    status: "In progress",
-    painted: "10",
-  });
-});
-
-test("Skip leaves the status; the painted count follows the queue", async ({
-  page,
-}) => {
-  await complete(page, 0);
-  await page.click('#completeDialog button[value="skip"]');
-  const data = await stored(page);
-  expect(data.miniatures[0]).toMatchObject({
-    status: "In progress",
-    painted: "10",
-  });
-  expect(data.queue).toHaveLength(3);
-  expect(data.queue[0].stage).toBe("Complete");
-});
-
-test("an already-complete miniature can only be removed from the queue", async ({
-  page,
-}) => {
-  await complete(page, 2);
-  await expect(page.locator("#completeMiniLabel")).toHaveText(
-    '"Done" is already marked complete',
-  );
-  await expect(page.locator("#completeMini")).toBeDisabled();
-  await page.check("#completeRemove");
-  await page.click('#completeDialog button[value="apply"]');
-  expect((await stored(page)).queue.map((q) => q.id)).toEqual(["q1", "q2"]);
-});
-
-test("no prompt for an item with no linked miniature", async ({ page }) => {
-  await complete(page, 1);
-  await expect(dialog(page)).toBeHidden();
-});
-
-test("no prompt when an already-complete item is edited again", async ({
-  page,
-}) => {
-  await complete(page, 0);
-  await page.click('#completeDialog button[value="skip"]');
-  await page.locator("#queueContent button[data-edit]").first().click();
-  await fillForm(page, { notes: "touched up" });
-  await submitForm(page);
-  await expect(dialog(page)).toBeHidden();
-});
-
-test("deleting a miniature unlinks its queue items", async ({ page }) => {
-  await nav(page, "miniatures");
-  await page.locator("button[data-del]").first().click();
-  await expect(page.locator("#toastText")).toHaveText(
-    'Deleted "Squad" and unlinked 1 item(s) from it',
-  );
-  expect((await stored(page)).queue[0].miniature).toBe("");
-});
-
-test.describe("queueing starts from the miniature's progress", () => {
+test.describe("Add 1 and Add all", () => {
   test.beforeEach(async ({ page }) => {
     await seed(page, {
+      projects: [{ id: "p", name: "Army" }],
       miniatures: [
-        { id: "u", name: "Loose", quantity: "5", status: "Unbuilt" },
+        { id: "u", name: "Loose", quantity: "2", status: "Unbuilt" },
         { id: "b", name: "Hero", quantity: "1", status: "Built" },
-        { id: "p", name: "Squad", quantity: "11", status: "Primed" },
-        { id: "w", name: "Busy", quantity: "3", status: "In progress" },
+        {
+          id: "s",
+          name: "Squad",
+          quantity: "3",
+          status: "Primed",
+          project: "p",
+        },
+        { id: "w", name: "Busy", quantity: "2", status: "In progress" },
         {
           id: "h",
           name: "Half",
-          quantity: "10",
-          painted: "4",
+          quantity: "5",
+          painted: "2",
           status: "Primed",
         },
         {
@@ -183,167 +56,349 @@ test.describe("queueing starts from the miniature's progress", () => {
           painted: "2",
           status: "Complete",
         },
-        { id: "x", name: "Odd", quantity: "3", status: "constructor" },
+        { id: "x", name: "Odd", quantity: "1", status: "constructor" },
       ],
     });
     await nav(page, "miniatures");
   });
-  const queue = async (page, mid) => {
-    await page.locator(`tr[data-row="${mid}"] button[data-queue]`).click();
-    return (await stored(page)).queue.at(-1);
-  };
+  const add = (page, mid, which) =>
+    page.locator(`tr[data-row="${mid}"] button[data-add${which}]`);
 
-  test("its status sets the starting stage", async ({ page }) => {
-    expect(await queue(page, "u")).toMatchObject({ stage: "Not started" });
-    expect(await queue(page, "b")).toMatchObject({ stage: "Priming" });
-    expect(await queue(page, "p")).toMatchObject({ stage: "Basecoating" });
-    await expect(page.locator("#toastText")).toHaveText(
-      'Added "Squad" to the queue: Basecoating',
-    );
-    expect(await queue(page, "w")).toMatchObject({ stage: "Basecoating" });
-    // Already complete: no prompt, since nothing was just finished.
-    expect(await queue(page, "c")).toMatchObject({ stage: "Complete" });
-    await expect(dialog(page)).toBeHidden();
-    // A status it doesn't know starts at the beginning.
-    const odd = await queue(page, "x");
-    expect(odd.stage).toBe("Not started");
-    expect(odd.split).toBeUndefined();
-  });
-
-  test("painted models start at Complete, splitting the item", async ({
+  test("Add all puts every model on the board where its status says", async ({
     page,
   }) => {
-    expect(await queue(page, "h")).toMatchObject({
-      split: { Basecoating: 6, Complete: 4 },
-      stage: "Basecoating",
-      stageDone: 4,
-    });
+    await add(page, "s", "all").click();
+    expect(await cardsOf(page, "s")).toEqual([
+      "Painting",
+      "Painting",
+      "Painting",
+    ]);
     await expect(page.locator("#toastText")).toHaveText(
-      'Added "Half" to the queue: Basecoating 6 · Complete 4',
+      'Added 3 models of "Squad" to the board: Painting 3',
     );
-    await nav(page, "queue");
-    await expect(
-      page.locator("#queueContent .qitem").last().locator(".splitrow"),
-    ).toContainText("Basecoating 6");
+    // The new queue item is linked, with its project.
+    expect((await stored(page)).queue[0]).toMatchObject({
+      name: "Squad",
+      miniature: "s",
+      project: "p",
+      models: "3",
+    });
+    for (const id of ["u", "b", "w", "c", "x"])
+      await add(page, id, "all").click();
+    expect(await cardsOf(page, "u")).toEqual(["To do", "To do"]);
+    expect(await cardsOf(page, "b")).toEqual(["Priming"]);
+    expect(await cardsOf(page, "w")).toEqual(["Painting", "Painting"]);
+    expect(await cardsOf(page, "c")).toEqual(["Done", "Done"]);
+    // A status it doesn't know starts at the beginning.
+    expect(await cardsOf(page, "x")).toEqual(["To do"]);
+    // Adding doesn't change the miniatures: the cards agree with them.
+    expect((await mini(page, "s")).status).toBe("Primed");
+    await expect(dialog(page)).toBeHidden();
   });
 
-  test("Undo takes it off the queue", async ({ page }) => {
-    const before = (await stored(page)).queue.length;
-    await queue(page, "p");
+  test("painted models go to Done; Add 1 adds the unpainted first", async ({
+    page,
+  }) => {
+    await add(page, "h", "one").click();
+    await expect(page.locator("#toastText")).toHaveText(
+      'Added 1 model of "Half" to the board: Painting 1',
+    );
+    for (let i = 0; i < 3; i++) await add(page, "h", "one").click();
+    // 3 unpainted models, then a painted one.
+    expect(await cardsOf(page, "h")).toEqual([
+      "Painting",
+      "Painting",
+      "Painting",
+      "Done",
+    ]);
+    await add(page, "h", "all").click();
+    expect(await cardsOf(page, "h")).toEqual([
+      "Painting",
+      "Painting",
+      "Painting",
+      "Done",
+      "Done",
+    ]);
+    // One queue item holds them all, and the buttons are done with.
+    expect((await stored(page)).queue).toHaveLength(1);
+    await expect(add(page, "h", "one")).toBeDisabled();
+    await expect(add(page, "h", "all")).toBeDisabled();
+  });
+
+  test("Undo takes them off again", async ({ page }) => {
+    await add(page, "s", "all").click();
     await page.click("#toastAction");
-    expect((await stored(page)).queue).toHaveLength(before);
+    expect((await stored(page)).queue).toEqual([]);
+    await expect(add(page, "s", "all")).toBeEnabled();
   });
 
-  test("renamed stages are found by name", async ({ page }) => {
+  test("renamed phases are found by name", async ({ page }) => {
     await seed(page, {
       queueStages: ["Assembly", "Undercoat", "Paint", "Varnish"],
       miniatures: [
         { id: "b", name: "Hero", quantity: "1", status: "Built" },
-        { id: "p", name: "Squad", quantity: "5", status: "Primed" },
+        { id: "s", name: "Squad", quantity: "1", status: "Primed" },
       ],
     });
     await nav(page, "miniatures");
-    // Built: after Assembly. Primed: no priming stage, so after Assembly too.
-    expect(await queue(page, "b")).toMatchObject({ stage: "Undercoat" });
-    expect(await queue(page, "p")).toMatchObject({ stage: "Undercoat" });
+    await add(page, "b", "all").click();
+    await add(page, "s", "all").click();
+    // Built: after Assembly. Primed: no priming phase, so after Assembly too.
+    expect(await cardsOf(page, "b")).toEqual(["Undercoat"]);
+    expect(await cardsOf(page, "s")).toEqual(["Undercoat"]);
   });
 });
 
-test.describe("the queue keeps the miniature in step", () => {
-  test.beforeEach(async ({ page }) => {
-    await seed(page, {
-      miniatures: [
-        { id: "k", name: "Knights", quantity: "3", status: "Unbuilt" },
-        { id: "x", name: "Odd", quantity: "2", status: "constructor" },
-      ],
-      queue: [
-        { id: "a", name: "Knights", miniature: "k", stage: "Building" },
-        { id: "b", name: "Loose", stage: "Building" },
-        { id: "c", name: "Odd", miniature: "x", stage: "Priming" },
-      ],
-    });
+test.describe("the miniature keeps in step", () => {
+  const board = (miniature, cards, extra = {}) => ({
+    miniatures: [{ id: "k", name: "Knights", ...miniature }],
+    queue: [
+      {
+        id: "a",
+        name: "Knights",
+        miniature: "k",
+        cards: cards.map((phase, i) => ({ id: `a${i}`, phase })),
+      },
+      { id: "l", name: "Loose", cards: [{ id: "l1", phase: "To do" }] },
+    ],
+    ...extra,
+  });
+
+  test("with every model on the board, it follows both ways, with Undo", async ({
+    page,
+  }) => {
+    await seed(
+      page,
+      board({ quantity: "3", status: "Unbuilt" }, [
+        "Building",
+        "Building",
+        "Building",
+      ]),
+    );
     await nav(page, "queue");
-  });
-  const item = (page, i) => page.locator("#queueContent .qitem").nth(i);
-  const knights = async (page) =>
-    (await stored(page)).miniatures.find((m) => m.id === "k");
-
-  test("Built, Primed, then In progress, as the item moves on", async ({
-    page,
-  }) => {
-    await item(page, 0).locator("button[data-next]").click();
-    expect(await knights(page)).toMatchObject({ status: "Built" });
+    await step(page, "Building", "Knights", /on to Priming/).click();
+    expect((await mini(page, "k")).status).toBe("Built");
     await expect(page.locator("#toastText")).toHaveText(
-      'Moved "Knights" to Priming; miniature "Knights" is now Built',
+      'Moved 3 models of "Knights" to Priming; miniature "Knights" is now Built',
     );
-    await item(page, 0).locator("button[data-next]").click();
-    expect(await knights(page)).toMatchObject({ status: "Primed" });
-    // One model basecoated: painting has started.
-    await item(page, 0).locator("button[data-plus]").click();
-    expect(await knights(page)).toMatchObject({ status: "In progress" });
-    // Undo puts both back.
-    await page.click("#toastAction");
-    expect(await knights(page)).toMatchObject({ status: "Primed" });
-    expect((await stored(page)).queue[0].stageDone).toBe(0);
-  });
-
-  test("going back never lowers it", async ({ page }) => {
-    await item(page, 0).locator("button[data-next]").click(); // Built
-    await item(page, 0).locator("button[data-back]").click();
-    expect(await knights(page)).toMatchObject({ status: "Built" });
-    expect((await stored(page)).queue[0].stage).toBe("Building");
-  });
-
-  test("models at Complete raise the painted count, never Complete itself", async ({
-    page,
-  }) => {
-    await item(page, 0).locator("button[data-edit]").click();
-    await fillForm(page, { stage: "Basing" });
-    await submitForm(page);
-    await expect(page.locator("#toastText")).toHaveText(
-      'Saved; miniature "Knights" is now In progress',
-    );
-    await item(page, 0).locator("button[data-split]").click();
-    await item(page, 0)
-      .getByRole("button", { name: "Move 1 to Complete from Basing" })
+    await step(page, "Priming", "Knights", /on to Painting/).click();
+    expect((await mini(page, "k")).status).toBe("Primed");
+    // One model past painting: In progress.
+    await head(page, "Painting", "Knights").locator("button.unitname").click();
+    await col(page, "Painting")
+      .getByRole("button", { name: "Move Knights #1 on to Detailing" })
       .click();
-    expect(await knights(page)).toMatchObject({
+    expect((await mini(page, "k")).status).toBe("In progress");
+    await page.click("#toastAction");
+    expect((await mini(page, "k")).status).toBe("Primed");
+    // Back is free, and the miniature goes back with it.
+    await step(page, "Painting", "Knights", /back to Priming/).click();
+    expect((await mini(page, "k")).status).toBe("Built");
+  });
+
+  test("its painted count is its models in Done", async ({ page }) => {
+    await seed(
+      page,
+      board({ quantity: "3", painted: "0", status: "In progress" }, [
+        "Detailing",
+        "Detailing",
+        "Done",
+      ]),
+    );
+    await nav(page, "queue");
+    await step(page, "Detailing", "Knights", /on to Done/).click();
+    expect((await mini(page, "k")).painted).toBe("3");
+    await page.click('#completeDialog button[value="skip"]');
+    await head(page, "Done", "Knights").locator("button.unitname").click();
+    await col(page, "Done")
+      .getByRole("button", { name: "Move Knights #3 back to Detailing" })
+      .click();
+    expect(await mini(page, "k")).toMatchObject({
+      painted: "2",
+      status: "In progress",
+    });
+  });
+
+  test("with some models off the board, it only moves forward", async ({
+    page,
+  }) => {
+    await seed(
+      page,
+      board({ quantity: "5", painted: "1", status: "Built" }, [
+        "Painting",
+        "Detailing",
+      ]),
+    );
+    await nav(page, "queue");
+    await step(page, "Detailing", "Knights", /on to Done/).click();
+    expect(await mini(page, "k")).toMatchObject({
       status: "In progress",
       painted: "1",
     });
-    await expect(page.locator("#toastText")).toContainText(
-      'miniature "Knights" now has 1 painted',
-    );
+    await step(page, "Done", "Knights", /back to Detailing/).click();
+    await step(page, "Detailing", "Knights", /back to Painting/).click();
+    // Never lowered.
+    expect(await mini(page, "k")).toMatchObject({
+      status: "In progress",
+      painted: "1",
+    });
   });
 
   test("an item without a miniature, or a status it doesn't know, is safe", async ({
     page,
   }) => {
-    await item(page, 1).locator("button[data-next]").click();
-    await expect(page.locator("#toastText")).toHaveText(
-      'Moved "Loose" to Priming',
+    await seed(
+      page,
+      board({ quantity: "1", status: "constructor" }, ["Priming"]),
     );
-    // A junk status counts as below Unbuilt, so the queue replaces it.
-    await item(page, 2).locator("button[data-next]").click();
-    expect(
-      (await stored(page)).miniatures.find((m) => m.id === "x").status,
-    ).toBe("Primed");
+    await nav(page, "queue");
+    await step(page, "To do", "Loose", /on to Building/).click();
+    await expect(page.locator("#toastText")).toHaveText(
+      'Moved 1 model of "Loose" to Building',
+    );
+    await step(page, "Priming", "Knights", /on to Painting/).click();
+    expect((await mini(page, "k")).status).toBe("Primed");
   });
 
-  test("stages that don't say build or prime leave the status alone", async ({
+  test("phases that don't say build or prime leave the status alone", async ({
     page,
   }) => {
+    await seed(
+      page,
+      board({ quantity: "1", status: "" }, ["Clean"], {
+        queueStages: ["Clean", "Paint"],
+      }),
+    );
+    await nav(page, "queue");
+    await step(page, "Clean", "Knights", /on to Paint/).click();
+    expect((await mini(page, "k")).status).toBe("");
+    await step(page, "Paint", "Knights", /on to Done/).click();
+    await page.click('#completeDialog button[value="skip"]');
+    expect(await mini(page, "k")).toMatchObject({ status: "", painted: "1" });
+  });
+});
+
+test.describe("when every model of a unit is done", () => {
+  test.beforeEach(async ({ page }) => {
     await seed(page, {
-      queueStages: ["Clean", "Paint"],
-      miniatures: [{ id: "k", name: "Knights", quantity: "1", status: "" }],
-      queue: [{ id: "a", name: "Knights", miniature: "k", stage: "Clean" }],
+      miniatures: [
+        {
+          id: "m1",
+          name: "Squad",
+          quantity: "2",
+          painted: "1",
+          status: "In progress",
+        },
+        {
+          id: "m2",
+          name: "Done",
+          quantity: "1",
+          painted: "1",
+          status: "Complete",
+        },
+      ],
+      queue: [
+        {
+          id: "q1",
+          name: "Squad",
+          miniature: "m1",
+          cards: [
+            { id: "c1", phase: "Detailing" },
+            { id: "c2", phase: "Done" },
+          ],
+        },
+        { id: "q2", name: "Loose", cards: [{ id: "c3", phase: "Detailing" }] },
+        {
+          id: "q3",
+          name: "Done",
+          miniature: "m2",
+          cards: [{ id: "c4", phase: "Detailing" }],
+        },
+      ],
     });
     await nav(page, "queue");
-    await item(page, 0).locator("button[data-next]").click();
-    expect((await knights(page)).status).toBe("");
-    // The painted count still follows.
-    await item(page, 0).locator("button[data-next]").click();
-    await page.click('#completeDialog button[value="skip"]');
-    expect(await knights(page)).toMatchObject({ status: "", painted: "1" });
   });
+  const finish = (page, name) =>
+    step(page, "Detailing", name, /on to Done/).click();
+
+  test("it asks; Apply marks the miniature complete", async ({ page }) => {
+    await finish(page, "Squad");
+    await expect(dialog(page)).toBeVisible();
+    await expect(page.locator("#completeMiniLabel")).toHaveText(
+      'Mark "Squad" complete, with 2 of 2 painted',
+    );
+    await expect(page.locator("#completeMini")).toBeChecked();
+    await expect(page.locator("#completeRemove")).not.toBeChecked();
+    await page.click('#completeDialog button[value="apply"]');
+    expect(await mini(page, "m1")).toMatchObject({
+      status: "Complete",
+      painted: "2",
+    });
+    expect((await stored(page)).queue).toHaveLength(3);
+    await expect(page.locator("#toastText")).toHaveText(
+      'Marked "Squad" complete',
+    );
+  });
+
+  test("Apply can take it off the board too, and Undo reverts both", async ({
+    page,
+  }) => {
+    await finish(page, "Squad");
+    await page.check("#completeRemove");
+    await page.click('#completeDialog button[value="apply"]');
+    expect((await stored(page)).queue.map((q) => q.id)).toEqual(["q2", "q3"]);
+    await expect(page.locator("#toastText")).toHaveText(
+      'Marked "Squad" complete and took "Squad" off the board',
+    );
+    await page.click("#toastAction");
+    expect((await stored(page)).queue.map((q) => q.id)).toEqual([
+      "q1",
+      "q2",
+      "q3",
+    ]);
+    // The move itself stays, with the painted count it brought.
+    expect(await mini(page, "m1")).toMatchObject({
+      status: "In progress",
+      painted: "2",
+    });
+  });
+
+  test("an already-complete miniature can only be taken off the board", async ({
+    page,
+  }) => {
+    await finish(page, "Done");
+    await expect(page.locator("#completeMiniLabel")).toHaveText(
+      '"Done" is already marked complete',
+    );
+    await expect(page.locator("#completeMini")).toBeDisabled();
+    await page.check("#completeRemove");
+    await page.click('#completeDialog button[value="apply"]');
+    expect((await stored(page)).queue.map((q) => q.id)).toEqual(["q1", "q2"]);
+  });
+
+  test("no prompt for a unit with no miniature", async ({ page }) => {
+    await finish(page, "Loose");
+    await expect(dialog(page)).toBeHidden();
+  });
+});
+
+test("the queue form can link a miniature, and deleting it unlinks", async ({
+  page,
+}) => {
+  await seed(page, {
+    miniatures: [{ id: "m1", name: "Squad", quantity: "2" }],
+    queue: [{ id: "q1", name: "Loose", cards: [{ id: "c1", phase: "To do" }] }],
+  });
+  await nav(page, "queue");
+  await page.click('[data-qview="list"]');
+  await page.locator("#queueContent button[data-edit]").click();
+  await fillForm(page, { miniature: "m1" });
+  await submitForm(page);
+  expect((await stored(page)).queue[0].miniature).toBe("m1");
+  await nav(page, "miniatures");
+  await page.locator("#listView button[data-del]").click();
+  await expect(page.locator("#toastText")).toHaveText(
+    'Deleted "Squad" and unlinked 1 item(s) from it',
+  );
+  expect((await stored(page)).queue[0].miniature).toBe("");
 });

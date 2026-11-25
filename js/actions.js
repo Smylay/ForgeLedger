@@ -68,8 +68,13 @@ function quickAdd(form) {
   if (!name || !defs[section]) return;
   document.querySelector("#search").value = "";
   document.querySelector("#filter").value = "";
-  // A paint picked from the catalogue comes with its details.
-  let record = quickCatalogueRecord(name) || { id: id(), name };
+  // A paint picked from the catalogue comes with its details, and a queue
+  // item with a model card (`quickNew`).
+  let record = quickCatalogueRecord(name) || {
+    id: id(),
+    name,
+    ...defs[section].quickNew?.(),
+  };
   let added = commitWithUndo(
     () => db[section].push(record),
     () =>

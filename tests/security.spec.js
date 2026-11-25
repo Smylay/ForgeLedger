@@ -313,7 +313,7 @@ test("rewards can't run script", async ({ page }, testInfo) => {
   await page.keyboard.press("Escape");
   // Finishing the queue item unlocks the first reward and shows the notice.
   await nav(page, "queue");
-  await page.click("#queueContent button[data-next]");
+  await page.getByRole("button", { name: "Move Q on to Done" }).click();
   await page.waitForTimeout(200);
   const ran = await page.evaluate(() =>
     ["rewardProject", "rewardName", "rewardAt", "rewardProjectId"].filter(
@@ -507,4 +507,44 @@ test("values that can't become text don't stop a page drawing", async ({
   await seed(page, { paints: [{ id: "q", name: "Q", brand: odd }] });
   await nav(page, "paints");
   await expect(tableRows(page)).toHaveCount(1);
+});
+
+test("unit and phase names on the board can't run script", async ({
+  page,
+}, testInfo) => {
+  // Short enough to be kept whole as a phase name (40 characters).
+  const phase = `"><img src=x onerror=xss_phase=1>`;
+  await importAndWait(
+    page,
+    {
+      queueStages: ["Build", phase],
+      queue: [
+        {
+          id: attack("hostileUnitId"),
+          name: attack("hostileUnitName"),
+          cards: [
+            { id: attack("hostileCardId"), phase },
+            { id: "c2", phase },
+          ],
+        },
+      ],
+    },
+    testInfo,
+  );
+  await nav(page, "queue");
+  await expect(page.locator("#queueContent .phase h3").nth(2)).toHaveText(
+    `${phase} 2`,
+  );
+  await page.locator("#queueContent button.unitname").click();
+  await expect(page.locator("#queueContent .mcard")).toHaveCount(2);
+  await page.click('[data-qview="list"]');
+  await page.click("#editBoard");
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(200);
+  const ran = await page.evaluate(() =>
+    ["phase", "hostileUnitId", "hostileUnitName", "hostileCardId"].filter(
+      (f) => window["xss_" + f],
+    ),
+  );
+  expect(ran).toEqual([]);
 });

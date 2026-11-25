@@ -67,20 +67,21 @@ test.describe("loaded", () => {
     // Progress with work in progress, and a reward it unlocked.
     await expect(
       page.locator("#projectSummary .project").first(),
-    ).toContainText("36%");
+    ).toContainText("44%");
     await expect(page.locator("#rewardSummary")).toContainText(
       "Heavy tank kit Unlocked",
     );
     // Low paints, with one already on the wishlist.
     await expect(page.locator("#stockSummary")).toContainText("Bright Red");
-    // Deadlines count from today.
+    // Units spread over the board's phases.
     await nav(page, "queue");
+    await expect(
+      page.locator('#queueContent .phase[data-phase="Painting"] .unitname'),
+    ).toHaveText(["Iron Guard squad 5", "Goblin raiders 5"]);
+    // Deadlines count from today; the list shows them.
+    await page.click('[data-qview="list"]');
     await expect(page.locator("#queueContent")).toContainText("Due in 5 days");
     await expect(page.locator("#queueContent")).toContainText("Overdue");
-    await expect(
-      page.locator('#queueContent button[data-split][aria-pressed="true"]'),
-    ).toHaveCount(1);
-    await expect(page.locator("#queueContent")).toContainText("own stages");
     // Photos are drawn and stored.
     await nav(page, "miniatures");
     await expect(page.locator("#content img.thumb").first()).toHaveAttribute(
