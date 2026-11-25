@@ -56,7 +56,7 @@ The code lives in plain `<script>` files that share the global scope. They aren'
 | `demo.js`       | the example data (`demoData()`, `demoPhotos()`, `DEMO_FILE_DATE`), and the offer to load, clear or keep it                           |
 | `storage.js`    | load, validate, repair, migrate, `save()`, `commit()`, `commitWithUndo()`, backup age                                                |
 | `paints.js`     | paint stock helpers (`isLow()`, `lowRecipePaints()`, `stockFromPercent()`), "Used in", and restocks                                  |
-| `photos.js`     | miniature photos in IndexedDB (open, store, shrink, show, tidy, their part of backups), and the photo viewer                         |
+| `photos.js`     | photos of miniatures and their models in IndexedDB (open, store, shrink, show, tidy, their part of backups), and the photo viewer    |
 | `autosave.js`   | auto-save to a file the user picked: the remembered handle, writes after each save, its status                                       |
 | `settings.js`   | Settings: currencies and `money()`, the theme, the shortcuts switch, Erase all data                                                  |
 | `wishlist.js`   | adding low paints to the wishlist, the Bought button, and rewards                                                                    |
@@ -232,7 +232,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - The page grid uses `minmax(0, 1fr)`, so wide content can't widen the page.
   - `tests/layout.spec.js` checks that every section fits a 375px screen.
 
-**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`). For a `<button>`, it runs the entry in `BUTTON_ACTIONS` (in `app.js`) for each `data-*` attribute the button has: `edit`, `del`, `sort`, `scale`, `step`, `recovery`, `wish`, `wishall`, `bought`, `unreward`, `demo`, `photos`, `usedin`, `addreward`, `toolwish`, `toolbought`, `addone`, `addall`, `qview`, `unit`, `move`, `top`, `up` and `down`.
+**Events.** A single delegated `click` listener on `document` handles nav links (`a[data-sec]`). For a `<button>`, it runs the entry in `BUTTON_ACTIONS` (in `app.js`) for each `data-*` attribute the button has: `edit`, `del`, `sort`, `scale`, `step`, `recovery`, `wish`, `wishall`, `bought`, `unreward`, `demo`, `photos`, `usedin`, `addreward`, `toolwish`, `toolbought`, `addone`, `addall`, `qview`, `unit`, `move`, `mphoto`, `top`, `up` and `down`.
 
 - `edit` and `del` work in every section because they act on the current section.
 - To add a new row action, render a button with a new `data-*` attribute and add an entry to `BUTTON_ACTIONS` that calls a named function in the feature's file.
@@ -294,7 +294,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - Apply runs on the form's `submit`, like the completion prompt. `buying` holds the item's id and row while the dialog is open.
 - **Focus** moves to the Bought button now in the item's place, or the last one, else the quick-add box (`focusBought()`). After the dialog, this happens in its `close` handler, since closing would otherwise return focus to the removed button.
 
-**Photos.** Miniatures can have photos (`photos: true` in `defs.miniatures`). The code is in `photos.js`.
+**Photos.** Miniatures can have photos (`photos: true` in `defs.miniatures`), and so can the models on the board (see Model photos below). The code is in `photos.js`.
 
 - **Storage.** The images live in IndexedDB: database `forgeledger_photos`, store `photos`, keyed by `id`.
   - Each record is `{ id, type, full, thumb, width, height, added }`. `full` and `thumb` are ArrayBuffers, not Blobs.
@@ -313,18 +313,23 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
   - A missing image gets the class `missing`.
 - **In the table.** The cover shows beside the name (`coverHtml()`, in `.withthumb`). The row's Photos button shows the count.
 - **The viewer** is `#photosDialog`, state `viewing`. It has a large view, a thumbnail strip (`data-pick`), Add photos (`#photoFile`, `accept="image/*"`, which offers the camera on phones), Make cover photo and Remove photo.
-- **Removing never deletes the image straight away,** so Undo can restore it. At start-up, `tidyPhotos()` deletes images that no miniature uses and that were added more than `PHOTO_KEEP_MS` (a day) ago.
-- **Backups.** Export backup (`backupJson()`) adds a top-level `photos` object: `{ id: { type, full, thumb } }`, with base64 bytes, for the photos the data uses.
+- **Model photos.** A model card can have one photo, its `photo` id (read it with `cardPhoto()`). The board shows a photo button on each model (`cardPhotoHtml()`, `data-mphoto` with `data-q`): its thumbnail, or a camera icon. It opens the viewer for that model (`openCardPhoto()`), where `viewing` has `q` and `card` instead of `id`.
+  - For a model, the viewer offers Add photo or Replace photo (one file), and Remove photo; there's no strip or cover. `viewed()` looks up what the viewer shows, for either kind.
+  - **A model's photo is also one of its miniature's photos,** when its unit links to one. `setCardPhoto()` changes both in one `commitWithUndo`: a new photo goes at the end of the miniature's photos, a replacement takes the old one's place, and removing takes it off both. Removing a photo in the miniature's viewer takes it off any of its models too.
+  - A unit with no miniature keeps the photo on its card only.
+  - The miniature's viewer names the model a photo is of (`photoModel()`), e.g. "Photo 2 of 3 · Squad #4". `modelName()` gives a model's name: the unit's, numbered when it has more than one model.
+- **Removing never deletes the image straight away,** so Undo can restore it. At start-up, `tidyPhotos()` deletes images that nothing uses (`usedPhotoIds()`: no miniature and no model card) and that were added more than `PHOTO_KEEP_MS` (a day) ago.
+- **Backups.** Export backup (`backupJson()`) adds a top-level `photos` object: `{ id: { type, full, thumb } }`, with base64 bytes, for the photos the data uses (`usedPhotoIds()`).
   - Import takes `photos` out before `fromBackup()`, so it never reaches `localStorage`, and stores the images first.
   - `photosFromBackup()` skips entries with a type outside `PHOTO_TYPES` or bad base64.
   - If IndexedDB can't be used, the data still imports, and the toast says how many photos couldn't be stored.
-- **Toasts in dialogs.** A modal dialog makes the rest of the page inert. So `toast()` moves `#toast` into the open dialog, and a capturing `close` listener in `app.js` moves it back. That's how the viewer's Undo stays clickable.
+- **Toasts in dialogs.** A modal dialog makes the rest of the page inert. So `toast()` moves `#toast` into the open dialog, and a capturing `close` listener in `app.js` moves it back. That's how the viewer's Undo stays clickable. Undo redraws the viewer if it's open.
 
 **Example data.** `demo.js` holds made-up data that shows off every feature. The names are invented, so no real brands appear.
 
 - **The offer.** While the app is empty (`!hasUserData()`), the dashboard's `#startNotice` offers "Load example data" (`data-demo="load"`, `loadDemo()`). It's only offered into an empty app, so it never replaces anything.
 - **`demoData(base)`** builds the data. Dates count from `base`, so markers like "Due in 5 days" show whenever it's loaded. It sets a top-level `demo: true`.
-- **`demoPhotos()`** draws the two example photos on a canvas, as the same records `photoFromFile()` makes, so the repository needs no image files. They're stored before the data is committed. If they can't be stored, the miniatures get no photos.
+- **`demoPhotos()`** draws the two example photos on a canvas, as the same records `photoFromFile()` makes, so the repository needs no image files. They're stored before the data is committed; one is also a painted squad model's photo. If they can't be stored, the miniatures and models get no photos.
 - **While `db.demo` is set,** `#startNotice` offers:
   - "Clear it and start fresh" (`clearDemo()`): back to `defaults`, with Undo;
   - "Keep it" (`keepDemo()`): removes the flag.
@@ -368,9 +373,10 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 - **Model cards.** A queue item is a unit; its `cards` are its models, `{ id, phase }`, one per model. Read them with `cardsOf()`, which drops anything that isn't an object with a string id; `fillIds()` gives cards ids, unique across the board. `q.models` is kept equal to the number of cards, for the form and older readers.
 - **Phases.** `boardPhases()`: To do (`FIRST_PHASE`), the phases in `db.queueStages` (cleaned by `cleanPhases()`), else `DEFAULT_PHASES` (Building, Priming, Painting, Detailing), then Done (`LAST_PHASE`). To do and Done are fixed. `cardIndex()` gives a card's place; a phase the board doesn't have counts as To do. At most `MAX_PHASES` (20) phases, names up to `MAX_PHASE_NAME` (40) characters.
 - **The board** (`boardHtml()`): a column per phase, `.phase` with `data-phase`. In each, the units with models there, in queue order (`unitHtml()`): a heading with the unit's name and count, and ◀ ▶ that move all of its models in that phase.
-  - A unit with more than one model there opens to list them (`data-unit`, `toggleUnit()`; open units are `openUnits`, keyed by id and phase). Each model card (`.mcard`, `data-mcard`) is numbered by its place in the unit and has its own ◀ ▶.
+  - A unit with more than one model there opens to list them (`data-unit`, `toggleUnit()`; open units are `openUnits`, keyed by id and phase). Each model card (`.mcard`, `data-mcard`) is numbered by its place in the unit and has its own photo button (see Photos) and ◀ ▶. A unit with one model in a phase has the photo button on its heading.
+  - In a narrow column (laptops), a model card wraps its ◀ ▶ onto a second line.
   - ◀ ▶ (`data-move`, `data-from`, `data-dir`, and `data-mcard` for one model, `stepCards()`) move cards with Undo. Moving one model opens its unit in the new phase, so it stays in view and keeps focus.
-  - **Dragging** (pointer events, in `app.js`): a unit's heading moves all its models in that phase; a card moves one. A mouse drags from anywhere but the arrows; a finger or pen uses the ⠿ grip (`touch-action: none`), so the board still scrolls. Nothing starts until the pointer moves 6px, so a click is still a click, and the click that ends a drag is swallowed. A copy (`.ghost`) follows the pointer and the column under it gets `.drop`. WCAG 2.2's dragging rule is met by ◀ ▶.
+  - **Dragging** (pointer events, in `app.js`): a unit's heading moves all its models in that phase; a card moves one. A mouse drags from anywhere but the arrows and photo buttons; a finger or pen uses the ⠿ grip (`touch-action: none`), so the board still scrolls. Nothing starts until the pointer moves 6px, so a click is still a click, and the click that ends a drag is swallowed. A copy (`.ghost`) follows the pointer and the column under it gets `.drop`. WCAG 2.2's dragging rule is met by ◀ ▶.
   - The board scrolls sideways inside itself when its columns don't fit (`grid-auto-columns: minmax(150px, 1fr)`).
 - **Moving cards** (`moveCards()`) goes through `commitQueue()`, so the miniature follows. When a move leaves every model of a linked unit Done, the completion prompt opens.
 - **The list** (`queueItemHtml()`): units in priority order, each with its model count, due date, a progress bar (each step filled with the share of models past it; `aria-valuetext` is `countsText()`, e.g. "Priming 2 · Painting 1"), low recipe paints, and Top, ↑, ↓, Edit and Delete. Reordering (`reorderQueue()`, `moveQueueItem()`, or dragging the ⠿ handle) sets the order the board shows units in.
@@ -400,7 +406,7 @@ Search (`searchText()`) matches each field and computed value as displayed, so f
 
   - `miniatures.project` and `queue.project` point at projects.
   - `queue.miniature` points at a miniature. It's set when a miniature is queued from its row; items queued before this field existed have none.
-  - `queue.cards` is not a link: it's the unit's model cards, `{ id, phase }` (see The painting board). The top-level `queueStages` holds the board's phases between To do and Done.
+  - `queue.cards` is not a link: it's the unit's model cards, `{ id, phase }`, plus an optional `photo` id (see The painting board and Photos). The top-level `queueStages` holds the board's phases between To do and Done.
   - `queue.stage`, `queue.stageDone`, `queue.split` and `queue.stages` are from schema 5 and earlier. The 5 → 6 migration turned them into cards; they stay in old records, unread.
   - `miniatures.photos` is not a link: it's an array of photo ids in IndexedDB, cover first (see Photos). It's optional.
   - `tools.brand` and `miniatures.brand` are optional text fields, added after 1.0.0; older records have none. They're in the form and search, not the tables.

@@ -65,7 +65,7 @@ test("a column per phase, with units in priority order and their counts", async 
   ]);
   await expect(col(page, "Building")).toContainText("No models");
   // A unit of one has no list to open; To do has no ◀ and Done no ▶.
-  await expect(head(page, "To do", "Hero").locator("button")).toHaveCount(1);
+  await expect(head(page, "To do", "Hero").locator(".arrow")).toHaveCount(1);
   await expect(
     head(page, "To do", "Hero").getByRole("button", {
       name: "Move Hero on to Building",

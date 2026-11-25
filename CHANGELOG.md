@@ -10,6 +10,8 @@ What changed in each version of ForgeLedger. Backups from every earlier version 
 - **The List view** shows your units in priority order, with how many models are in each phase; reorder it and the board follows.
 - **Your queue moves across:** each item's models become cards in the matching column (Basecoating is now Painting, and Basing is Detailing). Backups from 1.x import the same way. A copy of ForgeLedger 1.x can't open data from this version.
 - **While every model of a miniature is on the board,** its status and painted count follow the board both ways.
+- **A photo of each model:** every model on the board has a photo button. Add, replace or remove a model's photo there; it's kept with its miniature's photos too, and the miniature's photos say which model each is of.
+- **Undo inside the photo viewer** now updates the viewer as well.
 
 ## 1.2.0 – 2026-11-25
 
