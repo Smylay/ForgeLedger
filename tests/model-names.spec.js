@@ -166,3 +166,51 @@ test("stored names that aren't text, or are too long, are made safe", async ({
     page.getByRole("button", { name: `Rename ${"x".repeat(40)} (Squad)` }),
   ).toBeVisible();
 });
+
+test.describe("long names at laptop width", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("a long name never widens its column into the next", async ({
+    page,
+  }) => {
+    await seed(page, {
+      ...data,
+      queue: [
+        {
+          ...data.queue[0],
+          cards: [
+            { id: "a1", phase: "Priming", name: "Short" },
+            { id: "a2", phase: "Priming", name: "x".repeat(40) },
+            { id: "a3", phase: "Priming" },
+          ],
+        },
+        {
+          id: "b",
+          name: "Lord Marshal",
+          cards: [{ id: "b1", phase: "Priming" }],
+        },
+      ],
+    });
+    await nav(page, "queue");
+    await page.locator('[data-unit="a"][data-from="Priming"]').click();
+    await expect(page.locator("#queueContent .mcard")).toHaveCount(3);
+    // Everything in each column stays inside it, and the columns are equal.
+    const spill = await page.evaluate(() =>
+      [...document.querySelectorAll("#queueContent .phase")].flatMap((ph) => {
+        let edge = ph.getBoundingClientRect().right + 0.5;
+        return [...ph.querySelectorAll("*")]
+          .filter((el) => el.getBoundingClientRect().right > edge)
+          .map((el) => `${ph.dataset.phase}: ${el.className || el.tagName}`);
+      }),
+    );
+    expect(spill).toEqual([]);
+    const widths = await page
+      .locator("#queueContent .phase")
+      .evaluateAll((els) => els.map((e) => Math.round(e.offsetWidth)));
+    expect(new Set(widths).size).toBe(1);
+    // The long name is cut short on screen, but its button names it in full.
+    await expect(
+      page.getByRole("button", { name: `Rename ${"x".repeat(40)} (Squad)` }),
+    ).toBeVisible();
+  });
+});
