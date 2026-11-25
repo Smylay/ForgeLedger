@@ -77,7 +77,7 @@ function buy(w, to, paint) {
     },
     () =>
       paint
-        ? `Bought "${w.name}": "${paint.name}" is Full again${restockPrice(w) ? `, ${money(restockPrice(w))} recorded` : ""}`
+        ? `Bought "${w.name}": "${paint.name}" is Full again${amount(w.price) ? `, ${money(amount(w.price))} recorded` : ""}`
         : record
           ? `Bought "${w.name}": added to ${defs[to].nav || defs[to].title}`
           : `Bought "${w.name}": taken off the wishlist`,

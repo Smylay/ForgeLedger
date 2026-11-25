@@ -50,19 +50,16 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - **Colour themes and going back (phase 24):** Forest, Ocean, Amethyst and Parchment themes; Back, −1 and Back 1 in the queue; Dirty Down in the catalogue. _(From the bug list, and chat.)_
 - **Queueing from progress, and slimmer downloads (phase 25):** queueing a miniature starts from its status and painted count, and downloads hold just the app. _(Asked for in chat.)_
 - **Version 1.1.0:** phases 19 to 25.
-
-## Phase 26: The queue keeps miniatures up to date, and restock spend (in progress)
-
-_(Asked for in chat, from Later.)_
-
-- **The queue keeps a miniature's status and painted count in step** as its item moves on, forward only.
-- **Restock purchases count in Recorded spend,** kept with each paint and editable in its form.
+- **The queue keeps miniatures up to date, and restock spend (phase 26):** queue progress moves each miniature's status and painted count forward, and restocks count in Recorded spend. _(From Later.)_
+- **Version 1.2.0:** phase 26.
 
 ## Releases
 
-Phases merge into `dev`; versions are released to `main`. Version 1.1.0 brought phases 19 to 25. See [CHANGELOG.md](CHANGELOG.md).
+Phases merge into `dev`; versions are released to `main`. Version 1.2.0 brought phase 26, and 1.1.0 phases 19 to 25. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Later
+
+Nothing yet. Ideas from the bug list land here or in a phase.
 
 ## Considered, not planned
 

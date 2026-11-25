@@ -165,7 +165,7 @@ function recordedSpend() {
   return (
     ["paints", "tools", "miniatures"]
       .flatMap((k) => db[k])
-      .reduce((a, x) => a + Number(x.price || 0), 0) + restocksSpend()
+      .reduce((a, x) => a + amount(x.price), 0) + restocksSpend()
   );
 }
 function restocksSpend() {
@@ -243,7 +243,7 @@ function renderStockSummary() {
     : '<div class="empty">No paints running low.</div>';
 }
 function renderSpendSummary() {
-  let wish = db.wishlist.reduce((a, x) => a + Number(x.price || 0), 0);
+  let wish = db.wishlist.reduce((a, x) => a + amount(x.price), 0);
   document.querySelector("#spendSummary").innerHTML =
     `<div class="metric"><div class="v">${money(recordedSpend())}</div><div class="muted">Owned collection spend${restocksSpend() ? `, including ${money(restocksSpend())} on restocks` : ""}</div><br><div class="v">${money(wish)}</div><div class="muted">Wishlist exposure</div></div>`;
 }
