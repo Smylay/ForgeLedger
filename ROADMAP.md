@@ -54,15 +54,11 @@ ForgeLedger keeps the base solid before adding features. Each phase ships as its
 - **Version 1.2.0:** phase 26.
 - **The painting board (phase 27):** a card for every model in columns by phase, Add 1 and Add all, Edit board, and a simpler List. _(Asked for in chat.)_
 - **Photos of each model (phase 28):** a photo on any model's card, kept with its miniature's photos. _(Asked for in chat.)_
+- **Project pages and model names (phase 29):** a page for each project with its progress, miniatures, board status, photos, wishlist items and rewards; a Project field on wishlist items; and names for the models on the board. _(Asked for in chat.)_
 
 ## Version 2.0 (asked for in chat)
 
 A painting board, with a card for every model, instead of stage buttons on each queue item; photos of each model; and a page for each project.
-
-### Phase 29: Project pages
-
-- **A page for each project,** like the dashboard but for that project: its miniatures and where each is on the board, its progress, spend, rewards and wishlist items.
-- **A Project field on wishlist items,** so anything you need for a project shows on its page.
 
 ### Then: version 2.0.0
 

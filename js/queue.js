@@ -41,14 +41,23 @@ function cardsOf(q) {
 function cardPhoto(c) {
   return typeof c?.photo === "string" ? c.photo : "";
 }
-// A model's name, as text: the unit's, numbered by the card's place in it
-// when the unit has more than one model.
+// The name a model was given on the board, or "" (imported values may be
+// anything).
+function cardName(c) {
+  return typeof c?.name === "string"
+    ? c.name.trim().slice(0, MAX_MODEL_NAME)
+    : "";
+}
+// What a model's card shows: its name, else its number in the unit.
+function cardLabel(q, c) {
+  return cardName(c) || `#${cardsOf(q).findIndex((x) => x.id === c.id) + 1}`;
+}
+// A model's full name, as text: "Kael (Squad)" once it's named, else the
+// unit's name, numbered when the unit has more than one model.
 function modelName(q, c) {
-  let cards = cardsOf(q),
-    name = String(q?.name ?? "");
-  return cards.length > 1
-    ? `${name} #${cards.findIndex((x) => x.id === c.id) + 1}`
-    : name;
+  let unit = String(q?.name ?? "");
+  if (cardName(c)) return `${cardName(c)} (${unit})`;
+  return cardsOf(q).length > 1 ? `${unit} ${cardLabel(q, c)}` : unit;
 }
 // Where a card is, as an index into the board's phases. A phase the board
 // doesn't have counts as To do.
@@ -95,8 +104,9 @@ function newCards(n, phase) {
 }
 // "Priming 6 · Done 4" for a list of cards (in board order).
 function cardsText(cards) {
-  return boardPhases()
-    .map((p) => [p, cards.filter((c) => c.phase === p).length])
+  let phases = boardPhases();
+  return phases
+    .map((p, i) => [p, cards.filter((c) => cardIndex(c, phases) === i).length])
     .filter(([, n]) => n)
     .map(([p, n]) => `${p} ${n}`)
     .join(" · ");
@@ -273,7 +283,9 @@ function moveCards(qid, ids, to) {
       for (let c of cards) c.phase = to;
     },
     () =>
-      `Moved ${cards.length === 1 ? "1 model" : `${cards.length} models`} of "${q.name}" to ${to}`,
+      cards.length === 1 && cardName(cards[0])
+        ? `Moved "${cardName(cards[0])}" of "${q.name}" to ${to}`
+        : `Moved ${cards.length === 1 ? "1 model" : `${cards.length} models`} of "${q.name}" to ${to}`,
   );
   if (saved && !wasDone && entryDone(q)) askComplete(q);
   return saved;
@@ -407,18 +419,19 @@ function unitHtml(q, cards, phases, i) {
     from = esc(phases[i]),
     n = cards.length,
     open = n > 1 && openUnits.has(q.id + "\n" + phases[i]),
-    number = new Map(cardsOf(q).map((c, k) => [c.id, k + 1]));
+    // One model of several here is the heading: its name follows the unit's.
+    one = n === 1 && cardsOf(q).length > 1 ? cards[0] : null;
   let title =
     n > 1
       ? `<button class="unitname" data-unit="${qid}" data-from="${from}" aria-expanded="${open}">${name} <b>${n}</b></button>`
-      : `<span class="unitname">${name}</span>`;
+      : `<span class="unitname">${name}${one ? " " + modelLabelHtml(q, one) : ""}</span>`;
   // A single model here is the heading, so its photo button goes there.
-  let head = `<div class="unithead" data-q="${qid}" data-from="${from}"><span class="grip" aria-hidden="true">⠿</span>${title}${n === 1 ? cardPhotoHtml(q, cards[0]) : ""}${arrowsHtml(q, phases, i, null, n > 1 ? `all ${n} of ${name}` : name)}</div>`;
+  let head = `<div class="unithead" data-q="${qid}" data-from="${from}"><span class="grip" aria-hidden="true">⠿</span>${title}${n === 1 ? cardPhotoHtml(q, cards[0]) : ""}${arrowsHtml(q, phases, i, null, one ? esc(modelName(q, one)) : n > 1 ? `all ${n} of ${name}` : name)}</div>`;
   let list = open
     ? `<ul class="mcards">${cards
         .map(
           (c) =>
-            `<li class="mcard" data-q="${qid}" data-mcard="${esc(c.id)}" data-from="${from}"><span class="grip" aria-hidden="true">⠿</span><span class="mname">#${number.get(c.id)}</span>${cardPhotoHtml(q, c)}${arrowsHtml(q, phases, i, c.id, `${name} #${number.get(c.id)}`)}</li>`,
+            `<li class="mcard" data-q="${qid}" data-mcard="${esc(c.id)}" data-from="${from}"><span class="grip" aria-hidden="true">⠿</span>${modelLabelHtml(q, c)}${cardPhotoHtml(q, c)}${arrowsHtml(q, phases, i, c.id, esc(modelName(q, c)))}</li>`,
         )
         .join("")}</ul>`
     : "";
@@ -429,6 +442,63 @@ function arrowsHtml(q, phases, i, cid, what) {
   let one = (dir, label, glyph) =>
     `<button class="arrow" data-move="${esc(q.id)}" data-from="${esc(phases[i])}" data-dir="${dir}"${cid ? ` data-mcard="${esc(cid)}"` : ""} aria-label="Move ${what} ${label} ${esc(phases[i + dir])}">${glyph}</button>`;
   return `<span class="arrows">${i > 0 ? one(-1, "back to", "◀") : ""}${i < phases.length - 1 ? one(1, "on to", "▶") : ""}</span>`;
+}
+// A model's name or number, as a button that renames it (startRename()).
+function modelLabelHtml(q, c) {
+  return `<button class="mname" data-mname="${esc(c.id)}" data-q="${esc(q.id)}" aria-label="Rename ${esc(modelName(q, c))}" title="${esc(cardLabel(q, c))}">${esc(cardLabel(q, c))}</button>`;
+}
+// Rename a model in place: the label becomes a box. Enter or leaving the
+// box saves, with Undo; Esc puts it back. A blank name shows its number.
+function startRename(b) {
+  let q = db.queue.find((x) => x.id === b.dataset.q),
+    c = cardsOf(q).find((x) => x.id === b.dataset.mname);
+  if (!c) return;
+  let input = document.createElement("input"),
+    done = false;
+  input.className = "mrename";
+  input.value = cardName(c);
+  input.placeholder = `#${cardsOf(q).indexOf(c) + 1}`;
+  input.maxLength = MAX_MODEL_NAME;
+  input.setAttribute("aria-label", `Name of ${modelName(q, c)}`);
+  let finish = (save) => {
+    if (done) return;
+    done = true;
+    if (save) renameModel(q.id, c.id, input.value);
+    else {
+      renderQueue();
+      refocus(`[data-mname="${CSS.escape(c.id)}"]`);
+    }
+  };
+  input.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== "Escape") return;
+    e.preventDefault();
+    e.stopPropagation(); // Esc here mustn't close anything else
+    finish(e.key === "Enter");
+  });
+  input.addEventListener("blur", () => finish(true));
+  b.replaceWith(input);
+  input.focus();
+  input.select();
+}
+function renameModel(qid, cid, text) {
+  let q = db.queue.find((x) => x.id === qid),
+    c = cardsOf(q).find((x) => x.id === cid),
+    name = String(text).trim().slice(0, MAX_MODEL_NAME),
+    focus = `[data-mname="${CSS.escape(cid)}"]`;
+  if (!c || name === cardName(c)) {
+    renderQueue();
+    return refocus(focus);
+  }
+  let was = modelName(q, c);
+  commitWithUndo(
+    () => {
+      if (name) c.name = name;
+      else delete c.name;
+    },
+    () =>
+      name ? `Renamed ${was} to "${name}"` : `${was} has its number again`,
+  );
+  refocus(focus);
 }
 // A model's photo button: its photo's thumbnail, or a camera to add one.
 // Either opens the photo viewer for that model (photos.js).

@@ -56,6 +56,16 @@ for (const section of sections) {
   });
 }
 
+test("a project's page fits the screen width", async ({ page }) => {
+  await nav(page, "projects");
+  await page.locator("#content a.plink").click();
+  await expect(page.locator("#projectContent .pmini")).toHaveCount(1);
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+});
+
 test("the current section is scrolled into view in the nav row", async ({
   page,
 }) => {
@@ -174,5 +184,14 @@ test.describe("laptop screen", () => {
         .evaluate((t) => t.scrollWidth - t.clientWidth);
       expect(overflow, section).toBeLessThanOrEqual(0);
     }
+    // A project's page doesn't widen the page either.
+    await nav(page, "projects");
+    await page.locator("#content a.plink").first().click();
+    await expect(page.locator("#projectContent .pmini").first()).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      ),
+    ).toBeLessThanOrEqual(0);
   });
 });

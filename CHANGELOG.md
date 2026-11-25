@@ -12,6 +12,10 @@ What changed in each version of ForgeLedger. Backups from every earlier version 
 - **While every model of a miniature is on the board,** its status and painted count follow the board both ways.
 - **A photo of each model:** every model on the board has a photo button. Add, replace or remove a model's photo there; it's kept with its miniature's photos too, and the miniature's photos say which model each is of.
 - **Undo inside the photo viewer** now updates the viewer as well.
+- **A page for each project:** click a project's name for its progress, spend and target date, every miniature in it and where its models are on the board, all their photos, and its wishlist items and rewards, with Bought, Add 1 and Add all right there.
+- **Wishlist items can belong to a project,** and show on its page. A miniature bought for a project joins it.
+- **Name the models on the board:** click a model's number (#3) to give it a name, like "Sergeant Kael". Leave it blank to go back to the number.
+- **Project names link to their pages** from the dashboard, the projects list and a miniature's project.
 
 ## 1.2.0 – 2026-11-25
 
