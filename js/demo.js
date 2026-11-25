@@ -40,6 +40,9 @@ function demoData(base = new Date()) {
         phase,
       })),
     );
+  // The first painted squad model has the squad's photo.
+  let squad = cards("squad", ["Painting", 5], ["Detailing", 3], ["Done", 2]);
+  squad[8].photo = "demo-photo-1";
   let skill = (name, level, changed, goal = "") => ({
     id: "s-" + name.toLowerCase().replace(/[^a-z]+/g, "-"),
     name,
@@ -226,7 +229,7 @@ function demoData(base = new Date()) {
         miniature: "m-squad",
         project: "a-iron",
         models: "10",
-        cards: cards("squad", ["Painting", 5], ["Detailing", 3], ["Done", 2]),
+        cards: squad,
         due: day(5),
         notes: "",
       },
@@ -410,7 +413,7 @@ function renderStartNotice() {
 }
 // Example data (demo.js): only offered while the app is empty, so it never
 // replaces anything. Its photos are drawn and stored first; if they can't
-// be stored, the miniatures simply have none.
+// be stored, the miniatures and models simply have none.
 async function loadDemo() {
   if (hasUserData()) return;
   let data = demoData(),
@@ -420,7 +423,10 @@ async function loadDemo() {
       await putPhotos(demoPhotos());
       stored = true;
     } catch {}
-  if (!stored) for (let m of data.miniatures) delete m.photos;
+  if (!stored) {
+    for (let m of data.miniatures) delete m.photos;
+    for (let c of data.queue.flatMap((q) => q.cards)) delete c.photo;
+  }
   if (!commit(() => (db = withCurrency(fromBackup(data))))) return;
   newRewards = [];
   renderRewardNotice();

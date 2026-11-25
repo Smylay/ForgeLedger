@@ -1130,6 +1130,7 @@ button.unitname[aria-expanded="true"]::before {
   gap: 4px;
 }
 .mcard {
+  flex-wrap: wrap; /* arrows go under the number in a narrow column */
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -1151,6 +1152,25 @@ button.unitname[aria-expanded="true"]::before {
   border: 1px solid var(--line);
   border-radius: 6px;
   cursor: pointer;
+}
+/* A model's photo button: its thumbnail, or a camera icon. */
+.mphoto {
+  display: inline-grid;
+  place-items: center;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  background: var(--chip);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+  overflow: hidden;
+}
+.mphoto .thumb {
+  width: 30px;
+  height: 30px;
+  border-radius: 5px;
 }
 .unithead.dragging,
 .mcard.dragging {
@@ -1175,9 +1195,14 @@ button.unitname[aria-expanded="true"]::before {
 /* After the 32px rules above, so it wins on touch screens. */
 @media (pointer: coarse) {
   .arrow,
+  .mphoto,
   button.unitname {
     min-width: 44px;
     min-height: 44px;
+  }
+  .mphoto .thumb {
+    width: 42px;
+    height: 42px;
   }
 }
 .stagelist {

@@ -8,7 +8,7 @@ let memoryOnly = false, // storage is blocked: changes live in memory only
   completing = null, // id of the queue item the completion prompt is about
   buying = null, // { id, row } of the wishlist item the Bought prompt is about
   openUnits = new Set(), // board units opened to show their models: qid + "\n" + phase
-  viewing = null, // { id, index, url } of the miniature whose photos are open
+  viewing = null, // the photo viewer's { id, index, url }, or { q, card, … } for a model
   newRewards = [], // wishlist ids of rewards a change unlocked, until dismissed
   // Auto-save to a file (autosave.js): off, on, paused or error.
   autoSave = { handle: null, state: "off", savedAt: 0, error: "" },
@@ -63,6 +63,7 @@ const BUTTON_ACTIONS = {
   addall: (b) => addModels(b.dataset.addall, true),
   qview: (b) => setQueueMode(b.dataset.qview),
   unit: (b) => toggleUnit(b.dataset.unit, b.dataset.from),
+  mphoto: (b) => openCardPhoto(b.dataset.q, b.dataset.mphoto),
   move: (b) =>
     stepCards(
       b.dataset.move,
@@ -171,10 +172,11 @@ document.querySelector("#photoStrip").onclick = (e) => {
 document.querySelector("#coverPhoto").onclick = makeCover;
 document.querySelector("#removePhoto").onclick = removePhoto;
 document.querySelector("#photosDialog").onclose = () => {
-  let mid = viewing?.id;
+  let was = viewing;
   if (viewing?.url) URL.revokeObjectURL(viewing.url);
   viewing = null;
-  if (mid) refocus(`[data-photos="${CSS.escape(mid)}"]`);
+  if (was?.card) refocus(`[data-mphoto="${CSS.escape(was.card)}"]`);
+  else if (was?.id) refocus(`[data-photos="${CSS.escape(was.id)}"]`);
 };
 // The phase editor (Edit board, stages.js).
 document.querySelector("#editBoard").onclick = openPhases;
@@ -207,6 +209,7 @@ document.querySelector("#toastAction").onclick = () => {
   if (!snapshot || !commit(() => (db = snapshot))) return;
   renderNav();
   render();
+  if (viewing) renderPhotos(); // Undo from inside the photo viewer
   toast("Restored");
 };
 document.querySelector("#closeModal").onclick = document.querySelector(
@@ -287,14 +290,14 @@ document.querySelector("#queueContent").addEventListener("pointerdown", (e) => {
 });
 // Drag a model card, or a unit's heading (all its models in that phase),
 // to another phase on the board. A mouse can drag from anywhere on it but
-// the arrow buttons; a finger or pen uses the ⠿ grip, so touching the
+// the arrow and photo buttons; a finger or pen uses the ⠿ grip, so touching the
 // board elsewhere still scrolls it. Nothing happens until the pointer has
 // moved a little, so a click is still a click. Then a copy follows the
 // pointer, the phase under it is highlighted, and the move is saved on
 // release. ◀ and ▶ do the same without dragging.
 document.querySelector("#queueContent").addEventListener("pointerdown", (e) => {
   let el = e.target.closest(".mcard, .unithead");
-  if (!el || e.button !== 0 || e.target.closest(".arrow")) return;
+  if (!el || e.button !== 0 || e.target.closest(".arrow, .mphoto")) return;
   if (e.pointerType !== "mouse" && !e.target.closest(".grip")) return;
   let x0 = e.clientX,
     y0 = e.clientY,

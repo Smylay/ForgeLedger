@@ -37,6 +37,19 @@ function cardsOf(q) {
     ? q.cards.filter((c) => isRecord(c) && typeof c.id === "string")
     : [];
 }
+// A card's photo id, or "": imported values may be anything.
+function cardPhoto(c) {
+  return typeof c?.photo === "string" ? c.photo : "";
+}
+// A model's name, as text: the unit's, numbered by the card's place in it
+// when the unit has more than one model.
+function modelName(q, c) {
+  let cards = cardsOf(q),
+    name = String(q?.name ?? "");
+  return cards.length > 1
+    ? `${name} #${cards.findIndex((x) => x.id === c.id) + 1}`
+    : name;
+}
 // Where a card is, as an index into the board's phases. A phase the board
 // doesn't have counts as To do.
 function cardIndex(c, phases = boardPhases()) {
@@ -366,6 +379,7 @@ function renderQueue() {
     : mode === "board"
       ? boardHtml()
       : db.queue.map(queueItemHtml).join("");
+  fillPhotos(box);
 }
 
 // The board: one column per phase. In each, the units with models there,
@@ -398,12 +412,13 @@ function unitHtml(q, cards, phases, i) {
     n > 1
       ? `<button class="unitname" data-unit="${qid}" data-from="${from}" aria-expanded="${open}">${name} <b>${n}</b></button>`
       : `<span class="unitname">${name}</span>`;
-  let head = `<div class="unithead" data-q="${qid}" data-from="${from}"><span class="grip" aria-hidden="true">⠿</span>${title}${arrowsHtml(q, phases, i, null, n > 1 ? `all ${n} of ${name}` : name)}</div>`;
+  // A single model here is the heading, so its photo button goes there.
+  let head = `<div class="unithead" data-q="${qid}" data-from="${from}"><span class="grip" aria-hidden="true">⠿</span>${title}${n === 1 ? cardPhotoHtml(q, cards[0]) : ""}${arrowsHtml(q, phases, i, null, n > 1 ? `all ${n} of ${name}` : name)}</div>`;
   let list = open
     ? `<ul class="mcards">${cards
         .map(
           (c) =>
-            `<li class="mcard" data-q="${qid}" data-mcard="${esc(c.id)}" data-from="${from}"><span class="grip" aria-hidden="true">⠿</span><span class="mname">#${number.get(c.id)}</span>${arrowsHtml(q, phases, i, c.id, `${name} #${number.get(c.id)}`)}</li>`,
+            `<li class="mcard" data-q="${qid}" data-mcard="${esc(c.id)}" data-from="${from}"><span class="grip" aria-hidden="true">⠿</span><span class="mname">#${number.get(c.id)}</span>${cardPhotoHtml(q, c)}${arrowsHtml(q, phases, i, c.id, `${name} #${number.get(c.id)}`)}</li>`,
         )
         .join("")}</ul>`
     : "";
@@ -414,6 +429,15 @@ function arrowsHtml(q, phases, i, cid, what) {
   let one = (dir, label, glyph) =>
     `<button class="arrow" data-move="${esc(q.id)}" data-from="${esc(phases[i])}" data-dir="${dir}"${cid ? ` data-mcard="${esc(cid)}"` : ""} aria-label="Move ${what} ${label} ${esc(phases[i + dir])}">${glyph}</button>`;
   return `<span class="arrows">${i > 0 ? one(-1, "back to", "◀") : ""}${i < phases.length - 1 ? one(1, "on to", "▶") : ""}</span>`;
+}
+// A model's photo button: its photo's thumbnail, or a camera to add one.
+// Either opens the photo viewer for that model (photos.js).
+const CAMERA_ICON =
+  '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9 4 7.2 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.2L15 4H9Zm3 4.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Zm0 2a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z"/></svg>';
+function cardPhotoHtml(q, c) {
+  let pid = cardPhoto(c),
+    label = `${pid ? "Photo of" : "Add a photo of"} ${esc(modelName(q, c))}`;
+  return `<button class="mphoto" data-mphoto="${esc(c.id)}" data-q="${esc(q.id)}" aria-label="${label}">${pid ? `<img class="thumb" data-photo="${esc(pid)}" alt="" width="28" height="28">` : CAMERA_ICON}</button>`;
 }
 
 // The list: units in priority order, each with its model count, due date,

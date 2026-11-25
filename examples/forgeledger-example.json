@@ -293,7 +293,7 @@
         { "id": "card-squad-2-1", "phase": "Detailing" },
         { "id": "card-squad-2-2", "phase": "Detailing" },
         { "id": "card-squad-2-3", "phase": "Detailing" },
-        { "id": "card-squad-3-1", "phase": "Done" },
+        { "id": "card-squad-3-1", "phase": "Done", "photo": "demo-photo-1" },
         { "id": "card-squad-3-2", "phase": "Done" }
       ],
       "due": "2027-01-20",

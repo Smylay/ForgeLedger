@@ -239,6 +239,27 @@ for (const run of [
       expect(await violations(page)).toEqual([]);
     });
 
+    test("a model's photo, on the board and in its viewer, has no accessibility violations", async ({
+      page,
+    }) => {
+      await nav(page, "queue");
+      await page.locator('[data-unit="q3"][data-from="Priming"]').click();
+      await page.locator("#queueContent .mcard .mphoto").first().click();
+      await page
+        .locator("#photoFile")
+        .setInputFiles([await imageFile(page, "a.png", 400, 300)]);
+      await expect(page.locator("#photoView img")).toHaveAttribute(
+        "src",
+        /^blob:/,
+      );
+      expect(await violations(page)).toEqual([]);
+      await page.click("#closePhotos");
+      await expect(
+        page.locator("#queueContent .mcard .mphoto img").first(),
+      ).toHaveAttribute("src", /^blob:/);
+      expect(await violations(page)).toEqual([]);
+    });
+
     test("the skill level guide and own-skill box have no accessibility violations", async ({
       page,
     }) => {

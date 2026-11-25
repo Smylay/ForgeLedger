@@ -524,7 +524,7 @@ test("unit and phase names on the board can't run script", async ({
           name: attack("hostileUnitName"),
           cards: [
             { id: attack("hostileCardId"), phase },
-            { id: "c2", phase },
+            { id: "c2", phase, photo: attack("hostileCardPhoto") },
           ],
         },
       ],
@@ -537,14 +537,22 @@ test("unit and phase names on the board can't run script", async ({
   );
   await page.locator("#queueContent button.unitname").click();
   await expect(page.locator("#queueContent .mcard")).toHaveCount(2);
+  // The model's photo viewer.
+  await page.locator("#queueContent .mcard .mphoto").last().click();
+  await expect(page.locator("#photosDialog")).toBeVisible();
+  await page.click("#closePhotos");
   await page.click('[data-qview="list"]');
   await page.click("#editBoard");
   await page.keyboard.press("Escape");
   await page.waitForTimeout(200);
   const ran = await page.evaluate(() =>
-    ["phase", "hostileUnitId", "hostileUnitName", "hostileCardId"].filter(
-      (f) => window["xss_" + f],
-    ),
+    [
+      "phase",
+      "hostileUnitId",
+      "hostileUnitName",
+      "hostileCardId",
+      "hostileCardPhoto",
+    ].filter((f) => window["xss_" + f]),
   );
   expect(ran).toEqual([]);
 });
